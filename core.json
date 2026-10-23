@@ -1,0 +1,19 @@
+{
+    "_": "Ficheros del núcleo que reemplaza una actualización remota (Cosmo). Todo lo que no esté aquí es de la instalación y nunca se toca (site/, config.local.php, data/). ** = cualquier subcarpeta, * = dentro de una carpeta.",
+    "core": [
+        "VERSION",
+        "CHANGELOG.md",
+        "README.md",
+        "core.json",
+        ".htaccess",
+        "index.php",
+        "contact.php",
+        "config.php",
+        "router.php",
+        "admin/**",
+        "lib/**",
+        "assets/**",
+        "bin/**",
+        "data/.htaccess"
+    ]
+}

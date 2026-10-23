@@ -1,0 +1,10 @@
+# Lo propio de cada instalación (no es del núcleo)
+/config.local.php
+/site/
+/data/*
+!/data/.htaccess
+!/data/.gitkeep
+
+.DS_Store
+.idea/
+.vscode/

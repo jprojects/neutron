@@ -1,0 +1,27 @@
+{
+    "site_name": "Espacio Bella",
+    "hero_title": "Espacio Bella",
+    "hero_subtitle": "Tu peluquería de confianza en el corazón de la ciudad",
+    "hero_image": "site/assets/demo/hero.svg",
+    "about_title": "Quiénes somos",
+    "about_text": "En Espacio Bella llevamos más de 10 años cuidando tu imagen con pasión y profesionalidad. Nuestro equipo de estilistas combina las últimas tendencias con técnicas clásicas para ofrecerte un resultado único, adaptado a ti. Trabajamos con productos de primera calidad en un ambiente cálido y relajado, pensado para que disfrutes cada visita.",
+    "services_title": "Nuestros servicios",
+    "services": [
+        { "title": "Corte y peinado", "description": "Cortes a medida para hombre, mujer y niños, con acabado profesional y asesoramiento personalizado." },
+        { "title": "Coloración", "description": "Tintes, mechas y balayage con productos de calidad que cuidan tu cabello mientras lucís el color que soñás." },
+        { "title": "Tratamientos capilares", "description": "Hidratación, alisados y reconstrucción para devolverle la salud y el brillo a tu pelo." },
+        { "title": "Peinados para eventos", "description": "Recogidos, ondas y peinados de fiesta para que estés perfecta en cada ocasión especial." }
+    ],
+    "gallery_title": "Nuestro trabajo",
+    "gallery": [
+        { "image": "site/assets/demo/gallery-1.svg", "caption": "Balayage rubio miel" },
+        { "image": "site/assets/demo/gallery-2.svg", "caption": "Corte bob moderno" },
+        { "image": "site/assets/demo/gallery-3.svg", "caption": "Peinado de novia" },
+        { "image": "site/assets/demo/gallery-4.svg", "caption": "Color fantasía" }
+    ],
+    "contact_title": "Visítanos",
+    "address": "Calle Mayor 24, Madrid",
+    "phone": "+34 912 345 678",
+    "hours": "Lunes a sábado · 9:00 – 20:00",
+    "email": "hola@espaciobella.com"
+}

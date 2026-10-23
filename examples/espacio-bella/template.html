@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espacio Bella — Peluquería</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf6f1;
+    --text: #2b211c;
+    --muted: #6b5d54;
+    --accent: #b98a5e;
+    --accent-dark: #7a5636;
+    --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    font-family: 'Poppins', system-ui, sans-serif;
+    color: var(--text);
+    background: var(--bg);
+  }
+  h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif; margin: 0 0 16px; }
+
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 24px;
+    background: var(--bg);
+  }
+  .topbar .brand {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 1.5rem;
+    letter-spacing: 0.04em;
+    color: var(--accent-dark);
+  }
+
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+  .hero-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+  }
+  .hero-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(20,14,10,0.35), rgba(20,14,10,0.65));
+    z-index: 1;
+    pointer-events: none;
+  }
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: #fff;
+    padding: 24px;
+    max-width: 680px;
+  }
+  .hero-content h1 { font-size: 3rem; color: #fff; }
+  .hero-content p { font-size: 1.15rem; opacity: 0.92; margin: 0 0 28px; }
+  .cta {
+    display: inline-block;
+    background: var(--accent);
+    color: #fff;
+    text-decoration: none;
+    padding: 14px 32px;
+    border-radius: 999px;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    transition: background 0.2s ease;
+  }
+  .cta:hover { background: var(--accent-dark); }
+
+  section {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 88px 24px;
+  }
+  section h2 { font-size: 2.1rem; text-align: center; color: var(--accent-dark); }
+
+  .about p {
+    max-width: 680px;
+    margin: 24px auto 0;
+    text-align: center;
+    line-height: 1.8;
+    font-size: 1.05rem;
+    color: var(--muted);
+  }
+
+  .services { background: #fff; }
+  .services-grid {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+  }
+  .service-card {
+    background: var(--bg);
+    padding: 28px 24px;
+    border-radius: 14px;
+    text-align: center;
+  }
+  .service-card h3 { font-size: 1.2rem; color: var(--accent-dark); margin-bottom: 10px; }
+  .service-card p { margin: 0; font-size: 0.95rem; line-height: 1.6; color: var(--muted); }
+
+  .gallery-grid {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px;
+  }
+  .gallery-item {
+    margin: 0;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    aspect-ratio: 1 / 1;
+  }
+  .gallery-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  .gallery-item figcaption {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    padding: 14px 12px 10px;
+    background: linear-gradient(0deg, rgba(0,0,0,0.6), transparent);
+    color: #fff;
+    font-size: 0.85rem;
+  }
+
+  footer.contact {
+    background: var(--accent-dark);
+    color: #fff;
+    text-align: center;
+    padding: 72px 24px;
+  }
+  footer.contact h2 { color: #fff; }
+  footer.contact p { margin: 6px 0; opacity: 0.9; font-size: 0.98rem; }
+
+  @media (max-width: 640px) {
+    .hero-content h1 { font-size: 2.1rem; }
+    section { padding: 56px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="topbar">
+  <span class="brand" data-edit="site_name">Espacio Bella</span>
+</nav>
+
+<header class="hero">
+  <img class="hero-bg" data-edit-img="hero_image" src="site/assets/demo/hero.svg" alt="Salón Espacio Bella">
+  <div class="hero-overlay"></div>
+  <div class="hero-content">
+    <h1 data-edit="hero_title">Espacio Bella</h1>
+    <p data-edit="hero_subtitle">Tu peluquería de confianza en el corazón de la ciudad</p>
+    <a class="cta" href="#contacto">Reservar cita</a>
+  </div>
+</header>
+
+<section class="about" id="nosotros">
+  <h2 data-edit="about_title">Quiénes somos</h2>
+  <p data-edit="about_text">En Espacio Bella llevamos más de 10 años cuidando tu imagen con pasión y profesionalidad. Nuestro equipo de estilistas combina las últimas tendencias con técnicas clásicas para ofrecerte un resultado único, adaptado a ti.</p>
+</section>
+
+<section class="services" id="servicios">
+  <h2 data-edit="services_title">Nuestros servicios</h2>
+  <div class="services-grid" data-edit-collection="services">
+    <div class="service-card" data-edit-item>
+      <h3 data-edit-field="title">Corte y peinado</h3>
+      <p data-edit-field="description">Cortes a medida con acabado profesional y asesoramiento personalizado.</p>
+    </div>
+  </div>
+</section>
+
+<section class="gallery" id="galeria">
+  <h2 data-edit="gallery_title">Nuestro trabajo</h2>
+  <div class="gallery-grid" data-edit-collection="gallery">
+    <figure class="gallery-item" data-edit-item>
+      <img data-edit-field="image" src="site/assets/demo/gallery-1.svg" alt="">
+      <figcaption data-edit-field="caption">Balayage rubio miel</figcaption>
+    </figure>
+  </div>
+</section>
+
+<footer class="contact" id="contacto">
+  <h2 data-edit="contact_title">Visítanos</h2>
+  <p data-edit="address">Calle Mayor 24, Madrid</p>
+  <p data-edit="phone">+34 912 345 678</p>
+  <p data-edit="hours">Lunes a sábado · 9:00 – 20:00</p>
+  <p data-edit="email">hola@espaciobella.com</p>
+</footer>
+
+</body>
+</html>

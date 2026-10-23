@@ -1,0 +1,21 @@
+# Neutron (núcleo: lo sustituye cada actualización)
+Options -Indexes
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Ficheros internos: nunca se sirven
+    RewriteRule ^(config(\.local)?\.php|core\.json|VERSION|CHANGELOG\.md|README\.md|CLAUDE\.md|router\.php|\.git.*)$ - [F,L]
+    RewriteRule ^(lib|data|bin|examples|\.git)(/|$) - [F,L]
+    RewriteRule ^site/(template\.html|[^/]+\.json|pages/) - [F,L]
+
+    # Páginas del sitio: avis-legal.html → index.php?page=avis-legal (site/pages/avis-legal.html)
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^([a-z0-9][a-z0-9-]*)\.html$ index.php?page=$1 [QSA,L]
+</IfModule>
+
+# La API remota (Cosmo) lee el token de Authorization en hostings con PHP como CGI/FPM
+<IfModule mod_setenvif.c>
+    SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
+</IfModule>

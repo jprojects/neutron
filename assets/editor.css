@@ -1,0 +1,110 @@
+.neutron-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: #1f2933;
+  color: #fff;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font: 14px system-ui, sans-serif;
+}
+.neutron-bar button {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+.neutron-bar button:hover { background: #2563eb; }
+.neutron-bar .neutron-status { margin-left: auto; opacity: 0.85; }
+
+body.neutron-editing { padding-top: 48px; }
+
+.neutron-editable {
+  outline: 1px dashed rgba(59, 130, 246, 0.6);
+  outline-offset: 2px;
+  min-height: 1em;
+}
+.neutron-editable:focus {
+  outline: 2px solid #3b82f6;
+  background: rgba(59, 130, 246, 0.08);
+}
+
+.neutron-editable-img {
+  cursor: pointer;
+  outline: 2px dashed rgba(59, 130, 246, 0.6);
+  outline-offset: 2px;
+}
+.neutron-editable-img:hover { outline-color: #3b82f6; }
+
+.neutron-collection [data-edit-item] {
+  position: relative;
+}
+.neutron-remove-item {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  line-height: 20px;
+  cursor: pointer;
+  font-size: 12px;
+}
+.neutron-add-item {
+  display: inline-block;
+  margin-top: 8px;
+  background: #10b981;
+  color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: 14px system-ui, sans-serif;
+}
+
+.neutron-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+}
+.neutron-login-box {
+  background: #fff;
+  padding: 32px;
+  border-radius: 8px;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font: 14px system-ui, sans-serif;
+}
+.neutron-login-box h2 { margin: 0 0 8px; font-size: 18px; }
+.neutron-login-box input {
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  font: inherit;
+}
+.neutron-login-box button {
+  background: #3b82f6;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+.neutron-error { color: #dc2626; margin: 0; font-size: 13px; }
