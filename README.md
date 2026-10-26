@@ -39,6 +39,8 @@ site/
   redirects.json     URLs de la web anterior → páginas nuevas (opcional)
   pages/*.html       otras páginas: site/pages/carta.html → /carta.html (404.html, la de error)
   partials/*.html    trozos compartidos (cabecera, pie): <div data-include="header"></div>
+  favicon.ico        icono de la web, servido también como /favicon.ico
+  apple-touch-icon.png  icono para iPhone/iPad (180×180), servido también como /apple-touch-icon.png
   assets/            imágenes, CSS y JS propios del sitio (cookies.js…)
   uploads/           imágenes subidas desde el editor
 ```
@@ -132,6 +134,20 @@ copia el último elemento con los textos vacíos (y sus sublistas con un solo el
 - Si la misma clave sale varias veces en una página (teléfono en la cabecera y en el pie), al editar una se
   actualizan las demás.
 - **404**: si existe `site/pages/404.html`, es la página de error.
+
+### Favicon
+
+Cada sitio tiene su `site/favicon.ico` (16, 32 y 48 px) y su `site/apple-touch-icon.png` (180×180). Neutron los
+sirve también en la raíz (`/favicon.ico`, `/apple-touch-icon.png`), que es donde los piden muchos navegadores y
+lectores aunque la página diga otra cosa; sin el fichero responden 404 vacío. En el `<head>` de cada página:
+
+```html
+<link rel="icon" href="favicon.ico">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+```
+
+Al migrar una web, el favicon se coge de la original (las etiquetas `rel="icon"`/`shortcut icon` y `/favicon.ico`);
+si no tiene, se hace a partir del logo.
 
 ### Redirecciones de la web anterior
 
@@ -243,7 +259,7 @@ sesión ni envían cookies. Úsala solo por HTTPS.
 
 | Acción `index.php?r=remote&a=` | Método | Qué hace |
 |---|---|---|
-| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio, reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
+| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
 | `logs&level=warning&limit=100&days=7` | GET | Últimas entradas del log |
 | `integrity` | GET | Ficheros del núcleo cambiados a mano e historial de actualizaciones |
 | `backups` | GET | Copias de `data/backups` |

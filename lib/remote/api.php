@@ -144,6 +144,7 @@ function neutron_remote_status(): void {
             'pages' => count(glob(NEUTRON_SITE . '/pages/*.html') ?: []),
             'contact_form' => str_contains($template, 'data-neutron-form'),
             'contact_json' => is_file($contactFile),
+            'favicon' => is_file(NEUTRON_SITE . '/favicon.ico'),
         ],
         'recaptcha' => [
             'enabled' => neutron_recaptcha_enabled(),

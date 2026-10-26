@@ -53,6 +53,22 @@ function neutron_redirect_target(string $path, bool $withQueryOnly = false): ?st
     return null;
 }
 
+// Iconos del sitio que se sirven en la raíz: /favicon.ico → site/favicon.ico. Los apple-touch-icon que
+// piden los iPhone sin mirar la página salen de site/apple-touch-icon.png.
+const NEUTRON_SITE_ICONS = ['favicon.ico', 'apple-touch-icon.png', 'apple-touch-icon-precomposed.png'];
+
+function neutron_serve_site_icon(string $name): void {
+    $file = NEUTRON_SITE . '/' . (str_starts_with($name, 'apple-touch-icon') ? 'apple-touch-icon.png' : $name);
+    if (!is_file($file)) {
+        http_response_code(404);
+        return;
+    }
+    header('Content-Type: ' . (str_ends_with($file, '.ico') ? 'image/x-icon' : 'image/png'));
+    header('Content-Length: ' . filesize($file));
+    header('Cache-Control: public, max-age=604800');
+    readfile($file);
+}
+
 function neutron_redirect(string $to): void {
     if (!preg_match('~^https?://~i', $to)) {
         // Relativa a la instalación

@@ -37,6 +37,10 @@ actualízalo con cada función nueva.
   cartas y menús como secciones con sus platos, no como bloques de texto.
 - Webs de varias páginas: cabecera, menú y pie en `site/partials/` con `data-include`; claves de cada página con
   prefijo; resaltar el menú con `[aria-current="page"]`; `site/redirects.json` con todas las URLs de la web anterior.
+- **Favicon siempre**: al migrar, cogerlo de la web original (`rel="icon"`/`shortcut icon` en el HTML y
+  `/favicon.ico`); si no tiene, hacerlo a partir del logo. Va en `site/favicon.ico` (16/32/48 px) y
+  `site/apple-touch-icon.png` (180×180), con `<link rel="icon" href="favicon.ico">` y
+  `<link rel="apple-touch-icon" href="apple-touch-icon.png">` en el `<head>` de todas las páginas.
 - Cada web nueva es una instalación aparte en `~/Projects/<nombre>` (núcleo con `git archive` + su `site/` +
   `config.local.php` con `bin/install.php`), no en `site/` de este repo, que es Assaice.
 

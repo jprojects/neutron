@@ -2,6 +2,15 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.3.0 — 2026-10-26
+
+Favicon de cada sitio.
+
+- `site/favicon.ico` y `site/apple-touch-icon.png` se sirven también en la raíz (`/favicon.ico`,
+  `/apple-touch-icon.png`, `/apple-touch-icon-precomposed.png`), con caché de una semana y aunque la web esté en
+  mantenimiento. Antes esas peticiones acababan en la página 404 completa.
+- El estado para Cosmo dice si el sitio tiene favicon (`site.favicon`).
+
 ## 1.2.0 — 2026-10-26
 
 Las actualizaciones conservan las reglas propias del `.htaccess`.

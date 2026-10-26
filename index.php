@@ -11,17 +11,24 @@ if ($route === 'remote' || $route === 'status') {
     exit;
 }
 
+require_once __DIR__ . '/lib/routing.php';
+
+// Iconos que los navegadores piden en la raíz aunque la página diga otra cosa: los de site/
+$path = neutron_request_path();
+if (in_array($path, NEUTRON_SITE_ICONS, true)) {
+    neutron_serve_site_icon($path);
+    exit;
+}
+
 neutron_block_if_maintenance();
 
 require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/content.php';
 require_once __DIR__ . '/lib/render.php';
 require_once __DIR__ . '/lib/form.php';
-require_once __DIR__ . '/lib/routing.php';
 
 // Página: la plantilla del sitio o una de site/pages/ (carta.html → index.php?page=carta).
 // Cualquier otra ruta (las URLs de la web anterior) va a site/redirects.json o da 404.
-$path = neutron_request_path();
 $page = is_string($_GET['page'] ?? null) ? $_GET['page'] : '';
 if ($page !== '' && !preg_match('/^[a-z0-9][a-z0-9-]{0,60}$/', $page)) {
     $page = '-';
