@@ -8,30 +8,12 @@ if (!defined('NEUTRON_APP')) { http_response_code(403); exit; }
 function neutron_render_fallback(string $html, array $content, array $options = []): string {
     $root = neutron_parse_html($html);
 
-    foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-edit-collection'])) as $container) {
+    // Listas de primer nivel; las anidadas las rellena su elemento (igual que en render_dom.php)
+    foreach (neutron_fallback_own($root, fn($n) => isset($n->attrs['data-edit-collection'])) as $container) {
         $key = $container->attrs['data-edit-collection'];
-        $items = isset($content[$key]) && is_array($content[$key]) ? $content[$key] : [];
-
-        $itemTemplate = null;
-        foreach ($container->children as $child) {
-            if (($child->type ?? null) === 'element' && isset($child->attrs['data-edit-item'])) {
-                $itemTemplate = $child;
-                break;
-            }
+        if (isset($content[$key]) && is_array($content[$key])) {
+            neutron_fallback_fill_collection($container, $content[$key]);
         }
-        if (!$itemTemplate) continue;
-
-        $newChildren = [];
-        $index = 0;
-        foreach ($items as $itemData) {
-            if (!is_array($itemData)) continue;
-            $clone = neutron_clone_node($itemTemplate);
-            $clone->attrs['data-edit-index'] = (string)$index;
-            neutron_fallback_fill_item_fields($clone, $itemData);
-            $newChildren[] = $clone;
-            $index++;
-        }
-        $container->children = $newChildren;
     }
 
     foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-edit'])) as $node) {
@@ -44,6 +26,14 @@ function neutron_render_fallback(string $html, array $content, array $options = 
         $key = $node->attrs['data-edit-img'];
         if (!array_key_exists($key, $content)) continue;
         $node->attrs['src'] = (string)$content[$key];
+    }
+
+    if (isset($options['current_href'])) {
+        foreach (neutron_find_all($root, fn($n) => $n->tag === 'a' && isset($n->attrs['href'])) as $a) {
+            if (in_array(neutron_normalize_href($a->attrs['href']), (array)$options['current_href'], true)) {
+                $a->attrs['aria-current'] = 'page';
+            }
+        }
     }
 
     if (!empty($options['form_bootstrap'])) {
@@ -61,10 +51,55 @@ function neutron_render_fallback(string $html, array $content, array $options = 
     return $out;
 }
 
-function neutron_fallback_fill_item_fields(object $itemNode, array $data): void {
-    foreach (neutron_find_all($itemNode, fn($n) => isset($n->attrs['data-edit-field'])) as $field) {
+// Nodos que cumplen $predicate y pertenecen a $node: no se baja dentro de otro data-edit-item
+// (lo que hay dentro es de ese elemento). Sin padres en el árbol, es el equivalente a neutron_dom_owner_item.
+function neutron_fallback_own(object $node, callable $predicate): array {
+    $out = [];
+    foreach ($node->children ?? [] as $child) {
+        if (($child->type ?? null) !== 'element') continue;
+        if ($predicate($child)) $out[] = $child;
+        if (!isset($child->attrs['data-edit-item'])) {
+            array_push($out, ...neutron_fallback_own($child, $predicate));
+        }
+    }
+    return $out;
+}
+
+function neutron_fallback_fill_collection(object $container, array $items, int $depth = 0): void {
+    $itemTemplate = null;
+    foreach ($container->children as $child) {
+        if (($child->type ?? null) === 'element' && isset($child->attrs['data-edit-item'])) {
+            $itemTemplate = $child;
+            break;
+        }
+    }
+    if (!$itemTemplate) return;
+
+    $newChildren = [];
+    $index = 0;
+    foreach ($items as $itemData) {
+        if (!is_array($itemData)) continue;
+        $clone = neutron_clone_node($itemTemplate);
+        $clone->attrs['data-edit-index'] = (string)$index;
+        neutron_fallback_fill_item($clone, $itemData, $depth);
+        $newChildren[] = $clone;
+        $index++;
+    }
+    $container->children = $newChildren;
+}
+
+function neutron_fallback_fill_item(object $itemNode, array $data, int $depth = 0): void {
+    if ($depth < NEUTRON_MAX_NESTING) {
+        foreach (neutron_fallback_own($itemNode, fn($n) => isset($n->attrs['data-edit-collection'])) as $sub) {
+            $key = $sub->attrs['data-edit-collection'];
+            if (isset($data[$key]) && is_array($data[$key])) {
+                neutron_fallback_fill_collection($sub, $data[$key], $depth + 1);
+            }
+        }
+    }
+    foreach (neutron_fallback_own($itemNode, fn($n) => isset($n->attrs['data-edit-field'])) as $field) {
         $fkey = $field->attrs['data-edit-field'];
-        if (!array_key_exists($fkey, $data)) continue;
+        if (!array_key_exists($fkey, $data) || is_array($data[$fkey])) continue;
         $val = (string)$data[$fkey];
         if ($field->tag === 'img') {
             $field->attrs['src'] = $val;

@@ -46,20 +46,28 @@ body.neutron-editing { padding-top: 48px; }
 .neutron-collection [data-edit-item] {
   position: relative;
 }
-.neutron-remove-item {
+.neutron-item-controls {
   position: absolute;
   top: 4px;
   right: 4px;
-  background: #dc2626;
-  color: #fff;
+  z-index: 5;
+  display: flex;
+  gap: 4px;
+}
+.neutron-item-controls button {
   border: none;
   border-radius: 50%;
   width: 22px;
   height: 22px;
-  line-height: 20px;
+  padding: 0;
+  line-height: 22px;
   cursor: pointer;
-  font-size: 12px;
+  font: 12px system-ui, sans-serif;
+  color: #fff;
 }
+.neutron-move-item { background: #475569; }
+.neutron-remove-item { background: #dc2626; }
+.neutron-collection .neutron-collection [data-edit-item] { outline: 1px dotted rgba(16, 185, 129, 0.6); }
 .neutron-add-item {
   display: inline-block;
   margin-top: 8px;
@@ -108,3 +116,6 @@ body.neutron-editing { padding-top: 48px; }
   font: inherit;
 }
 .neutron-error { color: #dc2626; margin: 0; font-size: 13px; }
+/* Elementos de una sublista (platos de una sección): controles más pequeños y centrados en la fila */
+.neutron-collection .neutron-collection .neutron-item-controls { top: 50%; transform: translateY(-50%); }
+.neutron-collection .neutron-collection .neutron-item-controls button { width: 18px; height: 18px; line-height: 18px; font-size: 10px; }

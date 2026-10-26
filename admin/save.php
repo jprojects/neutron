@@ -4,6 +4,7 @@ define('NEUTRON_APP', true);
 require_once __DIR__ . '/../lib/bootstrap.php';
 require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/content.php';
+require_once __DIR__ . '/../lib/render.php';
 
 neutron_block_if_maintenance(true);
 neutron_start_session();
@@ -37,18 +38,27 @@ if (!empty($body['fields']) && is_array($body['fields'])) {
 if (!empty($body['collections']) && is_array($body['collections'])) {
     foreach ($body['collections'] as $key => $items) {
         if (!is_string($key) || !is_array($items)) continue;
-        $clean = [];
-        foreach ($items as $item) {
-            if (!is_array($item)) continue;
-            $cleanItem = [];
-            foreach ($item as $fk => $fv) {
-                if (!is_string($fk)) continue;
-                $cleanItem[$fk] = is_string($fv) ? trim($fv) : $fv;
-            }
-            $clean[] = $cleanItem;
-        }
-        $content[$key] = $clean;
+        $content[$key] = neutron_clean_items($items);
     }
+}
+
+// Elementos de una lista: textos recortados y, en las sublistas, lo mismo (hasta NEUTRON_MAX_NESTING niveles).
+function neutron_clean_items(array $items, int $depth = 0): array {
+    $clean = [];
+    foreach ($items as $item) {
+        if (!is_array($item)) continue;
+        $cleanItem = [];
+        foreach ($item as $fk => $fv) {
+            if (!is_string($fk)) continue;
+            if (is_string($fv)) {
+                $cleanItem[$fk] = trim($fv);
+            } elseif (is_array($fv) && $depth < NEUTRON_MAX_NESTING) {
+                $cleanItem[$fk] = neutron_clean_items($fv, $depth + 1);
+            }
+        }
+        $clean[] = $cleanItem;
+    }
+    return $clean;
 }
 
 if (neutron_save_content($content)) {

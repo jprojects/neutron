@@ -2,7 +2,8 @@
 
 CMS mínimo sin base de datos para webs de una página creadas con IA. El diseño es un `template.html` normal
 con unos atributos `data-edit*`; el contenido vive en `content.json` y se edita en la propia página
-(`?admin`). PHP 8.1+, sin dependencias (ni Composer ni npm).
+(`?admin`). Una o varias páginas, con cabecera y pie compartidos y listas anidadas (secciones de una carta con sus
+platos). PHP 8.1+, sin dependencias (ni Composer ni npm).
 
 Se gestiona desde el panel central **Cosmo** igual que Quasar: estado, copias de seguridad, log,
 mantenimiento y actualizaciones desde las etiquetas de GitHub.
@@ -35,7 +36,9 @@ site/
   template.html      la página
   content.json       el contenido editable
   contact.json       campos y textos del formulario de contacto (opcional)
-  pages/*.html       otras páginas: site/pages/avis-legal.html → /avis-legal.html
+  redirects.json     URLs de la web anterior → páginas nuevas (opcional)
+  pages/*.html       otras páginas: site/pages/carta.html → /carta.html (404.html, la de error)
+  partials/*.html    trozos compartidos (cabecera, pie): <div data-include="header"></div>
   assets/            imágenes, CSS y JS propios del sitio (cookies.js…)
   uploads/           imágenes subidas desde el editor
 ```
@@ -61,8 +64,9 @@ Con nginx, el equivalente:
 ```nginx
 location ~ ^/(lib|data|bin|examples|\.git)(/|$) { deny all; }
 location ~ ^/(config(\.local)?\.php|core\.json|VERSION|CHANGELOG\.md|README\.md|CLAUDE\.md|router\.php)$ { deny all; }
-location ~ ^/site/(template\.html|[^/]+\.json|pages/) { deny all; }
+location ~ ^/site/(template\.html|[^/]+\.json|pages/|partials/) { deny all; }
 location ~ ^/([a-z0-9][a-z0-9-]*)\.html$ { try_files $uri /index.php?page=$1&$args; }
+location / { try_files $uri $uri/ /index.php$is_args$args; }
 ```
 
 Extensiones: `mbstring` y `fileinfo`; `zip` para copias y actualizaciones; `curl` (o `allow_url_fopen`) para el
@@ -78,13 +82,71 @@ reCAPTCHA y la autoprueba; `dom` es opcional (sin ella se usa un parser HTML pro
 | `data-edit-img="clave"` | imagen sustituible (cambia `src`) | `"clave": "site/uploads/…"` |
 | `data-edit-collection="clave"` | lista: el primer hijo con `data-edit-item` es el molde | `"clave": [ {…}, {…} ]` |
 | `data-edit-field="campo"` | campo de cada elemento de la lista (texto, o `src` si es `<img>`) | `{"campo": "…"}` |
+| `data-edit-add="Afegir plat"` | texto del botón para añadir elementos a esa lista (opcional) | — |
 
-El valor que hay en la plantilla solo se ve si `content.json` no tiene esa clave. No se pueden editar enlaces
-(`href`) ni anidar listas.
+El valor que hay en la plantilla solo se ve si `content.json` no tiene esa clave (también en las listas: sin la
+clave se ve el molde tal cual). No se pueden editar enlaces (`href`).
+
+### Listas dentro de listas
+
+Un `data-edit-collection` dentro de un `data-edit-item` es una sublista de ese elemento (hasta 3 niveles). Cada
+campo y cada sublista pertenecen al `data-edit-item` más cercano, así que el mismo nombre de campo puede usarse en
+los dos niveles. Ejemplo, una carta con secciones y platos:
+
+```html
+<div data-edit-collection="carta" data-edit-add="Afegir secció">
+  <section data-edit-item>
+    <h2 data-edit-field="title">Primers</h2>
+    <ul data-edit-collection="plats" data-edit-add="Afegir plat">
+      <li data-edit-item><span data-edit-field="name">Sopa</span> <b data-edit-field="price">8 €</b></li>
+    </ul>
+  </section>
+</div>
+```
+
+```json
+"carta": [
+    { "title": "Primers", "plats": [ { "name": "Sopa", "price": "8 €" }, { "name": "Amanida", "price": "9 €" } ] },
+    { "title": "Postres", "plats": [ { "name": "Crema", "price": "5 €" } ] }
+]
+```
+
+En el editor, cada elemento tiene ↑ (subir) y ✕ (quitar; siempre queda uno) y cada lista su botón de añadir, que
+copia el último elemento con los textos vacíos (y sus sublistas con un solo elemento).
+
+### Varias páginas
+
+- Cada `site/pages/nombre.html` es una página completa (con su `<head>`) que se abre como `/nombre.html`.
+  Todas usan el mismo `content.json`: una clave que sale en varias páginas (teléfono, dirección) se edita una vez.
+  Para lo que es propio de una página, claves con prefijo (`carta_intro`, `menjador_title`…).
+- **Parciales**: `<div data-include="header"></div>` se sustituye por `site/partials/header.html` (vale cualquier
+  etiqueta vacía con `data-include`). Así la cabecera, el menú y el pie se escriben una sola vez. Pueden llevar
+  `data-edit` y otros parciales.
+- **Página actual**: los enlaces a la página que se está viendo reciben `aria-current="page"` (para resaltarla
+  en el menú con CSS). La portada es `./`; los enlaces con `#` no cuentan.
+- Si la misma clave sale varias veces en una página (teléfono en la cabecera y en el pie), al editar una se
+  actualizan las demás.
+- **404**: si existe `site/pages/404.html`, es la página de error.
+
+### Redirecciones de la web anterior
+
+`site/redirects.json` convierte las URLs viejas en redirecciones 301 (para no perder el posicionamiento). Rutas
+relativas a la carpeta de la instalación; `*` al final, cualquier ruta que empiece así; con `?…`, la consulta exacta:
+
+```json
+{
+    "index.php/serveis/carta": "carta.html",
+    "index.php/avis-legal": "avis-legal.html",
+    "index.php?option=com_content&view=article&id=2": "politica-de-cookies.html",
+    "component/*": "./"
+}
+```
+
+Solo se consulta cuando la URL no es una página existente (o es la portada con parámetros que no son de Neutron).
+El destino puede ser una URL completa.
 
 Rutas: la página se sirve desde la raíz, así que los recursos del sitio se enlazan como `site/assets/…`.
-Las páginas de `site/pages/` se abren como `/nombre.html` (o `index.php?page=nombre` si no hay `mod_rewrite`) y
-también pasan por el render, así que pueden usar las mismas claves de `content.json`.
+Las páginas de `site/pages/` se abren como `/nombre.html` (o `index.php?page=nombre` si no hay `mod_rewrite`).
 
 ### Formulario de contacto
 
@@ -232,5 +294,6 @@ Lo que no esté en `core.json` no llega a las instalaciones al actualizar.
 
 - Contraseña del editor con `password_hash`, CSRF en todas las acciones del editor, límite de intentos por IP.
 - Solo texto plano en el contenido; subidas validadas por tipo real (`finfo`), sin SVG.
-- `lib/`, `data/`, `bin/`, la configuración, `site/*.json`, la plantilla y `site/pages/` no se sirven directamente.
+- `lib/`, `data/`, `bin/`, la configuración, `site/*.json`, la plantilla, `site/pages/` y `site/partials/` no se
+  sirven directamente.
 - API remota: token de 32+ caracteres comparado en tiempo constante, IP opcional, 404 si falla.

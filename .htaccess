@@ -8,11 +8,17 @@ DirectoryIndex index.php
     # Ficheros internos: nunca se sirven
     RewriteRule ^(config(\.local)?\.php|core\.json|VERSION|CHANGELOG\.md|README\.md|CLAUDE\.md|router\.php|\.git.*)$ - [F,L]
     RewriteRule ^(lib|data|bin|examples|\.git)(/|$) - [F,L]
-    RewriteRule ^site/(template\.html|[^/]+\.json|pages/) - [F,L]
+    RewriteRule ^site/(template\.html|[^/]+\.json|pages/|partials/) - [F,L]
 
     # Páginas del sitio: avis-legal.html → index.php?page=avis-legal (site/pages/avis-legal.html)
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^([a-z0-9][a-z0-9-]*)\.html$ index.php?page=$1 [QSA,L]
+
+    # Cualquier otra ruta que no exista (URLs de la web anterior): index.php decide entre
+    # site/redirects.json y 404
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
 </IfModule>
 
 # La API remota (Cosmo) lee el token de Authorization en hostings con PHP como CGI/FPM

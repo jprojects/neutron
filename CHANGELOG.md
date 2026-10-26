@@ -2,6 +2,24 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.1.0 — 2026-10-26
+
+Webs de varias páginas. Las instalaciones 1.0.0 siguen funcionando igual (mismo HTML).
+
+- **Listas dentro de listas**: un `data-edit-collection` dentro de un `data-edit-item` es una sublista (hasta 3
+  niveles), p. ej. secciones de una carta con sus platos. En los dos motores de render, el editor y el guardado.
+- **Parciales**: `<div data-include="header"></div>` inserta `site/partials/header.html` (cabecera, menú y pie una
+  sola vez para todas las páginas).
+- **Página actual**: los enlaces a la página que se ve reciben `aria-current="page"`.
+- **Redirecciones** de la web anterior con `site/redirects.json` (301), incluidas rutas tipo `index.php/serveis/carta`
+  y consultas `index.php?option=…`. Las rutas que no existen pasan por `index.php` (`.htaccess` y `router.php`).
+- **404** propia con `site/pages/404.html`; antes una ruta desconocida como `/index.php/loquesea` mostraba la portada.
+- Editor: botón ↑ para reordenar, texto del botón de añadir con `data-edit-add`, al añadir se conservan las imágenes
+  del elemento copiado (antes se quedaba sin `src` y no se podía pulsar), y una clave que sale varias veces en la
+  página se mantiene igual en todas al editarla.
+- Una lista sin su clave en `content.json` muestra el molde de la plantilla (antes se vaciaba), igual que los textos.
+- `site/partials/` no se sirve directamente.
+
 ## 1.0.0 — 2026-10-23
 
 Primera versión publicada. Núcleo separado del sitio y gestión desde Cosmo.

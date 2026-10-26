@@ -68,17 +68,20 @@
     document.querySelectorAll('[data-edit]').forEach(function (el) {
       el.setAttribute('contenteditable', 'true');
       el.classList.add('neutron-editable');
+      // La misma clave puede salir varias veces (cabecera y pie): se mantienen iguales
+      el.addEventListener('input', function () {
+        var key = el.getAttribute('data-edit');
+        document.querySelectorAll('[data-edit]').forEach(function (other) {
+          if (other !== el && other.getAttribute('data-edit') === key) other.textContent = el.textContent;
+        });
+      });
     });
 
     document.querySelectorAll('[data-edit-img]').forEach(makeImageSwappable);
 
-    document.querySelectorAll('[data-edit-collection]').forEach(function (container) {
-      container.classList.add('neutron-collection');
-      container.querySelectorAll('[data-edit-item]').forEach(function (item) {
-        bindItem(item, container);
-      });
-      addCollectionControls(container);
-    });
+    // Listas: cada campo o sublista pertenece al data-edit-item más cercano, así puede haber
+    // listas dentro de listas (secciones de una carta con sus platos).
+    topCollections().forEach(setupCollection);
 
     bar.addEventListener('click', function (e) {
       var action = e.target.getAttribute('data-action');
@@ -87,8 +90,27 @@
       if (action === 'logout') doLogout();
     });
 
+    function ownerItem(el) {
+      return el.parentElement ? el.parentElement.closest('[data-edit-item]') : null;
+    }
+    function topCollections() {
+      return Array.prototype.filter.call(document.querySelectorAll('[data-edit-collection]'), function (c) { return !ownerItem(c); });
+    }
+    function ownItems(container) {
+      return Array.prototype.filter.call(container.children, function (c) { return c.hasAttribute('data-edit-item'); });
+    }
+    function own(item, selector) {
+      return Array.prototype.filter.call(item.querySelectorAll(selector), function (el) { return ownerItem(el) === item; });
+    }
+
+    function setupCollection(container) {
+      container.classList.add('neutron-collection');
+      ownItems(container).forEach(function (item) { bindItem(item, container); });
+      addCollectionControls(container);
+    }
+
     function bindItem(item, container) {
-      item.querySelectorAll('[data-edit-field]').forEach(function (field) {
+      own(item, '[data-edit-field]').forEach(function (field) {
         if (field.tagName.toLowerCase() === 'img') {
           makeImageSwappable(field);
         } else {
@@ -96,48 +118,60 @@
           field.classList.add('neutron-editable');
         }
       });
-      addRemoveButton(item, container);
+      own(item, '[data-edit-collection]').forEach(setupCollection);
+      addItemControls(item, container);
     }
 
-    function addRemoveButton(item, container) {
-      if (item.querySelector('.neutron-remove-item')) return;
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'neutron-remove-item';
-      btn.textContent = '✕';
-      btn.addEventListener('click', function () {
-        if (container.querySelectorAll('[data-edit-item]').length <= 1) {
+    function addItemControls(item, container) {
+      var box = document.createElement('span');
+      box.className = 'neutron-item-controls';
+      box.innerHTML =
+        '<button type="button" class="neutron-move-item" title="Subir">↑</button>' +
+        '<button type="button" class="neutron-remove-item" title="Quitar">✕</button>';
+      box.querySelector('.neutron-move-item').addEventListener('click', function () {
+        var items = ownItems(container);
+        var i = items.indexOf(item);
+        if (i > 0) container.insertBefore(item, items[i - 1]);
+      });
+      box.querySelector('.neutron-remove-item').addEventListener('click', function () {
+        if (ownItems(container).length <= 1) {
           alert('Debe quedar al menos un elemento.');
           return;
         }
         item.remove();
       });
-      item.appendChild(btn);
+      item.appendChild(box);
     }
 
     function addCollectionControls(container) {
       var addBtn = document.createElement('button');
       addBtn.type = 'button';
       addBtn.className = 'neutron-add-item';
-      addBtn.textContent = '+ Agregar elemento';
+      addBtn.textContent = '+ ' + (container.getAttribute('data-edit-add') || 'Agregar elemento');
       addBtn.addEventListener('click', function () {
-        var items = container.querySelectorAll('[data-edit-item]');
+        var items = ownItems(container);
         var last = items[items.length - 1];
         if (!last) return;
         var clone = last.cloneNode(true);
-        var existingRemove = clone.querySelector('.neutron-remove-item');
-        if (existingRemove) existingRemove.remove();
-        clone.querySelectorAll('[data-edit-field]').forEach(function (field) {
-          if (field.tagName.toLowerCase() === 'img') {
-            field.removeAttribute('src');
-          } else {
-            field.textContent = '';
-          }
+        // Sin los controles del editor; las sublistas se quedan con un solo elemento vacío
+        clone.querySelectorAll('.neutron-item-controls, .neutron-add-item').forEach(function (el) { el.remove(); });
+        clone.querySelectorAll('[data-edit-collection]').forEach(function (sub) {
+          ownItems(sub).slice(1).forEach(function (extra) { extra.remove(); });
         });
-        container.insertBefore(clone, addBtn);
+        clone.querySelectorAll('[data-edit-field]').forEach(function (field) {
+          if (field.tagName.toLowerCase() !== 'img') field.textContent = '';
+        });
+        container.insertBefore(clone, last.nextSibling);
         bindItem(clone, container);
+        var first = clone.querySelector('[contenteditable]');
+        if (first) first.focus();
       });
-      container.appendChild(addBtn);
+      // En listas (ul/ol/tbody) el botón va después, para no meter un <button> entre los <li>
+      if (/^(UL|OL|TBODY|TABLE|DL|SELECT)$/.test(container.tagName)) {
+        container.parentNode.insertBefore(addBtn, container.nextSibling);
+      } else {
+        container.appendChild(addBtn);
+      }
     }
 
     function makeImageSwappable(img) {
@@ -188,25 +222,25 @@
       });
 
       var collections = {};
-      document.querySelectorAll('[data-edit-collection]').forEach(function (container) {
-        var key = container.getAttribute('data-edit-collection');
-        var items = [];
-        container.querySelectorAll('[data-edit-item]').forEach(function (item) {
-          var data = {};
-          item.querySelectorAll('[data-edit-field]').forEach(function (field) {
-            var fkey = field.getAttribute('data-edit-field');
-            if (field.tagName.toLowerCase() === 'img') {
-              data[fkey] = field.getAttribute('src') || '';
-            } else {
-              data[fkey] = field.textContent.trim();
-            }
-          });
-          items.push(data);
-        });
-        collections[key] = items;
+      topCollections().forEach(function (container) {
+        collections[container.getAttribute('data-edit-collection')] = collectItems(container);
       });
 
       return { fields: fields, collections: collections };
+    }
+
+    function collectItems(container) {
+      return ownItems(container).map(function (item) {
+        var data = {};
+        own(item, '[data-edit-field]').forEach(function (field) {
+          var fkey = field.getAttribute('data-edit-field');
+          data[fkey] = field.tagName.toLowerCase() === 'img' ? (field.getAttribute('src') || '') : field.textContent.trim();
+        });
+        own(item, '[data-edit-collection]').forEach(function (sub) {
+          data[sub.getAttribute('data-edit-collection')] = collectItems(sub);
+        });
+        return data;
+      });
     }
 
     function doSave() {

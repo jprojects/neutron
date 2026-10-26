@@ -10,7 +10,7 @@ actualízalo con cada función nueva.
 
 - **Núcleo**: lo que lista `core.json`. Es lo único que sustituye una actualización desde Cosmo. Si añades un
   fichero o carpeta del núcleo fuera de los patrones actuales, añádelo a `core.json` o no llegará a las instalaciones.
-- **Sitio**: `site/` (plantilla, contenido, `contact.json`, `pages/`, `assets/`, `uploads/`). **Nada del sitio en el
+- **Sitio**: `site/` (plantilla, contenido, `contact.json`, `redirects.json`, `pages/`, `partials/`, `assets/`, `uploads/`). **Nada del sitio en el
   núcleo**: ni textos de una web concreta en `lib/` o `assets/`, ni rutas fijas a sus ficheros. Los recursos del sitio
   se enlazan como `site/assets/…` (la página se sirve desde la raíz).
 - **Configuración**: `config.php` (valores por defecto, núcleo) + `config.local.php` (secretos de la instalación, no
@@ -29,7 +29,12 @@ actualízalo con cada función nueva.
 - Servicios de terceros (vídeos, mapas, analítica): bloqueados hasta el consentimiento del faldón de cookies del
   sitio (`site/assets/cookies.js`, iframes con `data-consent-src`) y descritos en `site/pages/politica-cookies.html`;
   si cambian las categorías, subir `VERSION` en `cookies.js`.
-- Solo texto plano en `data-edit`; no se pueden editar `href` ni anidar colecciones.
+- Solo texto plano en `data-edit`; no se pueden editar `href`. Las listas se pueden anidar (hasta 3 niveles):
+  cartas y menús como secciones con sus platos, no como bloques de texto.
+- Webs de varias páginas: cabecera, menú y pie en `site/partials/` con `data-include`; claves de cada página con
+  prefijo; resaltar el menú con `[aria-current="page"]`; `site/redirects.json` con todas las URLs de la web anterior.
+- Cada web nueva es una instalación aparte en `~/Projects/<nombre>` (núcleo con `git archive` + su `site/` +
+  `config.local.php` con `bin/install.php`), no en `site/` de este repo, que es Assaice.
 
 ## Convenciones
 
@@ -42,7 +47,9 @@ actualízalo con cada función nueva.
 - Lo importante va al log (`neutron_log($nivel, 'Mensaje {clave}', $contexto)`), nunca secretos en claro.
 - El JSON que se inyecta en la página va sin `JSON_UNESCAPED_UNICODE` (DOMDocument convierte los acentos en
   entidades dentro de `<script>`).
-- Cualquier cambio en el render se hace en los dos motores: `lib/render_dom.php` y `lib/render_fallback.php`.
+- Cualquier cambio en el render se hace en los dos motores: `lib/render_dom.php` y `lib/render_fallback.php`
+  (comprobar que generan lo mismo). Lo que se puede hacer sobre el texto antes del render (parciales) va en
+  `lib/render.php`. Un campo o sublista pertenece al `data-edit-item` más cercano.
 - API remota: mismas acciones, nombres de campo y respuestas que la de Quasar (`src/Controllers/RemoteController.php`
   allí); `app` es `"neutron"`. Si Cosmo necesita algo nuevo, mantener la compatibilidad (`api` sube si cambia).
 
@@ -61,5 +68,7 @@ actualízalo con cada función nueva.
   Las actualizaciones se prueban en una copia de la carpeta, nunca sobre la instalación de trabajo.
 - reCAPTCHA: claves de prueba de Google (sitio `6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI`, secreta
   `6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe`), que aprueban siempre. No dejarlas en `config.local.php`.
+- Editor en un navegador real: Chromium headless con el protocolo de DevTools desde Node 22 (WebSocket nativo,
+  sin dependencias); el perfil y las capturas fuera de /tmp (`~/…`), porque Chromium es un snap.
 - Antes de dar algo por terminado, pruébalo en el navegador (también en modo `?admin`). Limpia después lo que
   generen las pruebas en `data/`.
