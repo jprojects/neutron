@@ -91,7 +91,8 @@ clave se ve el molde tal cual). No se pueden editar enlaces (`href`).
 
 Un `data-edit-collection` dentro de un `data-edit-item` es una sublista de ese elemento (hasta 3 niveles). Cada
 campo y cada sublista pertenecen al `data-edit-item` más cercano, así que el mismo nombre de campo puede usarse en
-los dos niveles. Ejemplo, una carta con secciones y platos:
+los dos niveles. El campo va siempre **dentro** del elemento, no en el mismo nodo
+(`<li data-edit-item><span data-edit-field="name">`, no `<li data-edit-item data-edit-field="name">`). Ejemplo, una carta con secciones y platos:
 
 ```html
 <div data-edit-collection="carta" data-edit-add="Afegir secció">
