@@ -53,6 +53,39 @@ function neutron_redirect_target(string $path, bool $withQueryOnly = false): ?st
     return null;
 }
 
+// Páginas del sitio para el selector del editor: la portada y site/pages/*.html (salvo 404), en el orden en que
+// las enlazan la plantilla y los parciales (el del menú); las que no salen en ningún enlace, al final.
+// @return list<array{href:string,title:string}>
+function neutron_site_pages(): array {
+    $pages = ['' => ['href' => './', 'title' => 'Portada']];
+    $files = glob(NEUTRON_SITE . '/pages/*.html') ?: [];
+    $titles = [];
+    foreach ($files as $file) {
+        $slug = basename($file, '.html');
+        if ($slug === '404' || !preg_match('/^[a-z0-9][a-z0-9-]{0,60}$/', $slug)) continue;
+        $html = (string)file_get_contents($file, false, null, 0, 8192);
+        $title = preg_match('~<title[^>]*>(.*?)</title>~is', $html, $m) ? html_entity_decode(strip_tags($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8') : '';
+        // "Carta · Restaurant Can Branques" → "Carta"
+        $title = trim((string)preg_split('/\s+[·|–—-]\s+/u', $title)[0]);
+        $titles[$slug] = $title !== '' ? $title : $slug;
+    }
+    $source = (string)@file_get_contents(NEUTRON_SITE . '/template.html');
+    foreach (glob(NEUTRON_SITE . '/partials/*.html') ?: [] as $partial) {
+        $source .= (string)file_get_contents($partial);
+    }
+    // Primero los enlaces del menú (<nav>), después el resto
+    preg_match_all('~<nav\b.*?</nav>~is', $source, $navs);
+    preg_match_all('~href="(?:\./|/)?([a-z0-9][a-z0-9-]*)\.html"~i', implode('', $navs[0]) . $source, $m);
+    foreach (array_unique($m[1]) as $slug) {
+        if (isset($titles[$slug])) $pages[$slug] = ['href' => $slug . '.html', 'title' => $titles[$slug]];
+    }
+    asort($titles, SORT_NATURAL | SORT_FLAG_CASE);
+    foreach ($titles as $slug => $title) {
+        $pages[$slug] ??= ['href' => $slug . '.html', 'title' => $title];
+    }
+    return array_values($pages);
+}
+
 // Iconos del sitio que se sirven en la raíz: /favicon.ico → site/favicon.ico. Los apple-touch-icon que
 // piden los iPhone sin mirar la página salen de site/apple-touch-icon.png.
 const NEUTRON_SITE_ICONS = ['favicon.ico', 'apple-touch-icon.png', 'apple-touch-icon-precomposed.png'];

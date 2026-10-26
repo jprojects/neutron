@@ -80,6 +80,11 @@ if (isset($_GET['admin'])) {
         'loggedIn' => neutron_is_logged_in(),
         'csrf' => $_SESSION['csrf'],
     ];
+    if (neutron_is_logged_in()) {
+        // Selector de páginas de la barra del editor
+        $options['admin_bootstrap']['pages'] = neutron_site_pages();
+        $options['admin_bootstrap']['current'] = $page === '' ? './' : $page . '.html';
+    }
 }
 if (str_contains($template, 'data-neutron-form')) {
     $options['form_bootstrap'] = neutron_form_client_config();

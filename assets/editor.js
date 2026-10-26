@@ -57,6 +57,7 @@
     bar.className = 'neutron-bar';
     bar.innerHTML =
       '<span>Modo edición</span>' +
+      '<label class="neutron-pages" hidden title="También: Ctrl/Cmd + clic en un enlace de la página">Página <select></select></label>' +
       '<button type="button" data-action="save">Guardar cambios</button>' +
       '<button type="button" data-action="exit">Salir</button>' +
       '<button type="button" data-action="logout">Cerrar sesión</button>' +
@@ -64,6 +65,52 @@
     document.body.appendChild(bar);
 
     var statusEl = bar.querySelector('.neutron-status');
+    var dirty = false;
+
+    // Selector de páginas: ir a otra página sin salir del modo edición
+    var pages = cfg.pages || [];
+    if (pages.length > 1) {
+      var select = bar.querySelector('.neutron-pages select');
+      pages.forEach(function (p) {
+        var opt = document.createElement('option');
+        opt.value = p.href;
+        opt.textContent = p.title;
+        opt.selected = p.href === cfg.current;
+        select.appendChild(opt);
+      });
+      bar.querySelector('.neutron-pages').hidden = false;
+      select.addEventListener('change', function () {
+        if (!goEditing(new URL(select.value, location.href))) select.value = cfg.current;
+      });
+    }
+
+    // Cambios sin guardar: se avisa antes de salir de la página
+    document.addEventListener('input', function (e) {
+      if (e.target.closest && e.target.closest('[contenteditable]')) markDirty();
+    });
+    window.addEventListener('beforeunload', function (e) {
+      if (!dirty) return;
+      e.preventDefault();
+      e.returnValue = '';
+    });
+
+    // Enlaces en modo edición: un clic en un texto editable es para editarlo; Ctrl/Cmd + clic, o un clic
+    // en un enlace interno sin texto editable, lleva a esa página sin salir del editor.
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a || bar.contains(a)) return;
+      var url = new URL(a.href, location.href);
+      var internal = url.origin === location.origin && !/^(mailto|tel):/i.test(a.getAttribute('href'));
+      var samePage = url.pathname === location.pathname && url.hash !== '';
+      var onEditable = e.target.closest('[contenteditable="true"], .neutron-editable-img');
+      if (e.ctrlKey || e.metaKey) {
+        e.preventDefault();
+        if (internal && !samePage) goEditing(url);
+        return;
+      }
+      if (onEditable) { e.preventDefault(); return; }
+      if (internal && !samePage) { e.preventDefault(); goEditing(url); }
+    }, true);
 
     document.querySelectorAll('[data-edit]').forEach(function (el) {
       el.setAttribute('contenteditable', 'true');
@@ -89,6 +136,21 @@
       if (action === 'exit') exitAdminMode();
       if (action === 'logout') doLogout();
     });
+
+    function markDirty() {
+      dirty = true;
+      statusEl.textContent = 'Cambios sin guardar';
+    }
+
+    // Abre url en modo edición (con ?admin); pregunta antes si hay cambios sin guardar.
+    function goEditing(url) {
+      if (dirty && !confirm('Hay cambios sin guardar en esta página. ¿Salir sin guardarlos?')) return false;
+      dirty = false;
+      url.searchParams.delete('admin');
+      var search = url.searchParams.toString();
+      location.href = url.pathname + '?' + (search ? search + '&' : '') + 'admin' + url.hash;
+      return true;
+    }
 
     function ownerItem(el) {
       return el.parentElement ? el.parentElement.closest('[data-edit-item]') : null;
@@ -131,7 +193,7 @@
       box.querySelector('.neutron-move-item').addEventListener('click', function () {
         var items = ownItems(container);
         var i = items.indexOf(item);
-        if (i > 0) container.insertBefore(item, items[i - 1]);
+        if (i > 0) { container.insertBefore(item, items[i - 1]); markDirty(); }
       });
       box.querySelector('.neutron-remove-item').addEventListener('click', function () {
         if (ownItems(container).length <= 1) {
@@ -139,6 +201,7 @@
           return;
         }
         item.remove();
+        markDirty();
       });
       item.appendChild(box);
     }
@@ -163,6 +226,7 @@
         });
         container.insertBefore(clone, last.nextSibling);
         bindItem(clone, container);
+        markDirty();
         var first = clone.querySelector('[contenteditable]');
         if (first) first.focus();
       });
@@ -201,7 +265,8 @@
         .then(function (data) {
           if (data.ok) {
             imgEl.src = data.url;
-            statusEl.textContent = 'Imagen lista (recordá guardar)';
+            markDirty();
+            statusEl.textContent = 'Imagen lista (recuerda guardar)';
           } else {
             statusEl.textContent = 'Error: ' + (data.error || 'no se pudo subir');
           }
@@ -252,6 +317,7 @@
       })
         .then(function (r) { return r.json(); })
         .then(function (data) {
+          if (data.ok) dirty = false;
           statusEl.textContent = data.ok ? 'Guardado ✓' : 'Error: ' + (data.error || '');
         })
         .catch(function () {
@@ -260,12 +326,16 @@
     }
 
     function exitAdminMode() {
+      if (dirty && !confirm('Hay cambios sin guardar. ¿Salir sin guardarlos?')) return;
+      dirty = false;
       var url = new URL(location.href);
       url.searchParams.delete('admin');
       location.href = url.toString();
     }
 
     function doLogout() {
+      if (dirty && !confirm('Hay cambios sin guardar. ¿Cerrar sesión sin guardarlos?')) return;
+      dirty = false;
       fetch('admin/logout.php', {
         method: 'POST',
         headers: { 'X-CSRF-Token': cfg.csrf }

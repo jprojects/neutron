@@ -23,6 +23,9 @@
 }
 .neutron-bar button:hover { background: #2563eb; }
 .neutron-bar .neutron-status { margin-left: auto; opacity: 0.85; }
+.neutron-pages { display: inline-flex; align-items: center; gap: 6px; }
+.neutron-pages[hidden] { display: none; }
+.neutron-pages select { font: inherit; padding: 4px 6px; border-radius: 4px; border: 0; max-width: 220px; }
 
 body.neutron-editing { padding-top: 48px; }
 

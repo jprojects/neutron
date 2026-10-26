@@ -2,6 +2,18 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.4.0 — 2026-10-26
+
+Editar webs de varias páginas sin salir del modo edición.
+
+- Selector **Página** en la barra del editor: la portada y las de `site/pages/` (menos la 404), en el orden del menú
+  y con el título de cada una; lleva a esa página ya en modo edición.
+- En modo edición, Ctrl/Cmd + clic en un enlace interno (o un clic en un enlace sin texto editable) abre esa página
+  manteniendo `?admin`; un clic normal en un texto editable sigue siendo para editarlo. Antes los enlaces del menú
+  no llevaban a ningún sitio en modo edición y los demás sacaban del editor.
+- Aviso de cambios sin guardar al cambiar de página, salir, cerrar sesión o cerrar la pestaña.
+- Corregido: una imagen editable dentro de un enlace abría el selector de archivo y además seguía el enlace.
+
 ## 1.3.0 — 2026-10-26
 
 Favicon de cada sitio.

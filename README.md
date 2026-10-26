@@ -214,6 +214,12 @@ Mensajes disponibles: `sending`, `success`, `invalid`, `network`, `admin`, `capt
 ## Editor
 
 `/?admin` (o `/pagina.html?admin`) pide la contraseña y vuelve editables los textos, imágenes y listas.
+
+En webs de varias páginas, la barra del editor tiene un selector **Página** con la portada y todas las de
+`site/pages/` (menos la 404), en el orden del menú y con el título de su `<title>` (lo que va antes de ` · `).
+Dentro de la página, un clic en un texto editable es para editarlo (también en los enlaces del menú);
+**Ctrl/Cmd + clic** en un enlace, o un clic en un enlace sin texto editable, lleva a esa página sin salir del modo
+edición. Si hay cambios sin guardar, avisa antes de cambiar de página, salir o cerrar la pestaña.
 La sesión solo arranca con `?admin`: los visitantes no reciben la cookie `neutron_admin_sid`.
 5 intentos fallidos por IP bloquean 15 minutos. Imágenes JPG, PNG, GIF o WebP de hasta 5 MB (SVG no, por XSS).
 
