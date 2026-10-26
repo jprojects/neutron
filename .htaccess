@@ -1,4 +1,6 @@
-# Neutron (núcleo: lo sustituye cada actualización)
+# BEGIN Neutron
+# Bloque del núcleo: lo sustituye cada actualización. Las reglas propias de la instalación (HTTPS,
+# versión de PHP…) van fuera de este bloque, mejor encima, y las actualizaciones las conservan.
 Options -Indexes
 DirectoryIndex index.php
 
@@ -25,3 +27,4 @@ DirectoryIndex index.php
 <IfModule mod_setenvif.c>
     SetEnvIf Authorization "(.+)" HTTP_AUTHORIZATION=$1
 </IfModule>
+# END Neutron

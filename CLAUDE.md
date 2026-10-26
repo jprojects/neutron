@@ -15,6 +15,10 @@ actualízalo con cada función nueva.
   se enlazan como `site/assets/…` (la página se sirve desde la raíz).
 - **Configuración**: `config.php` (valores por defecto, núcleo) + `config.local.php` (secretos de la instalación, no
   versionado). Claves nuevas: con su valor por defecto y comentario en `config.php`, y en el README.
+- `.htaccess`: el núcleo solo es dueño del bloque `# BEGIN Neutron` … `# END Neutron` (ver `lib/remote/htaccess.php`).
+  Si cambias el `.htaccess`, cambia solo dentro del bloque; el fichero tiene que seguir siendo exactamente el bloque.
+- Un cambio en el actualizador solo actúa en las actualizaciones **desde** la versión que lo trae: la que instala
+  esa versión la ejecuta el código de la anterior. Lo que haya que arreglar al llegar, en `migrate`.
 - `data/` es estado interno (log, copias, `remote/`, throttle). `site/`, `config.local.php` y `data/` no están en git.
 - El directorio de trabajo es a la vez el repo del núcleo y una instalación real (la web de Assaice, en catalán,
   en `site/`). `examples/` contiene sitios de ejemplo con la misma estructura que `site/`.

@@ -56,7 +56,11 @@ php -S localhost:8000 router.php             # desarrollo
 Otras opciones: `--password` (cambiar la contraseña del editor) y `--token` (token nuevo para Cosmo).
 
 En producción, Apache con `mod_rewrite` (el `.htaccess` incluido prohíbe `lib/`, `data/`, `bin/`, la config y los
-JSON y la plantilla de `site/`, y sirve las páginas de `site/pages/`). PHP necesita escribir en `site/` (editor),
+JSON y la plantilla de `site/`, y sirve las páginas de `site/pages/`).
+
+**`.htaccess`**: el núcleo solo es dueño del bloque `# BEGIN Neutron` … `# END Neutron`. Las reglas propias de la
+instalación (redirección a HTTPS, la versión de PHP que añade cPanel…) van fuera, mejor **encima** del bloque (se
+evalúan antes). Las actualizaciones sustituyen el bloque y conservan el resto, y la integridad solo mira el bloque. PHP necesita escribir en `site/` (editor),
 `data/` (log, copias) y, para las actualizaciones desde Cosmo, en el núcleo.
 
 Con nginx, el equivalente:
@@ -269,8 +273,15 @@ Cosmo descarga de GitHub el ZIP de la etiqueta `vX.Y.Z` y lo sube a la instalaci
 3. Si algún fichero del núcleo se cambió a mano desde la última actualización, se detiene (salvo `force=1`).
 4. Copia **solo los ficheros del núcleo** que lista el `core.json` del paquete y borra los que la versión anterior
    instaló y la nueva ya no trae. `site/`, `config.local.php` y `data/` no se tocan nunca, aunque el paquete los traiga.
+   Del `.htaccess` solo se sustituye el bloque `# BEGIN Neutron` … `# END Neutron`.
 5. Se llama a sí misma (`a=status`) con el código nuevo: si no arranca, deshace todos los cambios.
 6. Cosmo pide `migrate` y la web sale del mantenimiento.
+
+**Desde la 1.0.0 o la 1.1.0**: esas versiones no conocían el bloque y su actualizador copia el `.htaccess` entero.
+Por eso, al pasar a la 1.2.0, `migrate` (que ya corre con el código nuevo) busca la copia completa previa a la
+actualización, saca del `.htaccess` antiguo las líneas que no eran de Neutron y las vuelve a poner encima del
+bloque (paso «.htaccess: N líneas propias recuperadas»). Si la actualización se hizo sin copia previa (`backup=0`),
+lo avisa y hay que revisarlo a mano.
 
 El sha1 de cada fichero instalado queda en `data/remote/manifest.json` (integridad y borrados). La primera
 instalación de la 1.0.0 se hace a mano (copiar el núcleo); a partir de ahí, desde Cosmo.

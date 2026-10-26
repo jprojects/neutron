@@ -12,7 +12,8 @@ if (!defined('NEUTRON_APP')) { http_response_code(403); exit; }
 //    Si la versión nueva no arranca, se deshace (si no se puede conectar consigo misma, solo se avisa).
 // 6. Si algo falla, restaura todo lo tocado. Si va bien, escribe el manifiesto nuevo.
 //
-// site/, config.local.php y data/ nunca son del núcleo: una actualización no los toca.
+// site/, config.local.php y data/ nunca son del núcleo: una actualización no los toca. Del .htaccess solo
+// se sustituye el bloque "# BEGIN Neutron" … "# END Neutron" (ver htaccess.php).
 
 const NEUTRON_UPDATE_MAX_FILES = 5000;
 
@@ -73,7 +74,7 @@ function neutron_update_install(string $zipFile, string $sha256, string $expecte
                 throw new NeutronUpdateException("core.json del paquete incluye un fichero de la instalación: $rel");
             }
             $target = NEUTRON_ROOT . '/' . $rel;
-            if (!is_file($target) || sha1_file($target) !== $hash) $copy[] = $rel;
+            if (!is_file($target) || neutron_core_hash($rel, $target) !== $hash) $copy[] = $rel;
         }
         $delete = [];
         if ($manifest !== null) {
@@ -85,7 +86,13 @@ function neutron_update_install(string $zipFile, string $sha256, string $expecte
         }
 
         foreach ($copy as $rel) {
-            neutron_update_place($pkg . '/' . $rel, NEUTRON_ROOT . '/' . $rel, $rollback . '/' . $rel, $touched);
+            $source = $pkg . '/' . $rel;
+            if ($rel === '.htaccess' && is_file(NEUTRON_ROOT . '/.htaccess')) {
+                // Bloque del núcleo nuevo + lo que la instalación tenga fuera de él
+                $source = $work . '/htaccess.merged';
+                file_put_contents($source, neutron_htaccess_merge((string)file_get_contents(NEUTRON_ROOT . '/.htaccess'), (string)file_get_contents($pkg . '/.htaccess')));
+            }
+            neutron_update_place($source, NEUTRON_ROOT . '/' . $rel, $rollback . '/' . $rel, $touched);
         }
         foreach ($delete as $rel) {
             neutron_update_remove(NEUTRON_ROOT . '/' . $rel, $rollback . '/' . $rel, $touched);

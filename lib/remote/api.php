@@ -270,6 +270,9 @@ function neutron_remote_migrate(): void {
             neutron_ensure_dir(NEUTRON_SITE . '/uploads');
             $steps[] = 'site/uploads creada';
         }
+        // Desde la 1.0.0/1.1.0 la actualización copió el .htaccess entero: recuperar las líneas propias
+        $recovered = neutron_htaccess_recover();
+        if ($recovered !== null) $steps[] = $recovered;
         $keep = ($_POST['keep_maintenance'] ?? '') === '1';
         if (!$keep) neutron_set_maintenance(false);
         neutron_json(['ok' => true, 'steps' => $steps, 'version' => neutron_version(), 'maintenance' => $keep]);

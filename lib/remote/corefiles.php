@@ -1,6 +1,8 @@
 <?php
 if (!defined('NEUTRON_APP')) { http_response_code(403); exit; }
 
+require_once __DIR__ . '/htaccess.php';
+
 // Qué ficheros son del núcleo (core.json) y cuáles instaló la última actualización (manifiesto).
 // El manifiesto (data/remote/manifest.json) guarda el sha1 de cada fichero del núcleo instalado;
 // sirve para detectar cambios hechos a mano y para borrar los que una versión nueva ya no trae.
@@ -29,7 +31,7 @@ function neutron_core_scan(string $root, array $patterns): array {
     $files = [];
     foreach (neutron_walk($root) as $rel => $abs) {
         if (neutron_core_matches($rel, $patterns)) {
-            $files[$rel] = (string)sha1_file($abs);
+            $files[$rel] = neutron_core_hash($rel, $abs);
         }
     }
     ksort($files);
@@ -53,6 +55,11 @@ function neutron_walk(string $root, array $extraSkip = []): Generator {
             yield substr(str_replace('\\', '/', $f->getPathname()), strlen($root) + 1) => $f->getPathname();
         }
     }
+}
+
+// sha1 de un fichero del núcleo; del .htaccess, solo su bloque (el resto es de la instalación).
+function neutron_core_hash(string $rel, string $abs): string {
+    return $rel === '.htaccess' ? neutron_htaccess_hash((string)file_get_contents($abs)) : (string)sha1_file($abs);
 }
 
 function neutron_manifest_file(): string {
@@ -82,7 +89,7 @@ function neutron_core_check(): ?array {
         $abs = NEUTRON_ROOT . '/' . $rel;
         if (!is_file($abs)) {
             $missing[] = $rel;
-        } elseif (sha1_file($abs) !== $hash) {
+        } elseif (neutron_core_hash($rel, $abs) !== $hash) {
             $modified[] = $rel;
         }
     }

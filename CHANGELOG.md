@@ -2,6 +2,16 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.2.0 — 2026-10-26
+
+Las actualizaciones conservan las reglas propias del `.htaccess`.
+
+- El `.htaccess` del núcleo va entre `# BEGIN Neutron` y `# END Neutron`. Al actualizar se sustituye solo ese bloque
+  y se conserva lo que la instalación tenga fuera (HTTPS, la versión de PHP de cPanel…); la integridad y el
+  manifiesto comparan solo el bloque, así que esas reglas ya no cuentan como «modificado a mano».
+- Al llegar desde la 1.0.0/1.1.0 (cuyo actualizador sobrescribe el fichero entero), `migrate` recupera las líneas
+  propias del `.htaccess` desde la copia completa previa a la actualización y avisa si no la encuentra.
+
 ## 1.1.0 — 2026-10-26
 
 Webs de varias páginas. Las instalaciones 1.0.0 siguen funcionando igual (mismo HTML).
