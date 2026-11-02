@@ -8,7 +8,7 @@ $rel = ltrim($path, '/');
 
 if (preg_match('~^(config(\.local)?\.php|core\.json|VERSION|CHANGELOG\.md|README\.md|CLAUDE\.md|router\.php|\.git)~', $rel)
     || preg_match('~^(lib|data|bin|examples|tools|\.git)(/|$)~', $rel)
-    || preg_match('~^site/(template\.html|[^/]+\.json|pages/|partials/)~', $rel)
+    || preg_match('~^site/(template\.html|.+\.json$|pages/|partials/|[^/]+/_item\.html)~', $rel)
     || str_contains($rel, '..')) {
     http_response_code(403);
     echo 'Forbidden';

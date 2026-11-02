@@ -29,8 +29,22 @@ function neutron_render_dom(string $html, array $content, array $options = []): 
         $node->setAttribute('src', (string)$content[$key]);
     }
 
+    // Colecciones (blog): listados data-posts y, en la página de una entrada, sus campos data-post*
+    if (isset($options['posts'])) {
+        neutron_dom_fill_posts($dom, $xpath, $options['posts']);
+    }
+
     if (isset($options['current_href'])) {
         neutron_dom_mark_current($xpath, (array)$options['current_href']);
+    }
+
+    if (!empty($options['base'])) {
+        $head = $dom->getElementsByTagName('head')->item(0);
+        if ($head) {
+            $base = $dom->createElement('base');
+            $base->setAttribute('href', $options['base']);
+            $head->insertBefore($base, $head->firstChild);
+        }
     }
 
     if (!empty($options['form_bootstrap'])) {
@@ -105,6 +119,102 @@ function neutron_dom_fill_item(DOMElement $itemNode, array $data, int $depth = 0
         } else {
             neutron_dom_set_text($field, $val);
         }
+    }
+}
+
+// --- colecciones (ver lib/posts.php) ---
+
+function neutron_dom_fill_posts(DOMDocument $dom, DOMXPath $xpath, array $opt): void {
+    foreach (iterator_to_array($xpath->query('//*[@data-posts]')) as $list) {
+        $collection = $list->getAttribute('data-posts');
+        $view = neutron_posts_view($collection, $opt, (int)$list->getAttribute('data-posts-limit'), (int)$list->getAttribute('data-posts-per-page'));
+
+        $tpl = null;
+        foreach ($list->childNodes as $child) {
+            if ($child instanceof DOMElement && $child->hasAttribute('data-post-item')) { $tpl = $child; break; }
+        }
+        if ($tpl) {
+            $mold = $tpl->cloneNode(true);
+            while ($list->firstChild) $list->removeChild($list->firstChild);
+            foreach ($view['posts'] as $post) {
+                $item = $mold->cloneNode(true);
+                $item->setAttribute('data-post-slug', $post['slug']);
+                if ($post['status'] !== 'published') $item->setAttribute('class', trim($item->getAttribute('class') . ' is-draft'));
+                neutron_dom_fill_post($xpath, $item, $post, $opt, false);
+                $list->appendChild($item);
+            }
+        }
+        // Aviso de lista vacía y paginación (data-posts-empty / -prev / -next con el nombre de la colección)
+        foreach (['empty', 'prev', 'next'] as $kind) {
+            foreach (iterator_to_array($xpath->query('//*[@data-posts-' . $kind . '="' . $collection . '"]')) as $el) {
+                $href = $view[$kind];
+                if ($href === null) {
+                    $el->parentNode->removeChild($el);
+                } elseif ($kind !== 'empty') {
+                    $el->setAttribute('href', $href);
+                }
+            }
+        }
+    }
+    if (!empty($opt['post'])) {
+        neutron_dom_fill_post($xpath, $dom->documentElement, $opt['post'], $opt, true);
+        neutron_dom_post_meta($dom, $xpath, $opt['post'], $opt);
+    }
+}
+
+// Campos de una entrada dentro de $root. En la página de la entrada ($skipLists) no se tocan los listados.
+function neutron_dom_fill_post(DOMXPath $xpath, DOMElement $root, array $post, array $opt, bool $skipLists): void {
+    $nodes = $xpath->query('descendant-or-self::*[@data-post or @data-post-img or @data-post-html or @data-post-link]', $root);
+    foreach (iterator_to_array($nodes) as $node) {
+        if ($skipLists && $xpath->query('ancestor::*[@data-posts]', $node)->length) continue;
+        if ($node->hasAttribute('data-post')) {
+            $field = $node->getAttribute('data-post');
+            $text = neutron_post_text($post, $field, $opt['lang'] ?? 'ca');
+            if (strtolower($node->tagName) === 'title') $text = neutron_post_title_text($node->textContent, $text);
+            neutron_dom_set_text($node, $text);
+            if ($field === 'date' && strtolower($node->tagName) === 'time') $node->setAttribute('datetime', $post['date']);
+        }
+        if ($node->hasAttribute('data-post-img')) {
+            $src = $post[$node->getAttribute('data-post-img')] ?? '';
+            if ($src !== '') {
+                $node->setAttribute('src', $src);
+                if ($node->getAttribute('alt') === '') $node->setAttribute('alt', $post['title']);
+            } elseif (empty($opt['admin']) && $node->parentNode) {
+                $node->parentNode->removeChild($node); // sin imagen: fuera (en el editor se deja el molde para poner una)
+                continue;
+            } else {
+                $node->setAttribute('data-post-empty', ''); // el editor no la guardará como imagen de la entrada
+            }
+        }
+        if ($node->hasAttribute('data-post-html')) {
+            while ($node->firstChild) $node->removeChild($node->firstChild);
+            $html = neutron_sanitize_html($post[$node->getAttribute('data-post-html')] ?? '');
+            if ($html !== '') {
+                $tmp = new DOMDocument();
+                libxml_use_internal_errors(true);
+                $tmp->loadHTML(mb_convert_encoding('<div>' . $html . '</div>', 'HTML-ENTITIES', 'UTF-8'));
+                libxml_clear_errors();
+                $wrap = $tmp->getElementsByTagName('div')->item(0);
+                foreach (iterator_to_array($wrap->childNodes) as $child) {
+                    $node->appendChild($node->ownerDocument->importNode($child, true));
+                }
+            }
+        }
+        if ($node->hasAttribute('data-post-link')) {
+            $node->setAttribute('href', neutron_post_href($post));
+        }
+    }
+}
+
+// Descripción, URL canónica y etiquetas og: de la entrada
+function neutron_dom_post_meta(DOMDocument $dom, DOMXPath $xpath, array $post, array $opt): void {
+    $head = $dom->getElementsByTagName('head')->item(0);
+    if (!$head) return;
+    foreach (neutron_post_meta_tags($post) as [$tag, $key, $name, $value]) {
+        $found = $xpath->query('//head/' . $tag . '[@' . $key . '="' . $name . '"]')->item(0);
+        $el = $found ?: $head->appendChild($dom->createElement($tag));
+        $el->setAttribute($key, $name);
+        $el->setAttribute($tag === 'link' ? 'href' : 'content', $value);
     }
 }
 

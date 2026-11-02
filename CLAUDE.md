@@ -41,6 +41,10 @@ actualízalo con cada función nueva.
 - Cada web nueva es su propia carpeta `~/Projects/<nombre>`; si ese nombre ya lo usa otro proyecto, `<nombre>-web`.
 - Webs de varias páginas: cabecera, menú y pie en `site/partials/` con `data-include`; claves de cada página con
   prefijo; resaltar el menú con `[aria-current="page"]`; `site/redirects.json` con todas las URLs de la web anterior.
+- **Blog**: colección en `site/blog/` (`_item.html` + JSON por entrada) y listado en `site/pages/blog.html`; enlaces
+  como `blog/` y `blog/<slug>` (nunca `blog.html`). El cuerpo es HTML limpio por `lib/sanitize.php`: si un sitio
+  necesita otra etiqueta, se amplía la lista blanca en el núcleo (y su versión simple en `editor.js`), nunca se
+  salta. La plantilla de la entrada lleva `data-post*` y su `<title data-post="title">… · Web</title>`.
 - **Favicon siempre**: al migrar, cogerlo de la web original (`rel="icon"`/`shortcut icon` en el HTML y
   `/favicon.ico`); si no tiene, hacerlo a partir del logo. Va en `site/favicon.ico` (16/32/48 px) y
   `site/apple-touch-icon.png` (180×180), con `<link rel="icon" href="favicon.ico">` y

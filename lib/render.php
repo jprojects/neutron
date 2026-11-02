@@ -40,7 +40,7 @@ function neutron_include_partials(string $html, int $depth = 0): string {
 
 // Enlaces que apuntan a la página actual: '' (portada) o 'carta.html'.
 function neutron_current_hrefs(string $page): array {
-    return $page === '' ? ['', 'index.php'] : [$page . '.html', 'index.php?page=' . $page];
+    return $page === '' ? ['', 'index.php'] : [$page . '.html', $page . '/', 'index.php?page=' . $page];
 }
 
 // "./carta.html", "/carta.html", "carta.html?admin" → "carta.html"; "./" → ''. Los enlaces con # no cuentan

@@ -28,6 +28,18 @@ function neutron_render_fallback(string $html, array $content, array $options = 
         $node->attrs['src'] = (string)$content[$key];
     }
 
+    // Colecciones (blog), igual que en render_dom.php
+    if (isset($options['posts'])) {
+        neutron_fallback_fill_posts($root, $options['posts']);
+    }
+
+    if (!empty($options['base'])) {
+        $head = neutron_find_first($root, fn($n) => $n->tag === 'head');
+        if ($head) {
+            array_unshift($head->children, (object)['type' => 'element', 'tag' => 'base', 'attrs' => ['href' => $options['base']], 'children' => []]);
+        }
+    }
+
     if (isset($options['current_href'])) {
         foreach (neutron_find_all($root, fn($n) => $n->tag === 'a' && isset($n->attrs['href'])) as $a) {
             if (in_array(neutron_normalize_href($a->attrs['href']), (array)$options['current_href'], true)) {
@@ -158,6 +170,115 @@ function neutron_fallback_inject_script(object $root, string $id, array $config,
     }
 }
 
+// --- colecciones (ver lib/posts.php y render_dom.php) ---
+
+function neutron_fallback_fill_posts(object $root, array $opt): void {
+    foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-posts'])) as $list) {
+        $collection = $list->attrs['data-posts'];
+        $view = neutron_posts_view($collection, $opt, (int)($list->attrs['data-posts-limit'] ?? 0), (int)($list->attrs['data-posts-per-page'] ?? 0));
+        $tpl = null;
+        foreach ($list->children as $child) {
+            if (($child->type ?? null) === 'element' && isset($child->attrs['data-post-item'])) { $tpl = $child; break; }
+        }
+        if ($tpl) {
+            $items = [];
+            foreach ($view['posts'] as $post) {
+                $item = neutron_clone_node($tpl);
+                $item->attrs['data-post-slug'] = $post['slug'];
+                if ($post['status'] !== 'published') $item->attrs['class'] = trim(($item->attrs['class'] ?? '') . ' is-draft');
+                neutron_fallback_post_node($item, $post, $opt);
+                neutron_fallback_post_walk($item, $post, $opt, false);
+                $items[] = $item;
+            }
+            $list->children = $items;
+        }
+        foreach (['empty', 'prev', 'next'] as $kind) {
+            neutron_fallback_filter($root, function (object $n) use ($kind, $collection, $view): bool {
+                if (($n->attrs['data-posts-' . $kind] ?? null) !== $collection) return true;
+                if ($view[$kind] === null) return false;
+                if ($kind !== 'empty') $n->attrs['href'] = $view[$kind];
+                return true;
+            });
+        }
+    }
+    if (!empty($opt['post'])) {
+        neutron_fallback_post_walk($root, $opt['post'], $opt, true);
+        $head = neutron_find_first($root, fn($n) => $n->tag === 'head');
+        if ($head) {
+            foreach (neutron_post_meta_tags($opt['post']) as [$tag, $key, $name, $value]) {
+                $el = null;
+                foreach ($head->children as $c) {
+                    if (($c->tag ?? null) === $tag && ($c->attrs[$key] ?? null) === $name) { $el = $c; break; }
+                }
+                if (!$el) {
+                    $el = (object)['type' => 'element', 'tag' => $tag, 'attrs' => [$key => $name], 'children' => []];
+                    $head->children[] = $el;
+                }
+                $el->attrs[$tag === 'link' ? 'href' : 'content'] = $value;
+            }
+        }
+    }
+}
+
+// Recorre los descendientes de $node aplicando los campos de la entrada; con $skipLists no entra en los listados.
+function neutron_fallback_post_walk(object $node, array $post, array $opt, bool $skipLists): void {
+    $kept = [];
+    foreach ($node->children ?? [] as $child) {
+        if (($child->type ?? null) !== 'element') { $kept[] = $child; continue; }
+        if ($skipLists && isset($child->attrs['data-posts'])) { $kept[] = $child; continue; }
+        if (!neutron_fallback_post_node($child, $post, $opt)) continue;
+        if (!isset($child->attrs['data-post-html'])) neutron_fallback_post_walk($child, $post, $opt, $skipLists);
+        $kept[] = $child;
+    }
+    $node->children = $kept;
+}
+
+// Aplica los data-post* de un nodo. Devuelve false si hay que quitarlo (imagen vacía fuera del editor).
+function neutron_fallback_post_node(object $node, array $post, array $opt): bool {
+    $a = $node->attrs ?? [];
+    if (isset($a['data-post'])) {
+        $text = neutron_post_text($post, $a['data-post'], $opt['lang'] ?? 'ca');
+        if ($node->tag === 'title') {
+            $current = implode('', array_map(fn($c) => $c->text ?? '', $node->children ?? []));
+            $text = neutron_post_title_text($current, $text);
+        }
+        neutron_set_text($node, $text);
+        if ($a['data-post'] === 'date' && $node->tag === 'time') $node->attrs['datetime'] = $post['date'];
+    }
+    if (isset($a['data-post-img'])) {
+        $src = $post[$a['data-post-img']] ?? '';
+        if ($src !== '') {
+            $node->attrs['src'] = $src;
+            if (($node->attrs['alt'] ?? '') === '') $node->attrs['alt'] = $post['title'];
+        } elseif (empty($opt['admin'])) {
+            return false;
+        } else {
+            $node->attrs['data-post-empty'] = ''; // el editor no la guardará como imagen de la entrada
+        }
+    }
+    if (isset($a['data-post-html'])) {
+        $html = neutron_sanitize_html($post[$a['data-post-html']] ?? '');
+        $node->children = $html === '' ? [] : neutron_parse_html($html)->children;
+    }
+    if (isset($a['data-post-link'])) {
+        $node->attrs['href'] = neutron_post_href($post);
+    }
+    return true;
+}
+
+// Quita del árbol los elementos para los que $keep devuelve false (en cualquier nivel)
+function neutron_fallback_filter(object $node, callable $keep): void {
+    $kept = [];
+    foreach ($node->children ?? [] as $child) {
+        if (($child->type ?? null) === 'element') {
+            if (!$keep($child)) continue;
+            neutron_fallback_filter($child, $keep);
+        }
+        $kept[] = $child;
+    }
+    if (isset($node->children)) $node->children = $kept;
+}
+
 // --- árbol ---
 
 function neutron_parse_html(string $html): object {
@@ -167,7 +288,13 @@ function neutron_parse_html(string $html): object {
 
     foreach ($tokens as $tok) {
         $top = end($stack);
-        if ($tok['type'] === 'text' || $tok['type'] === 'other' || $tok['type'] === 'rawtext') {
+        if ($tok['type'] === 'text') {
+            // El texto de la plantilla viene con entidades (&amp;, &copy;…): se guarda decodificado porque
+            // neutron_serialize() lo vuelve a escapar (si no, salía &amp;copy;)
+            $top->children[] = (object)['type' => 'text', 'text' => html_entity_decode($tok['text'], ENT_QUOTES | ENT_HTML5, 'UTF-8')];
+            continue;
+        }
+        if ($tok['type'] === 'other' || $tok['type'] === 'rawtext') {
             $top->children[] = (object)['type' => $tok['type'], 'text' => $tok['text']];
             continue;
         }
@@ -294,12 +421,12 @@ function neutron_tokenize(string $html): array {
             continue;
         }
 
-        if (preg_match('/^<\/\s*([a-zA-Z][a-zA-Z0-9-]*)\s*>$/', $tagStr, $m)) {
+        if (preg_match('/^<\/\s*([a-zA-Z][a-zA-Z0-9:-]*)\s*>$/', $tagStr, $m)) {
             $tokens[] = ['type' => 'close', 'tag' => strtolower($m[1])];
             continue;
         }
 
-        if (preg_match('/^<([a-zA-Z][a-zA-Z0-9-]*)((?:\s[^<>]*?)?)\s*(\/?)>$/s', $tagStr, $m)) {
+        if (preg_match('/^<([a-zA-Z][a-zA-Z0-9:-]*)((?:\s[^<>]*?)?)\s*(\/?)>$/s', $tagStr, $m)) {
             $tag = strtolower($m[1]);
             $attrs = neutron_parse_attrs($m[2]);
             $selfClose = ($m[3] === '/') || neutron_is_void_element($tag);

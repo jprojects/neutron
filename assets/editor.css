@@ -122,3 +122,36 @@ body.neutron-editing { padding-top: 48px; }
 /* Elementos de una sublista (platos de una sección): controles más pequeños y centrados en la fila */
 .neutron-collection .neutron-collection .neutron-item-controls { top: 50%; transform: translateY(-50%); }
 .neutron-collection .neutron-collection .neutron-item-controls button { width: 18px; height: 18px; line-height: 18px; font-size: 10px; }
+
+/* Blog: herramientas de la entrada y «Nueva entrada» en la barra */
+.neutron-post-tools { display: inline-flex; align-items: center; gap: 8px; }
+.neutron-post-tools input { font: inherit; padding: 3px 6px; border-radius: 4px; border: 0; }
+.neutron-bar button.neutron-danger { background: #dc2626; }
+.neutron-bar button.neutron-danger:hover { background: #b91c1c; }
+.neutron-bar button.neutron-new-post { background: #10b981; }
+.neutron-bar button.neutron-new-post:hover { background: #059669; }
+.neutron-bar { flex-wrap: wrap; }
+
+/* Entrada en borrador: aviso arriba; en los listados del editor, etiqueta en cada borrador */
+body.neutron-post-draft::before {
+  content: 'Borrador: solo lo ves tú. Pulsa «Publicar» para que salga en la web.';
+  display: block; position: fixed; top: 48px; left: 0; right: 0; z-index: 9998;
+  background: #f59e0b; color: #1f2937; font: 600 14px system-ui, sans-serif; text-align: center; padding: 6px;
+}
+.neutron-editing .is-draft { position: relative; opacity: .7; }
+.neutron-editing .is-draft::before {
+  content: 'Borrador'; position: absolute; top: 8px; left: 8px; z-index: 5;
+  background: #f59e0b; color: #1f2937; font: 700 12px system-ui, sans-serif; padding: 2px 8px; border-radius: 999px;
+}
+
+/* Texto con formato */
+.neutron-rich { min-height: 8em; }
+.neutron-rich-tools {
+  position: sticky; top: 52px; z-index: 50; display: flex; flex-wrap: wrap; gap: 4px;
+  margin: 0 0 10px; padding: 6px; background: #1f2933; border-radius: 6px;
+}
+.neutron-rich-tools button {
+  background: #374151; color: #fff; border: 0; border-radius: 4px; padding: 5px 10px;
+  font: 13px system-ui, sans-serif; cursor: pointer;
+}
+.neutron-rich-tools button:hover { background: #3b82f6; }

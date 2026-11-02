@@ -85,19 +85,21 @@ function neutron_site_pages(): array {
         $title = trim((string)preg_split('/\s+[·|–—-]\s+/u', $title)[0]);
         $titles[$slug] = $title !== '' ? $title : $slug;
     }
+    // El listado de una colección (blog) se abre en /blog/, no en /blog.html
+    $href = fn(string $slug) => is_file(NEUTRON_SITE . '/' . $slug . '/_item.html') ? $slug . '/' : $slug . '.html';
     $source = (string)@file_get_contents(NEUTRON_SITE . '/template.html');
     foreach (glob(NEUTRON_SITE . '/partials/*.html') ?: [] as $partial) {
         $source .= (string)file_get_contents($partial);
     }
     // Primero los enlaces del menú (<nav>), después el resto
     preg_match_all('~<nav\b.*?</nav>~is', $source, $navs);
-    preg_match_all('~href="(?:\./|/)?([a-z0-9][a-z0-9-]*)\.html"~i', implode('', $navs[0]) . $source, $m);
+    preg_match_all('~href="(?:\./|/)?([a-z0-9][a-z0-9-]*)(?:\.html|/)"~i', implode('', $navs[0]) . $source, $m);
     foreach (array_unique($m[1]) as $slug) {
-        if (isset($titles[$slug])) $pages[$slug] = ['href' => $slug . '.html', 'title' => $titles[$slug]];
+        if (isset($titles[$slug])) $pages[$slug] = ['href' => $href($slug), 'title' => $titles[$slug]];
     }
     asort($titles, SORT_NATURAL | SORT_FLAG_CASE);
     foreach ($titles as $slug => $title) {
-        $pages[$slug] ??= ['href' => $slug . '.html', 'title' => $title];
+        $pages[$slug] ??= ['href' => $href($slug), 'title' => $title];
     }
     return array_values($pages);
 }

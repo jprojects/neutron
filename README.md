@@ -40,6 +40,7 @@ site/
   redirects.json     URLs de la web anterior → páginas nuevas (opcional)
   pages/*.html       otras páginas: site/pages/carta.html → /carta.html (404.html, la de error)
   partials/*.html    trozos compartidos (cabecera, pie): <div data-include="header"></div>
+  blog/              una colección (blog, noticias…): _item.html (la entrada) y una .json por entrada
   favicon.ico        icono de la web, servido también como /favicon.ico
   apple-touch-icon.png  icono para iPhone/iPad (180×180), servido también como /apple-touch-icon.png
   assets/            imágenes, CSS y JS propios del sitio (cookies.js…)
@@ -71,7 +72,7 @@ Con nginx, el equivalente:
 ```nginx
 location ~ ^/(lib|data|bin|examples|tools|\.git)(/|$) { deny all; }
 location ~ ^/(config(\.local)?\.php|core\.json|VERSION|CHANGELOG\.md|README\.md|CLAUDE\.md|router\.php)$ { deny all; }
-location ~ ^/site/(template\.html|[^/]+\.json|pages/|partials/) { deny all; }
+location ~ ^/site/(template\.html|.+\.json$|pages/|partials/|[^/]+/_item\.html) { deny all; }
 location ~ ^/([a-z0-9][a-z0-9-]*)\.html$ { try_files $uri /index.php?page=$1&$args; }
 location / { try_files $uri $uri/ /index.php$is_args$args; }
 ```
@@ -191,6 +192,54 @@ lectores aunque la página diga otra cosa; sin el fichero responden 404 vacío. 
 Al migrar una web, el favicon se coge de la original (las etiquetas `rel="icon"`/`shortcut icon` y `/favicon.ico`);
 si no tiene, se hace a partir del logo.
 
+### Blog (colecciones con página propia)
+
+Para un blog, noticias o cualquier lista de artículos con su propia página. Una colección es una carpeta del sitio
+con la plantilla de la entrada; cada entrada es un JSON:
+
+```
+site/blog/_item.html          página de una entrada            → /blog/mi-entrada
+site/blog/mi-entrada.json     título, fecha, imagen, resumen, cuerpo (HTML limpio) y estado (draft | published)
+site/pages/blog.html          el listado                        → /blog/  (/blog.html redirige aquí)
+```
+
+- **Rutas**: `/blog/` (listado; `?p=2` para la página 2), `/blog/mi-entrada`, `/blog/feed.xml` (RSS de las 20
+  últimas) y, para todo el sitio, `/sitemap.xml` (portada, páginas y entradas publicadas). Las páginas de una
+  colección llevan `<base>` para que las rutas relativas (`site/assets/…`, `blog/…`, `./#contacte`) sigan valiendo.
+- **En la plantilla de la entrada**: `data-post="title"`, `data-post="summary"`, `data-post="date"` (la fecha en el
+  idioma de `<html lang>`: «2 de novembre de 2026»; en un `<time>`, también `datetime`), `data-post-img="image"` y
+  `data-post-html="body"`. En `<title data-post="title">Entrada · Mi web</title>` se conserva lo de después de ` · `.
+  El núcleo añade la descripción, la URL canónica y las etiquetas `og:` de la entrada.
+- **Listados** (en cualquier página, también en la portada o en la propia entrada):
+
+```html
+<div data-posts="blog" data-posts-per-page="9">        <!-- o data-posts-limit="3" -->
+  <article data-post-item>                              <!-- molde de cada entrada -->
+    <a data-post-link href="#"><img data-post-img="image" src="site/assets/img/ejemplo.jpg" alt=""></a>
+    <time data-post="date"></time>
+    <h2><a data-post-link href="#" data-post="title">…</a></h2>
+    <p data-post="summary"></p>
+  </article>
+</div>
+<p data-posts-empty="blog">Aún no hay entradas.</p>   <!-- solo si no hay ninguna -->
+<a data-posts-prev="blog" href="#">← Más nuevas</a> <a data-posts-next="blog" href="#">Anteriores →</a>
+```
+
+  De la más nueva a la más antigua (por fecha). En la página de una entrada, sus listados no la repiten. Sin imagen,
+  el `<img data-post-img>` se quita (en el editor se deja el de la plantilla para poder poner una).
+- **Editor**: en las páginas con un listado, **«Nueva entrada»** pide el título, crea un borrador
+  (`/blog/titulo-de-la-entrada`) y lo abre. En la entrada se editan en la página el título, el resumen y la imagen,
+  y el cuerpo con una barra de formato (negrita, cursiva, subtítulos, listas, cita, enlace e imagen); en la barra
+  del editor, la **fecha**, **Publicar / Pasar a borrador** y **Borrar entrada** (va a `data/deleted/`, se puede
+  recuperar a mano). Los borradores solo los ve quien ha entrado al editor; en los listados llevan la etiqueta
+  «Borrador».
+- **Texto con formato seguro**: el cuerpo se limpia en el servidor con una lista blanca (`lib/sanitize.php`) al
+  guardar y al pintar: `p`, `h2`, `h3`, `strong`, `em`, `a` (http, https, mailto, tel o rutas relativas), `ul`,
+  `ol`, `li`, `blockquote`, `br` e `img` solo de `site/uploads/` o `site/assets/`. Ningún script, estilo, `on…`,
+  iframe ni enlace `javascript:`. Lo que se pega (Word, otra web) se limpia ya en el navegador.
+- La dirección de la entrada sale del título al crearla y no cambia aunque se edite el título (los enlaces que ya
+  circulan siguen funcionando).
+
 ### Redirecciones de la web anterior
 
 `site/redirects.json` convierte las URLs viejas en redirecciones 301 (para no perder el posicionamiento). Rutas
@@ -307,7 +356,7 @@ sesión ni envían cookies. Úsala solo por HTTPS.
 
 | Acción `index.php?r=remote&a=` | Método | Qué hace |
 |---|---|---|
-| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon` y `cookies`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
+| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon`, `cookies` y `posts`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
 | `logs&level=warning&limit=100&days=7` | GET | Últimas entradas del log |
 | `integrity` | GET | Ficheros del núcleo cambiados a mano e historial de actualizaciones |
 | `backups` | GET | Copias de `data/backups` |

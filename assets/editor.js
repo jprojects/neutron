@@ -130,6 +130,19 @@
     // listas dentro de listas (secciones de una carta con sus platos).
     topCollections().forEach(setupCollection);
 
+    // Blog: la entrada que se edita (cfg.post) y «Nueva entrada» en las páginas con listado (cfg.collections)
+    var post = cfg.post || null;
+    var rich = null;
+    if (post) setupPost();
+    (cfg.collections || []).forEach(function (collection) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'neutron-new-post';
+      b.textContent = '+ Nueva entrada';
+      b.addEventListener('click', function () { createPost(collection); });
+      bar.insertBefore(b, statusEl);
+    });
+
     bar.addEventListener('click', function (e) {
       var action = e.target.getAttribute('data-action');
       if (action === 'save') doSave();
@@ -238,6 +251,203 @@
       }
     }
 
+    // --- blog ---
+
+    // Elementos de la entrada (no los de los listados de la misma página)
+    function postEls(selector) {
+      return Array.prototype.filter.call(document.body.querySelectorAll(selector), function (el) { return !el.closest('[data-posts]'); });
+    }
+
+    function setupPost() {
+      postEls('[data-post]').forEach(function (el) {
+        if (el.getAttribute('data-post') === 'date') return; // la fecha va en la barra
+        el.setAttribute('contenteditable', 'true');
+        el.classList.add('neutron-editable');
+      });
+      postEls('[data-post-img]').forEach(function (img) {
+        makeImageSwappable(img);
+      });
+      rich = postEls('[data-post-html]')[0] || null;
+      if (rich) setupRich(rich);
+
+      var box = document.createElement('span');
+      box.className = 'neutron-post-tools';
+      box.innerHTML =
+        '<label>Fecha <input type="date"></label>' +
+        '<button type="button" data-post-action="status"></button>' +
+        '<button type="button" class="neutron-danger" data-post-action="delete">Borrar entrada</button>';
+      bar.insertBefore(box, statusEl);
+      var date = box.querySelector('input');
+      date.value = post.date || '';
+      date.addEventListener('change', markDirty);
+      showStatus();
+      box.addEventListener('click', function (e) {
+        var action = e.target.getAttribute('data-post-action');
+        if (action === 'status') setStatus(post.status === 'published' ? 'draft' : 'published');
+        if (action === 'delete') deletePost();
+      });
+    }
+
+    function showStatus() {
+      var b = bar.querySelector('[data-post-action="status"]');
+      b.textContent = post.status === 'published' ? 'Pasar a borrador' : 'Publicar';
+      b.title = post.status === 'published' ? 'Ahora está publicada' : 'Ahora es un borrador: solo la ves tú';
+      document.body.classList.toggle('neutron-post-draft', post.status !== 'published');
+    }
+
+    function postRequest(payload) {
+      payload.collection = payload.collection || post.collection;
+      if (post && !payload.slug && payload.action !== 'create') payload.slug = post.slug;
+      return fetch('admin/post.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': cfg.csrf },
+        body: JSON.stringify(payload)
+      }).then(function (r) { return r.json(); });
+    }
+
+    function collectPost() {
+      var fields = {};
+      postEls('[data-post]').forEach(function (el) {
+        var f = el.getAttribute('data-post');
+        if (f !== 'date' && !(f in fields)) fields[f] = el.textContent.trim();
+      });
+      var img = postEls('[data-post-img]')[0];
+      if (img) fields[img.getAttribute('data-post-img')] = img.hasAttribute('data-post-empty') ? '' : (img.getAttribute('src') || '');
+      if (rich) fields[rich.getAttribute('data-post-html')] = rich.innerHTML;
+      fields.date = bar.querySelector('.neutron-post-tools input').value;
+      return fields;
+    }
+
+    function setStatus(status) {
+      var go = function () {
+        statusEl.textContent = 'Guardando...';
+        postRequest({ action: 'status', status: status }).then(function (data) {
+          if (!data.ok) { statusEl.textContent = 'Error: ' + (data.error || ''); return; }
+          post.status = data.status;
+          showStatus();
+          statusEl.textContent = data.status === 'published' ? 'Publicada ✓' : 'Ahora es un borrador';
+        }).catch(function () { statusEl.textContent = 'Error de red'; });
+      };
+      // Publicar guarda antes los cambios pendientes
+      if (dirty) doSave(go); else go();
+    }
+
+    function deletePost() {
+      if (!confirm('¿Borrar esta entrada? Dejará de verse en la web.')) return;
+      postRequest({ action: 'delete' }).then(function (data) {
+        if (!data.ok) { statusEl.textContent = 'Error: ' + (data.error || ''); return; }
+        dirty = false;
+        goEditing(new URL(data.url, document.baseURI));
+      }).catch(function () { statusEl.textContent = 'Error de red'; });
+    }
+
+    function createPost(collection) {
+      var title = prompt('Título de la nueva entrada');
+      if (!title || !title.trim()) return;
+      postRequest({ action: 'create', collection: collection, title: title.trim() }).then(function (data) {
+        if (!data.ok) { statusEl.textContent = 'Error: ' + (data.error || ''); return; }
+        goEditing(new URL(data.url, document.baseURI));
+      }).catch(function () { statusEl.textContent = 'Error de red'; });
+    }
+
+    // Texto con formato: barra con los formatos que admite el servidor (lib/sanitize.php)
+    function setupRich(el) {
+      el.setAttribute('contenteditable', 'true');
+      el.classList.add('neutron-editable', 'neutron-rich');
+      try { document.execCommand('defaultParagraphSeparator', false, 'p'); } catch (e) {}
+      var tools = document.createElement('div');
+      tools.className = 'neutron-rich-tools';
+      [['bold', '<b>N</b>', 'Negrita'], ['italic', '<i>C</i>', 'Cursiva'], ['h2', 'Título', 'Subtítulo'], ['h3', 'Subtít.', 'Subtítulo pequeño'],
+       ['p', '¶', 'Párrafo normal'], ['ul', '• Lista', 'Lista'], ['ol', '1. Lista', 'Lista numerada'], ['quote', '❝', 'Cita'],
+       ['link', 'Enlace', 'Enlace'], ['unlink', 'Quitar enlace', 'Quitar enlace'], ['image', 'Imagen', 'Insertar imagen']
+      ].forEach(function (t) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.setAttribute('data-rich', t[0]);
+        b.innerHTML = t[1];
+        b.title = t[2];
+        tools.appendChild(b);
+      });
+      el.parentNode.insertBefore(tools, el);
+      // mousedown: sin perder la selección del texto
+      tools.addEventListener('mousedown', function (e) { if (e.target.closest('button')) e.preventDefault(); });
+      tools.addEventListener('click', function (e) {
+        var b = e.target.closest('button');
+        if (!b) return;
+        el.focus();
+        var cmd = b.getAttribute('data-rich');
+        if (cmd === 'bold' || cmd === 'italic') document.execCommand(cmd);
+        else if (cmd === 'h2' || cmd === 'h3' || cmd === 'p') document.execCommand('formatBlock', false, cmd);
+        else if (cmd === 'quote') document.execCommand('formatBlock', false, 'blockquote');
+        else if (cmd === 'ul') document.execCommand('insertUnorderedList');
+        else if (cmd === 'ol') document.execCommand('insertOrderedList');
+        else if (cmd === 'unlink') document.execCommand('unlink');
+        else if (cmd === 'link') {
+          var url = prompt('Dirección del enlace (https://…, mailto:… o una página de la web)');
+          if (url) document.execCommand('createLink', false, url.trim());
+        } else if (cmd === 'image') insertImage(el);
+        markDirty();
+      });
+      // Al pegar: solo el formato permitido (el servidor vuelve a limpiarlo al guardar)
+      el.addEventListener('paste', function (e) {
+        e.preventDefault();
+        var html = e.clipboardData.getData('text/html');
+        var text = e.clipboardData.getData('text/plain');
+        document.execCommand('insertHTML', false, html ? cleanHtml(html) : textToHtml(text));
+        markDirty();
+      });
+    }
+
+    function insertImage(el) {
+      var range = window.getSelection().rangeCount ? window.getSelection().getRangeAt(0) : null;
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/png,image/jpeg,image/gif,image/webp';
+      input.addEventListener('change', function () {
+        if (!input.files || !input.files[0]) return;
+        var alt = prompt('Describe la imagen en pocas palabras (para quien no la ve)') || '';
+        upload(input.files[0], function (url) {
+          el.focus();
+          if (range) { var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+          document.execCommand('insertHTML', false, '<img src="' + escapeAttr(url) + '" alt="' + escapeAttr(alt) + '">');
+          markDirty();
+        });
+      });
+      input.click();
+    }
+
+    // Misma lista blanca que lib/sanitize.php (versión simple para que lo pegado se vea ya limpio)
+    function cleanHtml(html) {
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var allowed = { P: 'p', H1: 'h2', H2: 'h2', H3: 'h3', H4: 'h3', STRONG: 'strong', B: 'strong', EM: 'em', I: 'em', A: 'a', UL: 'ul', OL: 'ol', LI: 'li', BLOCKQUOTE: 'blockquote', BR: 'br', DIV: 'p' };
+      var drop = /^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|SVG|MATH|TEMPLATE|NOSCRIPT|META|LINK|TITLE|HEAD|FORM|INPUT|BUTTON|SELECT|TEXTAREA|IMG|VIDEO|AUDIO)$/;
+      function walk(node) {
+        var out = '';
+        node.childNodes.forEach(function (n) {
+          if (n.nodeType === 3) { out += escapeText(n.textContent); return; }
+          if (n.nodeType !== 1 || drop.test(n.tagName)) return;
+          var inner = walk(n);
+          var tag = allowed[n.tagName];
+          if (!tag) { out += inner; return; }
+          if (tag === 'br') { out += '<br>'; return; }
+          if (tag === 'a') {
+            var href = (n.getAttribute('href') || '').trim();
+            out += /^(https?:|mailto:|tel:)/i.test(href) ? '<a href="' + escapeAttr(href) + '">' + inner + '</a>' : inner;
+            return;
+          }
+          out += '<' + tag + '>' + inner + '</' + tag + '>';
+        });
+        return out;
+      }
+      return walk(doc.body);
+    }
+
+    function textToHtml(text) {
+      return text.split(/\r?\n\s*\n/).map(function (p) { return '<p>' + escapeText(p).replace(/\r?\n/g, '<br>') + '</p>'; }).join('');
+    }
+    function escapeText(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+    function escapeAttr(s) { return escapeText(s).replace(/"/g, '&quot;'); }
+
     function makeImageSwappable(img) {
       img.classList.add('neutron-editable-img');
       img.addEventListener('click', function () {
@@ -253,6 +463,14 @@
     }
 
     function uploadImage(file, imgEl) {
+      upload(file, function (url) {
+        imgEl.setAttribute('src', url);
+        imgEl.removeAttribute('data-post-empty');
+        markDirty();
+      });
+    }
+
+    function upload(file, done) {
       var fd = new FormData();
       fd.append('image', file);
       statusEl.textContent = 'Subiendo imagen...';
@@ -264,8 +482,7 @@
         .then(function (r) { return r.json(); })
         .then(function (data) {
           if (data.ok) {
-            imgEl.src = data.url;
-            markDirty();
+            done(data.url);
             statusEl.textContent = 'Imagen lista (recuerda guardar)';
           } else {
             statusEl.textContent = 'Error: ' + (data.error || 'no se pudo subir');
@@ -308,17 +525,21 @@
       });
     }
 
-    function doSave() {
+    // Guarda los textos de la página y, en la página de una entrada, la entrada. then: al acabar bien.
+    function doSave(then) {
       statusEl.textContent = 'Guardando...';
-      fetch('admin/save.php', {
+      var requests = [fetch('admin/save.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': cfg.csrf },
         body: JSON.stringify(collectPayload())
-      })
-        .then(function (r) { return r.json(); })
-        .then(function (data) {
-          if (data.ok) dirty = false;
-          statusEl.textContent = data.ok ? 'Guardado ✓' : 'Error: ' + (data.error || '');
+      }).then(function (r) { return r.json(); })];
+      if (post) requests.push(postRequest({ action: 'save', fields: collectPost() }));
+      Promise.all(requests)
+        .then(function (results) {
+          var failed = results.filter(function (d) { return !d.ok; })[0];
+          if (!failed) dirty = false;
+          statusEl.textContent = failed ? 'Error: ' + (failed.error || '') : 'Guardado ✓';
+          if (!failed && typeof then === 'function') then();
         })
         .catch(function () {
           statusEl.textContent = 'Error de red al guardar';

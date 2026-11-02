@@ -2,6 +2,23 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.6.0 — 2026-11-02
+
+Blog: colecciones con página propia.
+
+- `site/<colección>/_item.html` + una entrada por JSON: listado en `/blog/` (con paginación), entrada en
+  `/blog/mi-entrada`, RSS en `/blog/feed.xml` y `/sitemap.xml` para todo el sitio. Fecha en el idioma de la web,
+  descripción, URL canónica y etiquetas `og:` por entrada. En los dos motores de render.
+- Listados en cualquier página (`data-posts`, `data-post-item`, `data-posts-per-page` / `-limit`, `data-posts-empty`,
+  `data-posts-prev` / `-next`); en la página de una entrada no la repiten.
+- Editor: «Nueva entrada», borradores, Publicar / Pasar a borrador, Borrar (a `data/deleted/`), fecha, imagen y
+  cuerpo con barra de formato. Endpoint `admin/post.php` con sesión y CSRF.
+- `lib/sanitize.php`: limpieza del HTML con lista blanca, al guardar y al pintar.
+- Seguridad: no se sirve ningún `.json` de `site/` (antes solo los de la raíz de `site/`) ni las plantillas `_item.html`.
+- Corregido: el motor sin DOM escapaba dos veces las entidades del texto de la plantilla (`&copy;` salía como
+  `&amp;copy;`), y no reconocía etiquetas con espacio de nombres (`<o:p>` de Word).
+- El estado para Cosmo cuenta las entradas (`site.posts`).
+
 ## 1.5.1 — 2026-11-02
 
 - Corregido: con el servidor de desarrollo (`php -S router.php`), las redirecciones de `site/redirects.json` y la 404
