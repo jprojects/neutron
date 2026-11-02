@@ -36,6 +36,7 @@ site/
   template.html      la página
   content.json       el contenido editable
   contact.json       campos y textos del formulario de contacto (opcional)
+  cookies.json       faldón de cookies: categorías que piden consentimiento y textos (opcional)
   redirects.json     URLs de la web anterior → páginas nuevas (opcional)
   pages/*.html       otras páginas: site/pages/carta.html → /carta.html (404.html, la de error)
   partials/*.html    trozos compartidos (cabecera, pie): <div data-include="header"></div>
@@ -68,7 +69,7 @@ evalúan antes). Las actualizaciones sustituyen el bloque y conservan el resto, 
 Con nginx, el equivalente:
 
 ```nginx
-location ~ ^/(lib|data|bin|examples|\.git)(/|$) { deny all; }
+location ~ ^/(lib|data|bin|examples|tools|\.git)(/|$) { deny all; }
 location ~ ^/(config(\.local)?\.php|core\.json|VERSION|CHANGELOG\.md|README\.md|CLAUDE\.md|router\.php)$ { deny all; }
 location ~ ^/site/(template\.html|[^/]+\.json|pages/|partials/) { deny all; }
 location ~ ^/([a-z0-9][a-z0-9-]*)\.html$ { try_files $uri /index.php?page=$1&$args; }
@@ -134,6 +135,47 @@ copia el último elemento con los textos vacíos (y sus sublistas con un solo el
 - Si la misma clave sale varias veces en una página (teléfono en la cabecera y en el pie), al editar una se
   actualizan las demás.
 - **404**: si existe `site/pages/404.html`, es la página de error.
+
+### Cookies
+
+El núcleo trae el faldón de consentimiento (RGPD + art. 22.2 LSSI). Se activa con `site/cookies.json`; el sitio no
+lleva JavaScript propio de cookies:
+
+```json
+{
+    "policy": "politica-de-cookies.html",
+    "accent": "#9b1b30",
+    "categories": [
+        { "id": "media", "name": "Mapes (Google Maps)", "description": "Permeten mostrar el mapa interactiu…" }
+    ],
+    "texts": { "title": "Aquest lloc web utilitza cookies", "text": "Fem servir cookies tècniques… a la {policy}.", "accept": "Acceptar totes" }
+}
+```
+
+- `categories`: solo las que necesitan consentimiento (vídeos, mapas, analítica…). **Sin categorías no hay faldón**,
+  porque las cookies técnicas no lo requieren, y los botones «Configurar cookies» se ocultan solos.
+- `texts`: en el idioma de la web (`title`, `text` con `{policy}` donde va el enlace, `policy`, `accept`, `reject`,
+  `configure`, `save`, `technical`, `technical_description`, `label`); los que falten salen en castellano.
+- `accent`: color de los botones (también `--nc-accent`, `--nc-bg`, `--nc-text`, `--nc-font` en el CSS del sitio).
+- `cookie` (por defecto `neutron_consent`) y `version`: subir la versión vuelve a preguntar a todo el mundo (cuando
+  cambian las categorías). La elección se guarda 12 meses.
+
+En la página:
+
+```html
+<iframe data-consent="media" data-consent-src="https://www.youtube-nocookie.com/embed/…"></iframe>  <!-- al aceptar -->
+<script type="text/plain" data-consent="analytics" src="https://…"></script>                   <!-- se ejecuta al aceptar -->
+<button data-cookie-accept="media">Mostrar el vídeo</button>      <!-- acepta esa categoría -->
+<button data-cookie-settings>Configurar cookies</button>          <!-- vuelve a abrir las opciones -->
+```
+
+Sin `data-consent`, un iframe con `data-consent-src` es de la primera categoría. Al cargarse, su contenedor recibe la
+clase `is-loaded` (para ocultar el aviso que lo tapaba). Rechazar es tan fácil como aceptar; si se retira un
+consentimiento ya dado, la página se recarga. En JS: `neutronCookies.has('media')`, `neutronCookies.open()` y el
+evento `neutron:consent` en `document`. En el modo edición el faldón no sale.
+
+La política de cookies del sitio (`site/pages/…`) tiene que describir las cookies técnicas, cada categoría y los
+servicios que se cargan sin cookies propias (reCAPTCHA del formulario, tipografías de Google…).
 
 ### Favicon
 
@@ -265,7 +307,7 @@ sesión ni envían cookies. Úsala solo por HTTPS.
 
 | Acción `index.php?r=remote&a=` | Método | Qué hace |
 |---|---|---|
-| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
+| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon` y `cookies`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
 | `logs&level=warning&limit=100&days=7` | GET | Últimas entradas del log |
 | `integrity` | GET | Ficheros del núcleo cambiados a mano e historial de actualizaciones |
 | `backups` | GET | Copias de `data/backups` |

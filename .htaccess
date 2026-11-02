@@ -9,7 +9,7 @@ DirectoryIndex index.php
 
     # Ficheros internos: nunca se sirven
     RewriteRule ^(config(\.local)?\.php|core\.json|VERSION|CHANGELOG\.md|README\.md|CLAUDE\.md|router\.php|\.git.*)$ - [F,L]
-    RewriteRule ^(lib|data|bin|examples|\.git)(/|$) - [F,L]
+    RewriteRule ^(lib|data|bin|examples|tools|\.git)(/|$) - [F,L]
     RewriteRule ^site/(template\.html|[^/]+\.json|pages/|partials/) - [F,L]
 
     # Páginas del sitio: avis-legal.html → index.php?page=avis-legal (site/pages/avis-legal.html)

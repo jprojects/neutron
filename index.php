@@ -26,6 +26,7 @@ require_once __DIR__ . '/lib/auth.php';
 require_once __DIR__ . '/lib/content.php';
 require_once __DIR__ . '/lib/render.php';
 require_once __DIR__ . '/lib/form.php';
+require_once __DIR__ . '/lib/cookies.php';
 
 // Página: la plantilla del sitio o una de site/pages/ (carta.html → index.php?page=carta).
 // Cualquier otra ruta (las URLs de la web anterior) va a site/redirects.json o da 404.
@@ -88,6 +89,10 @@ if (isset($_GET['admin'])) {
 }
 if (str_contains($template, 'data-neutron-form')) {
     $options['form_bootstrap'] = neutron_form_client_config();
+}
+$cookies = neutron_cookies_client_config();
+if ($cookies !== null) {
+    $options['cookies_bootstrap'] = $cookies;
 }
 
 header('Content-Type: text/html; charset=utf-8');

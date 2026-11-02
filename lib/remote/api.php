@@ -145,6 +145,7 @@ function neutron_remote_status(): void {
             'contact_form' => str_contains($template, 'data-neutron-form'),
             'contact_json' => is_file($contactFile),
             'favicon' => is_file(NEUTRON_SITE . '/favicon.ico'),
+            'cookies' => is_file(NEUTRON_SITE . '/cookies.json'),
         ],
         'recaptcha' => [
             'enabled' => neutron_recaptcha_enabled(),

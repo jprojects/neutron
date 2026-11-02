@@ -37,6 +37,10 @@ function neutron_render_dom(string $html, array $content, array $options = []): 
         neutron_dom_inject_script($dom, 'neutron-form-config', $options['form_bootstrap'], 'assets/form.js');
     }
 
+    if (!empty($options['cookies_bootstrap'])) {
+        neutron_dom_inject_script($dom, 'neutron-cookies-config', $options['cookies_bootstrap'], 'assets/cookies.js', 'assets/cookies.css');
+    }
+
     if (!empty($options['admin_bootstrap'])) {
         neutron_dom_inject_admin_bootstrap($dom, $options['admin_bootstrap']);
     }
@@ -133,9 +137,16 @@ function neutron_dom_inject_admin_bootstrap(DOMDocument $dom, array $config): vo
 }
 
 // Config en <script type="application/json" id="…"> dentro de <head> y el script al final de <body>.
-function neutron_dom_inject_script(DOMDocument $dom, string $id, array $config, string $src): void {
+function neutron_dom_inject_script(DOMDocument $dom, string $id, array $config, string $src, ?string $css = null): void {
     $head = $dom->getElementsByTagName('head')->item(0);
     if (!$head) return;
+
+    if ($css !== null) {
+        $link = $dom->createElement('link');
+        $link->setAttribute('rel', 'stylesheet');
+        $link->setAttribute('href', $css);
+        $head->appendChild($link);
+    }
 
     // Sin JSON_UNESCAPED_UNICODE: DOMDocument pasaría los acentos a entidades, que dentro de <script> no se decodifican
     $json = json_encode($config);

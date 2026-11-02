@@ -40,6 +40,10 @@ function neutron_render_fallback(string $html, array $content, array $options = 
         neutron_fallback_inject_script($root, 'neutron-form-config', $options['form_bootstrap'], 'assets/form.js');
     }
 
+    if (!empty($options['cookies_bootstrap'])) {
+        neutron_fallback_inject_script($root, 'neutron-cookies-config', $options['cookies_bootstrap'], 'assets/cookies.js', 'assets/cookies.css');
+    }
+
     if (!empty($options['admin_bootstrap'])) {
         neutron_fallback_inject_admin_bootstrap($root, $options['admin_bootstrap']);
     }
@@ -121,9 +125,17 @@ function neutron_fallback_inject_admin_bootstrap(object $root, array $config): v
     neutron_fallback_inject_script($root, 'neutron-config', $config, 'assets/editor.js');
 }
 
-function neutron_fallback_inject_script(object $root, string $id, array $config, string $src): void {
+function neutron_fallback_inject_script(object $root, string $id, array $config, string $src, ?string $css = null): void {
     $head = neutron_find_first($root, fn($n) => $n->tag === 'head');
     $body = neutron_find_first($root, fn($n) => $n->tag === 'body');
+
+    if ($head && $css !== null) {
+        $head->children[] = (object)[
+            'type' => 'element', 'tag' => 'link',
+            'attrs' => ['rel' => 'stylesheet', 'href' => $css],
+            'children' => [],
+        ];
+    }
 
     if ($head) {
         // Sin JSON_UNESCAPED_UNICODE, igual que en render_dom.php: DOMDocument pasaría los acentos a entidades, que dentro de <script> no se decodifican

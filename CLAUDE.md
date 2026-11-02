@@ -30,11 +30,15 @@ actualízalo con cada función nueva.
   cargues el script de Google a mano). Hay que pedir/poner las claves en `config.local.php` → `recaptcha` y
   mencionar Google reCAPTCHA en la política de cookies del sitio.
 - Campos, obligatorios y textos del formulario en `site/contact.json`, en el idioma de la web.
-- Servicios de terceros (vídeos, mapas, analítica): bloqueados hasta el consentimiento del faldón de cookies del
-  sitio (`site/assets/cookies.js`, iframes con `data-consent-src`) y descritos en `site/pages/politica-cookies.html`;
-  si cambian las categorías, subir `VERSION` en `cookies.js`.
+- **Cookies**: el faldón es del núcleo; cada sitio lleva `site/cookies.json` (textos en su idioma, `accent`, y una
+  categoría por cada servicio de terceros que necesite consentimiento: vídeos, mapas, analítica). Nunca un
+  `cookies.js` propio. Iframes con `data-consent="…" data-consent-src="…"`, scripts con
+  `type="text/plain" data-consent="…"`, aviso con `[data-cookie-accept="…"]`, y `[data-cookie-settings]` en el pie.
+  Si cambian las categorías, subir `version`. Todo descrito en la política de cookies del sitio. Sin terceros que
+  pidan consentimiento, `categories` vacío (no sale faldón) pero `cookies.json` igualmente.
 - Solo texto plano en `data-edit`; no se pueden editar `href`. Las listas se pueden anidar (hasta 3 niveles):
   cartas y menús como secciones con sus platos, no como bloques de texto.
+- Cada web nueva es su propia carpeta `~/Projects/<nombre>`; si ese nombre ya lo usa otro proyecto, `<nombre>-web`.
 - Webs de varias páginas: cabecera, menú y pie en `site/partials/` con `data-include`; claves de cada página con
   prefijo; resaltar el menú con `[aria-current="page"]`; `site/redirects.json` con todas las URLs de la web anterior.
 - **Favicon siempre**: al migrar, cogerlo de la web original (`rel="icon"`/`shortcut icon` en el HTML y
@@ -76,7 +80,8 @@ actualízalo con cada función nueva.
   Las actualizaciones se prueban en una copia de la carpeta, nunca sobre la instalación de trabajo.
 - reCAPTCHA: claves de prueba de Google (sitio `6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI`, secreta
   `6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe`), que aprueban siempre. No dejarlas en `config.local.php`.
-- Editor en un navegador real: Chromium headless con el protocolo de DevTools desde Node 22 (WebSocket nativo,
-  sin dependencias); el perfil y las capturas fuera de /tmp (`~/…`), porque Chromium es un snap.
+- Editor y JS en un navegador real: `node tools/cdp.mjs <url> <pasos.mjs> [captura.png]` (Chromium headless con el
+  protocolo de DevTools, sin dependencias; ver la cabecera del fichero). Perfil y capturas en `~/cdp-tmp`, porque
+  Chromium es un snap y no ve /tmp.
 - Antes de dar algo por terminado, pruébalo en el navegador (también en modo `?admin`). Limpia después lo que
   generen las pruebas en `data/`.

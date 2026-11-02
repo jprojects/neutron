@@ -2,6 +2,20 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.5.0 — 2026-11-02
+
+Faldón de cookies en el núcleo.
+
+- Con `site/cookies.json` el núcleo inyecta el faldón de consentimiento (`assets/cookies.js` y `cookies.css`):
+  categorías con su descripción, aceptar / rechazar / configurar, textos en el idioma del sitio, color propio.
+  Sin categorías de terceros no se muestra (solo cookies técnicas). Antes cada sitio llevaba su copia.
+- Bloqueo hasta el consentimiento de iframes (`data-consent-src`, con `data-consent="categoría"`) y de scripts
+  (`<script type="text/plain" data-consent="…">`); `[data-cookie-accept="…"]` y `[data-cookie-settings]`;
+  `neutronCookies.has()` y el evento `neutron:consent`.
+- Lee las cookies de los faldones propios anteriores (`{ v, media: true }`): quien ya había elegido no tiene que
+  volver a hacerlo si el sitio mantiene el nombre de su cookie (`cookie` en `cookies.json`).
+- El estado para Cosmo dice si el sitio tiene faldón (`site.cookies`). `tools/` no se sirve.
+
 ## 1.4.0 — 2026-10-26
 
 Editar webs de varias páginas sin salir del modo edición.
