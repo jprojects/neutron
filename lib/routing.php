@@ -16,11 +16,27 @@ if (!defined('NEUTRON_APP')) { http_response_code(403); exit; }
 // "index.php/serveis/carta"…
 function neutron_request_path(): string {
     $uri = rawurldecode((string)parse_url((string)($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH));
-    $base = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/index.php'))), '/');
+    $base = neutron_base_path();
     if ($base !== '' && str_starts_with($uri, $base . '/')) {
         $uri = substr($uri, strlen($base));
     }
     return trim($uri, '/');
+}
+
+// Carpeta de la instalación en la URL ('' en la raíz, '/web' en un subdirectorio). Con Apache, SCRIPT_NAME es
+// siempre /…/index.php (la reescritura); con `php -S` y router.php, una ruta como /assets/images/logo.png llega
+// con SCRIPT_NAME = esa ruta, y entonces se calcula desde dónde está la instalación respecto al DOCUMENT_ROOT.
+function neutron_base_path(): string {
+    $script = str_replace('\\', '/', (string)($_SERVER['SCRIPT_NAME'] ?? '/index.php'));
+    if (str_ends_with($script, '/index.php')) {
+        return rtrim(dirname($script), '/');
+    }
+    $doc = realpath((string)($_SERVER['DOCUMENT_ROOT'] ?? ''));
+    $root = realpath(NEUTRON_ROOT);
+    if ($doc && $root && str_starts_with($root . '/', rtrim($doc, '/') . '/')) {
+        return rtrim(str_replace('\\', '/', substr($root, strlen(rtrim($doc, '/')))), '/');
+    }
+    return '';
 }
 
 // Destino para la ruta pedida, o null si no hay redirección. Con $withQueryOnly solo vale una entrada que
@@ -105,8 +121,7 @@ function neutron_serve_site_icon(string $name): void {
 function neutron_redirect(string $to): void {
     if (!preg_match('~^https?://~i', $to)) {
         // Relativa a la instalación
-        $base = rtrim(str_replace('\\', '/', dirname((string)($_SERVER['SCRIPT_NAME'] ?? '/index.php'))), '/');
-        $to = $base . '/' . ltrim($to === './' ? '' : $to, '/');
+        $to = neutron_base_path() . '/' . ltrim($to === './' ? '' : $to, '/');
     }
     header('Location: ' . $to, true, 301);
     exit;

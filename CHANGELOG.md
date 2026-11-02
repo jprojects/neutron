@@ -2,6 +2,13 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.5.1 — 2026-11-02
+
+- Corregido: con el servidor de desarrollo (`php -S router.php`), las redirecciones de `site/redirects.json` y la 404
+  fallaban para rutas en subcarpetas que parecen ficheros (`/assets/images/logo.png`), porque PHP pone esa ruta en
+  `SCRIPT_NAME`. La carpeta de la instalación se calcula ahora también desde el `DOCUMENT_ROOT`. Con Apache ya
+  funcionaba.
+
 ## 1.5.0 — 2026-11-02
 
 Faldón de cookies en el núcleo.
