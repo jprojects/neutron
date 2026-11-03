@@ -31,6 +31,12 @@ neutron_require_csrf();
 $body = json_decode((string)file_get_contents('php://input'), true);
 $action = is_array($body) ? (string)($body['action'] ?? '') : '';
 $collection = is_array($body) ? (string)($body['collection'] ?? '') : '';
+// Varios idiomas: el idioma de la página desde la que se edita
+$langs = neutron_languages();
+if ($langs !== null) {
+    $lang = is_string($body['lang'] ?? null) && isset($langs['languages'][$body['lang']]) ? $body['lang'] : $langs['default'];
+    neutron_lang($lang);
+}
 if (!neutron_collection_valid($collection)) {
     post_reply(['ok' => false, 'error' => 'Colección no válida'], 400);
 }
@@ -40,9 +46,10 @@ if ($action === 'create') {
     if ($title === '') post_reply(['ok' => false, 'error' => 'Escribe un título'], 422);
     $post = neutron_post_normalize(['title' => $title, 'date' => date('Y-m-d'), 'status' => 'draft', 'body' => '<p></p>'],
         $collection, neutron_post_slug($collection, $title));
-    if (!neutron_post_save($post)) post_reply(['ok' => false, 'error' => 'No se pudo crear (¿permisos de site/' . $collection . '?)'], 500);
+    // El título nuevo es el del idioma principal (lo que ven todos los idiomas hasta que se traduzca)
+    if (!neutron_post_save($post, true, $langs['default'] ?? null)) post_reply(['ok' => false, 'error' => 'No se pudo crear (¿permisos de site/' . $collection . '?)'], 500);
     neutron_log('info', 'Entrada creada: {c}/{slug}', ['c' => $collection, 'slug' => $post['slug']]);
-    post_reply(['ok' => true, 'slug' => $post['slug'], 'url' => neutron_post_href($post)]);
+    post_reply(['ok' => true, 'slug' => $post['slug'], 'url' => neutron_lang_prefix() . neutron_post_href($post)]);
 }
 
 $post = neutron_post_load($collection, (string)($body['slug'] ?? ''));
@@ -75,7 +82,7 @@ if ($action === 'save') {
 
 if ($action === 'status') {
     $post['status'] = ($body['status'] ?? '') === 'published' ? 'published' : 'draft';
-    if (!neutron_post_save($post)) post_reply(['ok' => false, 'error' => 'No se pudo guardar'], 500);
+    if (!neutron_post_save($post, false)) post_reply(['ok' => false, 'error' => 'No se pudo guardar'], 500);
     neutron_log('notice', 'Entrada {status}: {c}/{slug}', ['c' => $collection, 'slug' => $post['slug'], 'status' => $post['status'] === 'published' ? 'publicada' : 'pasada a borrador']);
     post_reply(['ok' => true, 'status' => $post['status']]);
 }
@@ -83,7 +90,7 @@ if ($action === 'status') {
 if ($action === 'delete') {
     if (!neutron_post_delete($collection, $post['slug'])) post_reply(['ok' => false, 'error' => 'No se pudo borrar'], 500);
     neutron_log('notice', 'Entrada borrada: {c}/{slug} (copia en data/deleted)', ['c' => $collection, 'slug' => $post['slug']]);
-    post_reply(['ok' => true, 'url' => $collection . '/']);
+    post_reply(['ok' => true, 'url' => neutron_lang_prefix() . $collection . '/']);
 }
 
 post_reply(['ok' => false, 'error' => 'Acción desconocida'], 400);

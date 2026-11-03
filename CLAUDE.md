@@ -45,6 +45,10 @@ actualízalo con cada función nueva.
   como `blog/` y `blog/<slug>` (nunca `blog.html`). El cuerpo es HTML limpio por `lib/sanitize.php`: si un sitio
   necesita otra etiqueta, se amplía la lista blanca en el núcleo (y su versión simple en `editor.js`), nunca se
   salta. La plantilla de la entrada lleva `data-post*` y su `<title data-post="title">… · Web</title>`.
+- **Varios idiomas**: `site/languages.json` y los textos en `site/content.<idioma>.json` (en `content.json` solo
+  imágenes y lo común); misma plantilla y mismos nombres de página para todos; enlaces internos sin idioma (los pone
+  el núcleo); selector con `data-lang-link`; `contact.<idioma>.json` y `cookies.<idioma>.json`; entradas traducidas
+  en `i18n`. Las URLs antiguas de cada idioma, en `redirects.json`.
 - **Favicon siempre**: al migrar, cogerlo de la web original (`rel="icon"`/`shortcut icon` en el HTML y
   `/favicon.ico`); si no tiene, hacerlo a partir del logo. Va en `site/favicon.ico` (16/32/48 px) y
   `site/apple-touch-icon.png` (180×180), con `<link rel="icon" href="favicon.ico">` y

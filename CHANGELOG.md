@@ -2,6 +2,23 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.7.0 — 2026-11-03
+
+Webs de varios idiomas.
+
+- `site/languages.json` (idiomas y el principal): rutas `/ca/…`, `/es/…` con el mismo nombre de página, raíz al
+  idioma del navegador, `/pagina.html` sin idioma al principal. También colecciones, RSS por idioma y un sitemap con
+  todos.
+- Textos por idioma en `site/content.<idioma>.json` (con el principal y la plantilla como respaldo); las imágenes,
+  comunes en `site/content.json`. `contact.<idioma>.json` y `cookies.<idioma>.json` opcionales.
+- Enlaces internos con el idioma delante, `<html lang>`, selector `data-lang-link` / `data-lang-current` y
+  `<link rel="alternate" hreflang>`. En los dos motores de render.
+- Entradas traducidas en la misma entrada (`i18n`), con el texto del idioma principal mientras no se traducen.
+- Editor: selector de idioma; guarda en el idioma de la página sin copiar a la traducción los textos que aún son
+  del principal; aviso en las entradas sin traducir.
+- `data-edit-content="clave"`: el atributo `content` de una etiqueta (`<meta name="description">`).
+- El estado para Cosmo incluye los idiomas (`site.languages`).
+
 ## 1.6.0 — 2026-11-02
 
 Blog: colecciones con página propia.

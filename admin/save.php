@@ -26,12 +26,35 @@ if (!is_array($body)) {
     exit;
 }
 
-$content = neutron_load_content();
+// Web de un idioma: todo a site/content.json. Varios idiomas: los textos y las listas al fichero del idioma que se
+// edita (site/content.<idioma>.json) y las imágenes (images) a site/content.json, que es común.
+$langs = neutron_languages();
+$lang = null;
+if ($langs !== null) {
+    $lang = is_string($body['lang'] ?? null) && isset($langs['languages'][$body['lang']]) ? $body['lang'] : $langs['default'];
+}
+$shared = neutron_read_content(neutron_content_path());
+$content = $lang !== null ? neutron_read_content(neutron_content_path($lang)) : $shared;
+// En un idioma que no es el principal, la página muestra el texto del principal donde falta la traducción: si llega
+// tal cual, no se guarda (así sigue cambiando cuando se cambia en el idioma principal).
+$fallback = $lang !== null && $lang !== $langs['default']
+    ? array_merge($shared, neutron_read_content(neutron_content_path($langs['default'])))
+    : null;
 
 if (!empty($body['fields']) && is_array($body['fields'])) {
     foreach ($body['fields'] as $key => $value) {
         if (!is_string($key)) continue;
-        $content[$key] = is_string($value) ? trim($value) : $value;
+        $value = is_string($value) ? trim($value) : $value;
+        if ($fallback !== null && !array_key_exists($key, $content) && ($fallback[$key] ?? null) === $value) continue;
+        $content[$key] = $value;
+    }
+}
+
+// Imágenes sueltas (data-edit-img). Los editores anteriores a la 1.7 las mandaban dentro de fields.
+if (!empty($body['images']) && is_array($body['images'])) {
+    foreach ($body['images'] as $key => $value) {
+        if (!is_string($key) || !is_string($value)) continue;
+        if ($lang !== null) $shared[$key] = trim($value); else $content[$key] = trim($value);
     }
 }
 
@@ -61,8 +84,12 @@ function neutron_clean_items(array $items, int $depth = 0): array {
     return $clean;
 }
 
-if (neutron_save_content($content)) {
-    neutron_log('info', 'Contenido guardado', [
+$saved = $lang !== null
+    ? neutron_save_content($content, neutron_content_path($lang)) && neutron_save_content($shared)
+    : neutron_save_content($content);
+if ($saved) {
+    neutron_log('info', 'Contenido guardado' . ($lang !== null ? ' ({lang})' : ''), [
+        'lang' => $lang,
         'fields' => count((array)($body['fields'] ?? [])),
         'collections' => array_keys((array)($body['collections'] ?? [])),
     ]);

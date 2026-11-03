@@ -148,6 +148,7 @@ function neutron_remote_status(): void {
             'contact_json' => is_file($contactFile),
             'favicon' => is_file(NEUTRON_SITE . '/favicon.ico'),
             'cookies' => is_file(NEUTRON_SITE . '/cookies.json'),
+            'languages' => array_keys(neutron_languages()['languages'] ?? []),
             'posts' => array_sum(array_map(fn($c) => count(glob(NEUTRON_SITE . '/' . $c . '/*.json') ?: []), neutron_collections())),
         ],
         'recaptcha' => [

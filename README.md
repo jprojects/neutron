@@ -34,7 +34,9 @@ examples/            sitios de ejemplo (se copian a site/)
 
 site/
   template.html      la página
-  content.json       el contenido editable
+  content.json       el contenido editable (en una web de varios idiomas, lo común: imágenes)
+  content.ca.json    textos de cada idioma (solo webs de varios idiomas, ver «Varios idiomas»)
+  languages.json     idiomas de la web y el principal (opcional; sin él, la web es de un idioma)
   contact.json       campos y textos del formulario de contacto (opcional)
   cookies.json       faldón de cookies: categorías que piden consentimiento y textos (opcional)
   redirects.json     URLs de la web anterior → páginas nuevas (opcional)
@@ -91,6 +93,7 @@ reCAPTCHA y la autoprueba; `dom` es opcional (sin ella se usa un parser HTML pro
 | `data-edit-collection="clave"` | lista: el primer hijo con `data-edit-item` es el molde | `"clave": [ {…}, {…} ]` |
 | `data-edit-field="campo"` | campo de cada elemento de la lista (texto, o `src` si es `<img>`) | `{"campo": "…"}` |
 | `data-edit-add="Afegir plat"` | texto del botón para añadir elementos a esa lista (opcional) | — |
+| `data-edit-content="clave"` | pone el atributo `content` (`<meta name="description">`); no se edita en la página | `"clave": "texto"` |
 
 El valor que hay en la plantilla solo se ve si `content.json` no tiene esa clave (también en las listas: sin la
 clave se ve el molde tal cual). No se pueden editar enlaces (`href`).
@@ -240,6 +243,36 @@ site/pages/blog.html          el listado                        → /blog/  (/bl
 - La dirección de la entrada sale del título al crearla y no cambia aunque se edite el título (los enlaces que ya
   circulan siguen funcionando).
 
+### Varios idiomas
+
+Con `site/languages.json` la web tiene varios idiomas, cada uno con su carpeta en la URL y las mismas páginas:
+
+```json
+{ "default": "ca", "languages": { "ca": "Català", "es": "Español", "en": "English", "fr": "Français" } }
+```
+
+- **Rutas**: `/ca/`, `/es/servicios.html`… el mismo nombre de página en todos los idiomas (`/ca/biomassa.html` y
+  `/es/biomassa.html`), también en las colecciones (`/es/noticies/mi-entrada`, `/es/noticies/feed.xml`). La raíz `/`
+  va al idioma del navegador (`Accept-Language`) o, si no es uno de la web, al principal; `/pagina.html` sin idioma
+  redirige al principal. `/sitemap.xml` lleva todos los idiomas.
+- **Textos**: cada idioma en `site/content.<idioma>.json`; `site/content.json` queda para lo común (las imágenes,
+  que se cambian una vez para todos). Lo que falta en un idioma se ve en el principal, y si tampoco está, el texto de
+  la plantilla. La plantilla y las páginas son las mismas para todos los idiomas.
+- **Formulario y cookies**: `site/contact.<idioma>.json` y `site/cookies.<idioma>.json` si existen; si no,
+  `contact.json` y `cookies.json`. El formulario manda el idioma de la página y `contact.php` responde en él.
+- **Enlaces**: en la plantilla se escriben sin idioma (`servicios.html`, `./#contacte`, `noticies/`) y el núcleo les
+  pone delante el de la página. No se tocan los que empiezan por `/`, `site/`, `assets/`, `contact.php`, los
+  externos ni los que ya llevan idioma. Las páginas llevan `<base>` y `<html lang>` con el idioma.
+- **Selector de idioma**: `<a data-lang-link="es">ES</a>` enlaza la misma página en ese idioma (con `hreflang`; el
+  del idioma actual lleva `aria-current="true"`), y `<span data-lang-current></span>` muestra el nombre del actual.
+  El núcleo añade en el `<head>` los `<link rel="alternate" hreflang>` de todos los idiomas y `x-default`.
+- **Entradas de una colección**: fecha, imagen y estado son comunes; título, resumen y cuerpo de cada idioma van
+  en la misma entrada, en `"i18n": {"es": {"title": "…", "summary": "…", "body": "…"}}`. Sin traducción se ve la
+  del idioma principal. «Nueva entrada» la crea en el idioma principal, desde cualquier idioma.
+- **Editor**: la barra tiene un selector **Idioma** (la misma página en otro idioma, en modo edición). Lo que se
+  guarda va al idioma de la página. Un texto que aún se ve en el idioma principal y se guarda sin cambiarlo no se
+  copia a la traducción (sigue el del principal). En una entrada sin traducir, el editor lo avisa.
+
 ### Redirecciones de la web anterior
 
 `site/redirects.json` convierte las URLs viejas en redirecciones 301 (para no perder el posicionamiento). Rutas
@@ -311,6 +344,7 @@ En webs de varias páginas, la barra del editor tiene un selector **Página** co
 Dentro de la página, un clic en un texto editable es para editarlo (también en los enlaces del menú);
 **Ctrl/Cmd + clic** en un enlace, o un clic en un enlace sin texto editable, lleva a esa página sin salir del modo
 edición. Si hay cambios sin guardar, avisa antes de cambiar de página, salir o cerrar la pestaña.
+En las webs de varios idiomas, otro selector **Idioma** abre la misma página en otro idioma (ver «Varios idiomas»).
 La sesión solo arranca con `?admin`: los visitantes no reciben la cookie `neutron_admin_sid`.
 5 intentos fallidos por IP bloquean 15 minutos. Imágenes JPG, PNG, GIF o WebP de hasta 5 MB (SVG no, por XSS).
 
@@ -356,7 +390,7 @@ sesión ni envían cookies. Úsala solo por HTTPS.
 
 | Acción `index.php?r=remote&a=` | Método | Qué hace |
 |---|---|---|
-| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon`, `cookies` y `posts`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
+| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon`, `cookies`, `posts` y `languages`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
 | `logs&level=warning&limit=100&days=7` | GET | Últimas entradas del log |
 | `integrity` | GET | Ficheros del núcleo cambiados a mano e historial de actualizaciones |
 | `backups` | GET | Copias de `data/backups` |

@@ -29,6 +29,12 @@ function neutron_render_dom(string $html, array $content, array $options = []): 
         $node->setAttribute('src', (string)$content[$key]);
     }
 
+    // <meta name="description" data-edit-content="clave">: el texto va al atributo content (traducible)
+    foreach (iterator_to_array($xpath->query('//*[@data-edit-content]')) as $node) {
+        $key = $node->getAttribute('data-edit-content');
+        if (array_key_exists($key, $content) && is_string($content[$key])) $node->setAttribute('content', $content[$key]);
+    }
+
     // Colecciones (blog): listados data-posts y, en la página de una entrada, sus campos data-post*
     if (isset($options['posts'])) {
         neutron_dom_fill_posts($dom, $xpath, $options['posts']);
@@ -36,6 +42,11 @@ function neutron_render_dom(string $html, array $content, array $options = []): 
 
     if (isset($options['current_href'])) {
         neutron_dom_mark_current($xpath, (array)$options['current_href']);
+    }
+
+    // Varios idiomas: lang, enlaces con el idioma delante, selector de idioma y hreflang
+    if (!empty($options['lang'])) {
+        neutron_dom_apply_lang($dom, $xpath, $options['lang']);
     }
 
     if (!empty($options['base'])) {
@@ -118,6 +129,39 @@ function neutron_dom_fill_item(DOMElement $itemNode, array $data, int $depth = 0
             $field->setAttribute('src', $val);
         } else {
             neutron_dom_set_text($field, $val);
+        }
+    }
+}
+
+// --- idiomas (ver lib/i18n.php) ---
+
+function neutron_dom_apply_lang(DOMDocument $dom, DOMXPath $xpath, array $l): void {
+    $html = $dom->documentElement;
+    if ($html) $html->setAttribute('lang', $l['code']);
+    // Selector: <a data-lang-link="es">Español</a> → la misma página en ese idioma
+    foreach (iterator_to_array($xpath->query('//*[@data-lang-link]')) as $a) {
+        $code = $a->getAttribute('data-lang-link');
+        if (!isset($l['alternates'][$code])) continue;
+        $a->setAttribute('href', $l['alternates'][$code]);
+        $a->setAttribute('hreflang', $code);
+        if ($code === $l['code']) $a->setAttribute('aria-current', 'true');
+    }
+    foreach (iterator_to_array($xpath->query('//*[@data-lang-current]')) as $el) {
+        neutron_dom_set_text($el, $l['names'][$l['code']] ?? $l['code']);
+    }
+    // Enlaces internos de la plantilla → con el idioma delante
+    foreach (iterator_to_array($xpath->query('//a[@href and not(@data-lang-link)] | //link[@rel="alternate" and @type="application/rss+xml"]')) as $a) {
+        $href = neutron_lang_href($a->getAttribute('href'), $l['prefix'], $l['self']);
+        if ($href !== null) $a->setAttribute('href', $href);
+    }
+    $head = $dom->getElementsByTagName('head')->item(0);
+    if ($head) {
+        foreach (neutron_lang_head_links($l) as [$hreflang, $url]) {
+            $link = $dom->createElement('link');
+            $link->setAttribute('rel', 'alternate');
+            $link->setAttribute('hreflang', $hreflang);
+            $link->setAttribute('href', $url);
+            $head->appendChild($link);
         }
     }
 }

@@ -10,6 +10,13 @@ require_once __DIR__ . '/lib/form.php';
 
 neutron_block_if_maintenance(true);
 
+// Varios idiomas: los mensajes y el destinatario en el idioma de la página (lo manda assets/form.js)
+$langs = neutron_languages();
+if ($langs !== null) {
+    $postLang = (string)($_POST['_lang'] ?? '');
+    neutron_lang(isset($langs['languages'][$postLang]) ? $postLang : $langs['default']);
+}
+
 $def = neutron_form_definition();
 $msg = $def['messages'];
 

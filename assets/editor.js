@@ -58,6 +58,7 @@
     bar.innerHTML =
       '<span>Modo edición</span>' +
       '<label class="neutron-pages" hidden title="También: Ctrl/Cmd + clic en un enlace de la página">Página <select></select></label>' +
+      '<label class="neutron-langs" hidden>Idioma <select></select></label>' +
       '<button type="button" data-action="save">Guardar cambios</button>' +
       '<button type="button" data-action="exit">Salir</button>' +
       '<button type="button" data-action="logout">Cerrar sesión</button>' +
@@ -80,7 +81,25 @@
       });
       bar.querySelector('.neutron-pages').hidden = false;
       select.addEventListener('change', function () {
-        if (!goEditing(new URL(select.value, location.href))) select.value = cfg.current;
+        if (!goEditing(new URL(select.value, document.baseURI))) select.value = cfg.current;
+      });
+    }
+
+    // Selector de idioma (webs de varios idiomas): la misma página en otro idioma, en modo edición
+    var languages = cfg.languages || [];
+    if (languages.length > 1) {
+      var langSelect = bar.querySelector('.neutron-langs select');
+      languages.forEach(function (l) {
+        var opt = document.createElement('option');
+        opt.value = l.href;
+        opt.textContent = l.name;
+        opt.selected = l.code === cfg.lang;
+        langSelect.appendChild(opt);
+      });
+      bar.querySelector('.neutron-langs').hidden = false;
+      langSelect.addEventListener('change', function () {
+        var current = languages.filter(function (l) { return l.code === cfg.lang; })[0];
+        if (!goEditing(new URL(langSelect.value, document.baseURI)) && current) langSelect.value = current.href;
       });
     }
 
@@ -281,6 +300,9 @@
       date.value = post.date || '';
       date.addEventListener('change', markDirty);
       showStatus();
+      if (post.translated === false) {
+        statusEl.textContent = 'Sin traducir: se ve el texto del idioma principal. Lo que guardes aquí será la traducción.';
+      }
       box.addEventListener('click', function (e) {
         var action = e.target.getAttribute('data-post-action');
         if (action === 'status') setStatus(post.status === 'published' ? 'draft' : 'published');
@@ -297,6 +319,7 @@
 
     function postRequest(payload) {
       payload.collection = payload.collection || post.collection;
+      if (cfg.lang) payload.lang = cfg.lang;
       if (post && !payload.slug && payload.action !== 'create') payload.slug = post.slug;
       return fetch('admin/post.php', {
         method: 'POST',
@@ -499,8 +522,10 @@
         fields[el.getAttribute('data-edit')] = el.textContent.trim();
       });
 
+      // Las imágenes van aparte: en una web de varios idiomas son comunes a todos
+      var images = {};
       document.querySelectorAll('[data-edit-img]').forEach(function (el) {
-        fields[el.getAttribute('data-edit-img')] = el.getAttribute('src');
+        images[el.getAttribute('data-edit-img')] = el.getAttribute('src');
       });
 
       var collections = {};
@@ -508,7 +533,7 @@
         collections[container.getAttribute('data-edit-collection')] = collectItems(container);
       });
 
-      return { fields: fields, collections: collections };
+      return { fields: fields, images: images, collections: collections, lang: cfg.lang || null };
     }
 
     function collectItems(container) {

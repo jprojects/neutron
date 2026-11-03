@@ -28,23 +28,34 @@ function neutron_render_fallback(string $html, array $content, array $options = 
         $node->attrs['src'] = (string)$content[$key];
     }
 
+    foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-edit-content'])) as $node) {
+        $key = $node->attrs['data-edit-content'];
+        if (array_key_exists($key, $content) && is_string($content[$key])) $node->attrs['content'] = $content[$key];
+    }
+
     // Colecciones (blog), igual que en render_dom.php
     if (isset($options['posts'])) {
         neutron_fallback_fill_posts($root, $options['posts']);
+    }
+
+    // Antes que los idiomas: compara con los enlaces tal como están en la plantilla
+    if (isset($options['current_href'])) {
+        foreach (neutron_find_all($root, fn($n) => $n->tag === 'a' && isset($n->attrs['href'])) as $a) {
+            if (in_array(neutron_normalize_href($a->attrs['href']), (array)$options['current_href'], true)) {
+                $a->attrs['aria-current'] = 'page';
+            }
+        }
+    }
+
+    // Varios idiomas, igual que en render_dom.php
+    if (!empty($options['lang'])) {
+        neutron_fallback_apply_lang($root, $options['lang']);
     }
 
     if (!empty($options['base'])) {
         $head = neutron_find_first($root, fn($n) => $n->tag === 'head');
         if ($head) {
             array_unshift($head->children, (object)['type' => 'element', 'tag' => 'base', 'attrs' => ['href' => $options['base']], 'children' => []]);
-        }
-    }
-
-    if (isset($options['current_href'])) {
-        foreach (neutron_find_all($root, fn($n) => $n->tag === 'a' && isset($n->attrs['href'])) as $a) {
-            if (in_array(neutron_normalize_href($a->attrs['href']), (array)$options['current_href'], true)) {
-                $a->attrs['aria-current'] = 'page';
-            }
         }
     }
 
@@ -167,6 +178,35 @@ function neutron_fallback_inject_script(object $root, string $id, array $config,
             'attrs' => ['src' => $src, 'defer' => ''],
             'children' => [],
         ];
+    }
+}
+
+// --- idiomas (ver lib/i18n.php y render_dom.php) ---
+
+function neutron_fallback_apply_lang(object $root, array $l): void {
+    $html = neutron_find_first($root, fn($n) => $n->tag === 'html');
+    if ($html) $html->attrs['lang'] = $l['code'];
+    foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-lang-link'])) as $a) {
+        $code = $a->attrs['data-lang-link'];
+        if (!isset($l['alternates'][$code])) continue;
+        $a->attrs['href'] = $l['alternates'][$code];
+        $a->attrs['hreflang'] = $code;
+        if ($code === $l['code']) $a->attrs['aria-current'] = 'true';
+    }
+    foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-lang-current'])) as $el) {
+        neutron_set_text($el, $l['names'][$l['code']] ?? $l['code']);
+    }
+    $links = neutron_find_all($root, fn($n) => ($n->tag === 'a' && isset($n->attrs['href']) && !isset($n->attrs['data-lang-link']))
+        || ($n->tag === 'link' && ($n->attrs['rel'] ?? '') === 'alternate' && ($n->attrs['type'] ?? '') === 'application/rss+xml' && isset($n->attrs['href'])));
+    foreach ($links as $a) {
+        $href = neutron_lang_href($a->attrs['href'], $l['prefix'], $l['self']);
+        if ($href !== null) $a->attrs['href'] = $href;
+    }
+    $head = neutron_find_first($root, fn($n) => $n->tag === 'head');
+    if ($head) {
+        foreach (neutron_lang_head_links($l) as [$hreflang, $url]) {
+            $head->children[] = (object)['type' => 'element', 'tag' => 'link', 'attrs' => ['rel' => 'alternate', 'hreflang' => $hreflang, 'href' => $url], 'children' => []];
+        }
     }
 }
 

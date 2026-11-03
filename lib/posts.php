@@ -12,6 +12,9 @@ require_once __DIR__ . '/sanitize.php';
 // La entrada se abre en /blog/mi-entrada. Las borradas van a data/deleted/ (se pueden recuperar a mano).
 
 const NEUTRON_POST_FIELDS = ['title', 'date', 'image', 'summary', 'body', 'status'];
+// En una web de varios idiomas, estos van traducidos en "i18n": {"es": {...}, "en": {...}}; lo de fuera es el idioma
+// principal (y lo que se ve si falta la traducción). Fecha, imagen y estado son comunes.
+const NEUTRON_POST_TRANSLATED = ['title', 'summary', 'body'];
 const NEUTRON_RESERVED_DIRS = ['assets', 'pages', 'partials', 'uploads'];
 
 function neutron_collection_valid(string $name): bool {
@@ -46,6 +49,16 @@ function neutron_post_normalize(array $data, string $collection, string $slug): 
     foreach (NEUTRON_POST_FIELDS as $f) {
         $post[$f] = is_string($data[$f] ?? null) ? $data[$f] : '';
     }
+    // Idioma que se ve (si no es el principal): su traducción encima; lo que no esté traducido, del principal
+    $lang = neutron_lang();
+    $post['translated'] = true;
+    if ($lang !== null && $lang !== neutron_languages()['default']) {
+        $tr = is_array($data['i18n'][$lang] ?? null) ? $data['i18n'][$lang] : [];
+        $post['translated'] = ($tr['title'] ?? '') !== '';
+        foreach (NEUTRON_POST_TRANSLATED as $f) {
+            if (is_string($tr[$f] ?? null) && trim(strip_tags($tr[$f])) !== '') $post[$f] = $tr[$f];
+        }
+    }
     if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $post['date'])) $post['date'] = '';
     if ($post['status'] !== 'published') $post['status'] = 'draft';
     $post['created'] = (string)($data['created'] ?? '');
@@ -69,12 +82,29 @@ function neutron_posts_list(string $collection, bool $withDrafts = false): array
     return $posts;
 }
 
-function neutron_post_save(array $post): bool {
+// Guarda la entrada. En una web de varios idiomas, título, resumen y cuerpo van al idioma $textLang (por defecto,
+// el que se ve; fuera de "i18n" si es el principal) y se conservan las demás traducciones. Con $withTexts = false
+// solo se guardan fecha, imagen y estado (publicar desde /es/ no debe copiar el texto principal como traducción).
+function neutron_post_save(array $post, bool $withTexts = true, ?string $textLang = null): bool {
     $file = neutron_post_file($post['collection'], $post['slug']);
     if ($file === null) return false;
-    $data = [];
-    foreach (NEUTRON_POST_FIELDS as $f) $data[$f] = (string)($post[$f] ?? '');
-    $data['body'] = neutron_sanitize_html($data['body']);
+    $old = is_file($file) ? json_decode((string)file_get_contents($file), true) : [];
+    $data = is_array($old) ? $old : [];
+    $lang = $textLang ?? neutron_lang();
+    $translating = $lang !== null && $lang !== neutron_languages()['default'];
+    foreach (NEUTRON_POST_FIELDS as $f) {
+        $isText = in_array($f, NEUTRON_POST_TRANSLATED, true);
+        if ($isText && !$withTexts) continue;
+        $value = (string)($post[$f] ?? '');
+        if ($f === 'body') $value = neutron_sanitize_html($value);
+        if ($translating && $isText) {
+            // Lo que aún se ve en el idioma principal (sin traducir) no se copia a la traducción
+            if (!isset($data['i18n'][$lang][$f]) && $value === (string)($data[$f] ?? '')) continue;
+            $data['i18n'][$lang][$f] = $value;
+        } else {
+            $data[$f] = $value;
+        }
+    }
     $data['created'] = $post['created'] ?: date(DATE_ATOM);
     $data['updated'] = date(DATE_ATOM);
     $tmp = $file . '.' . bin2hex(random_bytes(4)) . '.tmp';
@@ -178,7 +208,7 @@ function neutron_post_href(array $post): string {
 
 /** @return list<array{0:string,1:string,2:string,3:string}> [etiqueta, atributo clave, valor clave, contenido] */
 function neutron_post_meta_tags(array $post): array {
-    $url = neutron_site_url() . '/' . neutron_post_href($post);
+    $url = neutron_site_url() . '/' . neutron_lang_prefix() . neutron_post_href($post);
     $tags = [
         ['meta', 'name', 'description', $post['summary']],
         ['link', 'rel', 'canonical', $url],

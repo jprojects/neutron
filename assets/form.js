@@ -86,6 +86,8 @@
       show(msg.sending, false);
       var data = new FormData(form);
       if (token) data.set('g-recaptcha-response', token);
+      // Idioma de la página: en una web de varios idiomas, contact.php responde en él
+      if (document.documentElement.lang) data.set('_lang', document.documentElement.lang);
       fetch(form.getAttribute('action') || 'contact.php', { method: 'POST', body: data })
         .then(function (r) { return r.json(); })
         .then(function (res) {

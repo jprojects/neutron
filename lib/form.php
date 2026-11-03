@@ -18,7 +18,7 @@ require_once __DIR__ . '/recaptcha.php';
 //
 // Sin contact.json se envían todos los campos del formulario tal cual (sin obligatorios).
 
-const NEUTRON_FORM_RESERVED = ['website', 'g-recaptcha-response'];
+const NEUTRON_FORM_RESERVED = ['website', 'g-recaptcha-response', '_lang'];
 const NEUTRON_FORM_MAX_FIELDS = 30;
 
 function neutron_form_default_messages(): array {
@@ -40,7 +40,7 @@ function neutron_form_default_messages(): array {
 }
 
 function neutron_form_definition(): array {
-    $file = NEUTRON_SITE . '/contact.json';
+    $file = neutron_site_json('contact'); // contact.<idioma>.json en una web de varios idiomas
     $def = is_file($file) ? json_decode((string)file_get_contents($file), true) : [];
     if (!is_array($def)) {
         neutron_log('error', 'site/contact.json no es un JSON válido');

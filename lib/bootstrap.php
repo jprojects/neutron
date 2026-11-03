@@ -9,6 +9,7 @@ define('NEUTRON_DATA', NEUTRON_ROOT . '/data');   // estado interno: logs, copia
 
 require_once NEUTRON_ROOT . '/config.php';
 require_once __DIR__ . '/log.php';
+require_once __DIR__ . '/i18n.php';
 
 date_default_timezone_set((string)(neutron_config()['timezone'] ?: 'UTC'));
 ini_set('display_errors', neutron_config()['debug'] ? '1' : '0');

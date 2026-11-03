@@ -37,7 +37,7 @@ function neutron_cookies_default_texts(): array {
 
 // Configuración del faldón para cookies.js, o null si el sitio no tiene site/cookies.json.
 function neutron_cookies_client_config(): ?array {
-    $file = NEUTRON_SITE . '/cookies.json';
+    $file = neutron_site_json('cookies'); // cookies.<idioma>.json en una web de varios idiomas
     if (!is_file($file)) return null;
     $def = json_decode((string)file_get_contents($file), true);
     if (!is_array($def)) {
