@@ -2,6 +2,14 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.8.0 — 2026-11-03
+
+- Entradas de una colección: la imagen también se puede traducir (`i18n.<idioma>.image`), para carteles con texto.
+  Desde el editor, cambiarla en un idioma que no es el principal solo la cambia en ese idioma.
+- Fechas de las entradas en francés («22 mai 2026», «1er mai»).
+- Corregido: en una web de varios idiomas, `/noticies/…` sin idioma iba a la portada; ahora va a la misma ruta en
+  el idioma principal, y si la entrada no existe se consulta `redirects.json`.
+
 ## 1.7.0 — 2026-11-03
 
 Webs de varios idiomas.

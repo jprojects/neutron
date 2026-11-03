@@ -5,7 +5,7 @@
 //
 // pasos.mjs exporta una lista de [nombre, paso]; el paso es una expresión JS que se evalúa en la página, o una
 // función async ({ go, evalJs, sleep }) => resultado. Se imprime el resultado de cada uno. El perfil y la captura
-// van en ~/cdp-tmp (Chromium es un snap y no ve /tmp).
+// van en ~/cdp-tmp (Chromium es un snap y no ve /tmp). Pantalla de móvil: CDP_SIZE=390,844 (por defecto, 1280×1600).
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -37,6 +37,10 @@ const go = async u => { await send('Page.navigate', { url: u }); await sleep(150
 
 await send('Page.enable');
 await send('Runtime.enable');
+if (process.env.CDP_SIZE) {
+  const [width, height] = process.env.CDP_SIZE.split(',').map(Number);
+  await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 2, mobile: true });
+}
 await go(url);
 for (const [name, step] of steps) {
   const out = typeof step === 'string' ? await evalJs(step) : await step({ go, evalJs, sleep, send });

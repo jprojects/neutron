@@ -13,8 +13,9 @@ require_once __DIR__ . '/sanitize.php';
 
 const NEUTRON_POST_FIELDS = ['title', 'date', 'image', 'summary', 'body', 'status'];
 // En una web de varios idiomas, estos van traducidos en "i18n": {"es": {...}, "en": {...}}; lo de fuera es el idioma
-// principal (y lo que se ve si falta la traducción). Fecha, imagen y estado son comunes.
-const NEUTRON_POST_TRANSLATED = ['title', 'summary', 'body'];
+// principal (y lo que se ve si falta la traducción). La imagen, por si lleva texto (un cartel); fecha y estado son
+// comunes.
+const NEUTRON_POST_TRANSLATED = ['title', 'image', 'summary', 'body'];
 const NEUTRON_RESERVED_DIRS = ['assets', 'pages', 'partials', 'uploads'];
 
 function neutron_collection_valid(string $name): bool {
@@ -138,7 +139,7 @@ function neutron_post_slug(string $collection, string $title): string {
     return $slug;
 }
 
-// "2026-11-02" → "2 de novembre de 2026" en el idioma de la web (ca, es; en otro caso, en inglés)
+// "2026-11-02" → "2 de novembre de 2026" en el idioma de la web (ca, es, fr; en otro caso, en inglés)
 function neutron_post_format_date(string $ymd, string $lang): string {
     if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $ymd, $m)) return '';
     [$y, $mo, $d] = [(int)$m[1], (int)$m[2], (int)$m[3]];
@@ -151,6 +152,10 @@ function neutron_post_format_date(string $ymd, string $lang): string {
     if ($lang === 'es') {
         $months = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
         return $d . ' de ' . $months[$mo - 1] . ' de ' . $y;
+    }
+    if ($lang === 'fr') {
+        $months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+        return ($d === 1 ? '1er' : $d) . ' ' . $months[$mo - 1] . ' ' . $y;
     }
     $months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
     return $months[$mo - 1] . ' ' . $d . ', ' . $y;

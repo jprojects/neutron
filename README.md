@@ -210,7 +210,7 @@ site/pages/blog.html          el listado                        → /blog/  (/bl
   últimas) y, para todo el sitio, `/sitemap.xml` (portada, páginas y entradas publicadas). Las páginas de una
   colección llevan `<base>` para que las rutas relativas (`site/assets/…`, `blog/…`, `./#contacte`) sigan valiendo.
 - **En la plantilla de la entrada**: `data-post="title"`, `data-post="summary"`, `data-post="date"` (la fecha en el
-  idioma de `<html lang>`: «2 de novembre de 2026»; en un `<time>`, también `datetime`), `data-post-img="image"` y
+  idioma de `<html lang>`, catalán, castellano, francés o inglés: «2 de novembre de 2026»; en un `<time>`, también `datetime`), `data-post-img="image"` y
   `data-post-html="body"`. En `<title data-post="title">Entrada · Mi web</title>` se conserva lo de después de ` · `.
   El núcleo añade la descripción, la URL canónica y las etiquetas `og:` de la entrada.
 - **Listados** (en cualquier página, también en la portada o en la propia entrada):
@@ -266,9 +266,11 @@ Con `site/languages.json` la web tiene varios idiomas, cada uno con su carpeta e
 - **Selector de idioma**: `<a data-lang-link="es">ES</a>` enlaza la misma página en ese idioma (con `hreflang`; el
   del idioma actual lleva `aria-current="true"`), y `<span data-lang-current></span>` muestra el nombre del actual.
   El núcleo añade en el `<head>` los `<link rel="alternate" hreflang>` de todos los idiomas y `x-default`.
-- **Entradas de una colección**: fecha, imagen y estado son comunes; título, resumen y cuerpo de cada idioma van
-  en la misma entrada, en `"i18n": {"es": {"title": "…", "summary": "…", "body": "…"}}`. Sin traducción se ve la
-  del idioma principal. «Nueva entrada» la crea en el idioma principal, desde cualquier idioma.
+- **Entradas de una colección**: fecha y estado son comunes; título, resumen, cuerpo e imagen de cada idioma van
+  en la misma entrada, en `"i18n": {"es": {"title": "…", "summary": "…", "body": "…", "image": "…"}}`. Lo que no
+  está traducido se ve en el idioma principal (la imagen solo hace falta si cambia: un cartel con texto). «Nueva
+  entrada» la crea en el idioma principal, desde cualquier idioma. `/noticies/…` sin idioma va al principal; si la
+  entrada no existe, se busca en `redirects.json` (URLs antiguas con el mismo nombre de carpeta).
 - **Editor**: la barra tiene un selector **Idioma** (la misma página en otro idioma, en modo edición). Lo que se
   guarda va al idioma de la página. Un texto que aún se ve en el idioma principal y se guarda sin cambiarlo no se
   copia a la traducción (sigue el del principal). En una entrada sin traducir, el editor lo avisa.

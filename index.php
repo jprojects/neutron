@@ -66,6 +66,13 @@ if ($page === '' && $route === 'sitemap.xml' && neutron_lang() === null) {
 }
 if ($page === '' && preg_match('~^([a-z0-9][a-z0-9-]*)(?:/([a-z0-9][a-z0-9.-]*)?)?$~', $route, $m) && neutron_collection_valid($m[1])) {
     $rest = $m[2] ?? '';
+    // Varios idiomas: /noticies/… sin idioma va al principal; si no existe, puede ser una URL antigua (redirects.json)
+    if ($langs !== null && neutron_lang() === null) {
+        if ($rest === '' || $rest === 'feed.xml' || neutron_post_load($m[1], $rest) !== null) {
+            neutron_redirect($langs['default'] . '/' . $m[1] . '/' . $rest . $qs);
+        }
+        $rest = '-';
+    }
     if ($rest === 'feed.xml') {
         neutron_feed($m[1]);
         exit;
@@ -86,7 +93,7 @@ if ($page === '' && preg_match('~^([a-z0-9][a-z0-9-]*)(?:/([a-z0-9][a-z0-9.-]*)?
 } elseif ($page !== '' && neutron_collection_valid($page) && $route === $page . '.html') {
     neutron_redirect(neutron_lang_prefix() . $page . '/');
 }
-$known = $page !== '' || in_array($route, ['', 'index.php'], true);
+$known = ($page !== '' && $page !== '-') || in_array($route, ['', 'index.php'], true);
 $file = match (true) {
     $page === '' => NEUTRON_SITE . '/template.html',
     $page === '@post' => NEUTRON_SITE . '/' . $collection . '/_item.html',
