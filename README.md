@@ -286,8 +286,8 @@ Con `site/languages.json` la web tiene varios idiomas, cada uno con su carpeta e
   entrada» la crea en el idioma principal, desde cualquier idioma. `/noticies/…` sin idioma va al principal; si la
   entrada no existe, se busca en `redirects.json` (URLs antiguas con el mismo nombre de carpeta).
 - **Editor**: la barra tiene un selector **Idioma** (la misma página en otro idioma, en modo edición). Lo que se
-  guarda va al idioma de la página. Un texto que aún se ve en el idioma principal y se guarda sin cambiarlo no se
-  copia a la traducción (sigue el del principal). En una entrada sin traducir, el editor lo avisa.
+  guarda va al idioma de la página. Un texto o una lista que aún se ven en el idioma principal y se guardan sin
+  cambiarlos no se copian a la traducción (siguen los del principal). En una entrada sin traducir, el editor lo avisa.
 
 ### Redirecciones de la web anterior
 

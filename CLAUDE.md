@@ -57,6 +57,8 @@ actualízalo con cada función nueva.
   `<link rel="apple-touch-icon" href="apple-touch-icon.png">` en el `<head>` de todas las páginas.
 - Cada web nueva es una instalación aparte en `~/Projects/<nombre>` (núcleo con `git archive` + su `site/` +
   `config.local.php` con `bin/install.php`), no en `site/` de este repo, que es Assaice.
+  La contraseña del editor de cada web (al crearla o al cambiarla) se apunta en `credencials.local.md` de este repo
+  (en el `.gitignore`; nunca en el scratchpad, que se borra, ni en la memoria).
 - **En una web (instalación) no se tocan los ficheros de `core.json`**, para que siempre se pueda actualizar desde
   Cosmo: todo lo de esa web va en su `site/` y su `config.local.php`. Si una web necesita algo del núcleo, se hace aquí
   de forma genérica (nada de una web concreta en `lib/` o `assets/`), se publica una versión y la web se actualiza.

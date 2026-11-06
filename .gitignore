@@ -1,5 +1,7 @@
 # Lo propio de cada instalación (no es del núcleo)
 /config.local.php
+# Contrasenyes de l'editor de cada web, només en local
+/credencials.local.md
 /site/
 /data/*
 !/data/.htaccess

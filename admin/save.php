@@ -61,7 +61,10 @@ if (!empty($body['images']) && is_array($body['images'])) {
 if (!empty($body['collections']) && is_array($body['collections'])) {
     foreach ($body['collections'] as $key => $items) {
         if (!is_string($key) || !is_array($items)) continue;
-        $content[$key] = neutron_clean_items($items);
+        $items = neutron_clean_items($items);
+        // Igual que los textos: una lista que aún es la del idioma principal no se copia al idioma de la página
+        if ($fallback !== null && !array_key_exists($key, $content) && ($fallback[$key] ?? null) == $items) continue;
+        $content[$key] = $items;
     }
 }
 

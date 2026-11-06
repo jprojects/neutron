@@ -2,6 +2,12 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.9.1 — 2026-11-06
+
+- Corregido: en una web de varios idiomas, guardar desde un idioma que no es el principal copiaba a ese idioma las
+  listas que aún no estaban traducidas, y después ya no seguían los cambios del idioma principal. Ahora las listas
+  hacen como los textos: solo se guardan en el idioma si son distintas de las del principal.
+
 ## 1.9.0 — 2026-11-06
 
 - Enlaces editables: `<a data-edit-href="clave">` (redes sociales…). El cliente puede cambiar la dirección o vaciarla,
