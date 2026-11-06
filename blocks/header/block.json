@@ -1,0 +1,12 @@
+{
+  "name": "header",
+  "description": "Cabecera fija con logo, menú, selector de idioma y menú de móvil a pantalla completa",
+  "variants": [
+    "logo",
+    "text",
+    "both"
+  ],
+  "images": [
+    "@logo"
+  ]
+}

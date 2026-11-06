@@ -146,6 +146,8 @@
 
     document.querySelectorAll('[data-edit-img]').forEach(makeImageSwappable);
     document.querySelectorAll('[data-edit-href]').forEach(setupHref);
+    // Texto con formato (data-edit-html: textos legales, descripciones largas): la misma barra que el cuerpo de las entradas
+    document.querySelectorAll('[data-edit-html]').forEach(function (el) { setupRich(el); });
 
     // Listas: cada campo o sublista pertenece al data-edit-item más cercano, así puede haber
     // listas dentro de listas (secciones de una carta con sus platos).
@@ -568,7 +570,8 @@
     // Misma lista blanca que lib/sanitize.php (versión simple para que lo pegado se vea ya limpio)
     function cleanHtml(html) {
       var doc = new DOMParser().parseFromString(html, 'text/html');
-      var allowed = { P: 'p', H1: 'h2', H2: 'h2', H3: 'h3', H4: 'h3', STRONG: 'strong', B: 'strong', EM: 'em', I: 'em', A: 'a', UL: 'ul', OL: 'ol', LI: 'li', BLOCKQUOTE: 'blockquote', BR: 'br', DIV: 'p' };
+      var allowed = { P: 'p', H1: 'h2', H2: 'h2', H3: 'h3', H4: 'h3', STRONG: 'strong', B: 'strong', EM: 'em', I: 'em', A: 'a', UL: 'ul', OL: 'ol', LI: 'li', BLOCKQUOTE: 'blockquote', BR: 'br', DIV: 'p',
+        CODE: 'code', TABLE: 'table', THEAD: 'thead', TBODY: 'tbody', TR: 'tr', TH: 'th', TD: 'td' };
       var drop = /^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|SVG|MATH|TEMPLATE|NOSCRIPT|META|LINK|TITLE|HEAD|FORM|INPUT|BUTTON|SELECT|TEXTAREA|IMG|VIDEO|AUDIO)$/;
       function walk(node) {
         var out = '';
@@ -684,6 +687,10 @@
       var fields = {};
       document.querySelectorAll('[data-edit]').forEach(function (el) {
         fields[el.getAttribute('data-edit')] = el.textContent.trim();
+      });
+
+      document.querySelectorAll('[data-edit-html]').forEach(function (el) {
+        fields[el.getAttribute('data-edit-html')] = el.innerHTML.trim();
       });
 
       // Direcciones de los enlaces editables (vacía = el enlace no sale)

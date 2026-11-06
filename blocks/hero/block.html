@@ -1,0 +1,19 @@
+<section class="b-hero b-hero--{variant}">
+<!--variant:image-->
+  <img class="b-hero__bg" data-edit-img="{p}_image" src="{{img:image}}" alt="">
+<!--/variant:image-->
+  <div class="container b-hero__in">
+    <div class="b-hero__text">
+      <span class="eyebrow" data-edit="{p}_eyebrow">{{eyebrow}}</span>
+      <h1 data-edit="{p}_title">{{title}}</h1>
+      <p data-edit="{p}_text">{{text}}</p>
+      <div class="actions">
+        <a class="btn" href="{{#cta_href}}" data-edit="{p}_button">{{button}}</a>
+        <a class="btn btn--ghost js-phone" href="tel:" data-edit="{p}_call">{{call}}</a>
+      </div>
+    </div>
+<!--variant:split-->
+    <figure class="b-hero__figure"><img data-edit-img="{p}_image" src="{{img:image}}" alt=""></figure>
+<!--/variant:split-->
+  </div>
+</section>

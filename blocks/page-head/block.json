@@ -1,0 +1,11 @@
+{
+  "name": "page-head",
+  "description": "Título de una página interior, sobre una foto (image) o sobre fondo oscuro (plain)",
+  "variants": [
+    "image",
+    "plain"
+  ],
+  "images": [
+    "image"
+  ]
+}

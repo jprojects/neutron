@@ -1,0 +1,11 @@
+{
+  "title": "Escríbenos",
+  "text": "Te responderemos lo antes posible.",
+  "@f_name": "Nombre",
+  "@f_phone": "Teléfono",
+  "@f_email": "Correo electrónico",
+  "@f_message": "Mensaje",
+  "@f_privacy": "He leído y acepto la",
+  "@f_privacy_link": "política de privacidad",
+  "@f_send": "Enviar"
+}

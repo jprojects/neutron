@@ -1,0 +1,4 @@
+.b-cta__in { text-align: center; }
+.b-cta h2 { font-size: clamp(32px, 4.4vw, 52px); font-style: italic; max-width: 22ch; margin: 0 auto 18px; }
+.b-cta p { max-width: 50ch; margin: 0 auto 32px; }
+.b-cta .actions { justify-content: center; }

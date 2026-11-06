@@ -1,0 +1,14 @@
+<section class="section b-cards b-cards--{variant}">
+  <div class="container">
+    <header class="section-head">
+      <span class="eyebrow" data-edit="{p}_eyebrow">{{eyebrow}}</span>
+      <h2 data-edit="{p}_title">{{title}}</h2>
+    </header>
+    <div class="b-cards__list" data-edit-collection="{p}_items" data-edit-add="+">
+      <article class="b-cards__item" data-edit-item>
+        <h3 data-edit-field="title">{{items[0].title}}</h3>
+        <p data-edit-field="text">{{items[0].text}}</p>
+      </article>
+    </div>
+  </div>
+</section>

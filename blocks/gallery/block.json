@@ -1,0 +1,9 @@
+{
+  "name": "gallery",
+  "description": "Galería de fotos editable: en cuadrícula (grid) o escalonada (stagger) en escritorio, deslizable en el móvil",
+  "variants": [
+    "stagger",
+    "grid"
+  ],
+  "images": []
+}

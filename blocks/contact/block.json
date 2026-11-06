@@ -1,0 +1,12 @@
+{
+  "name": "contact",
+  "description": "Datos de contacto (dirección, teléfono, correo, horario) y mapa de Google con consentimiento de cookies",
+  "variants": [
+    "map",
+    "nomap"
+  ],
+  "images": [],
+  "cookies": [
+    "maps"
+  ]
+}

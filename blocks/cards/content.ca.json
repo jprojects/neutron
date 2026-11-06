@@ -1,0 +1,18 @@
+{
+  "eyebrow": "Serveis",
+  "title": "Què us oferim",
+  "items": [
+    {
+      "title": "Primer servei",
+      "text": "Una descripció curta del servei: què és i per a qui."
+    },
+    {
+      "title": "Segon servei",
+      "text": "Una descripció curta del servei: què és i per a qui."
+    },
+    {
+      "title": "Tercer servei",
+      "text": "Una descripció curta del servei: què és i per a qui."
+    }
+  ]
+}

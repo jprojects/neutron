@@ -1,0 +1,9 @@
+{
+  "name": "form",
+  "description": "Formulario de contacto del núcleo (reCAPTCHA, honeypot, contact.json en cada idioma)",
+  "variants": [
+    "card"
+  ],
+  "images": [],
+  "form": true
+}

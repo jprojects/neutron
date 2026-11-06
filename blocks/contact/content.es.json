@@ -1,0 +1,16 @@
+{
+  "eyebrow": "Contacto",
+  "title": "Dónde estamos",
+  "text": "Ven a vernos o contáctanos por teléfono o por correo.",
+  "@label_address": "Dirección",
+  "@address": "Calle, número · Código postal Población",
+  "@label_phone": "Teléfono",
+  "@phone": "000 000 000",
+  "@label_email": "Correo",
+  "@email": "info@ejemplo.es",
+  "@label_hours": "Horario",
+  "@hours": "De lunes a viernes, de 9 a 14 h y de 16 a 20 h",
+  "@map_text": "El mapa es de Google Maps, que puede usar cookies. Solo se carga si lo aceptas.",
+  "@map_accept": "Mostrar el mapa",
+  "@map_link": "Abrir en Google Maps"
+}

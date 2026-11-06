@@ -1,0 +1,25 @@
+<footer class="b-footer">
+  <div class="container">
+    <div class="b-footer__grid">
+      <div>
+        <p class="b-footer__name" data-edit="site_name">{{@site_name}}</p>
+        <p data-edit="tagline">{{@tagline}}</p>
+        {{#social}}
+      </div>
+      <div>
+        <h2 data-edit="footer_contact">{{@footer_contact}}</h2>
+        <p data-edit="address">{{@address}}</p>
+        <p><a class="js-phone" href="tel:" data-edit="phone">{{@phone}}</a></p>
+        <p><a class="js-email" href="mailto:" data-edit="email">{{@email}}</a></p>
+      </div>
+      <div>
+        <h2 data-edit="footer_pages">{{@footer_pages}}</h2>
+        <nav class="b-footer__nav">{{#nav_plain}}</nav>
+      </div>
+    </div>
+    <div class="b-footer__bottom">
+      <span data-edit="copyright">{{@copyright}}</span>
+      <nav>{{#legal_links}}</nav>
+    </div>
+  </div>
+</footer>

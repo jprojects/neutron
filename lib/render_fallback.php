@@ -33,6 +33,14 @@ function neutron_render_fallback(string $html, array $content, array $options = 
         if (array_key_exists($key, $content) && is_string($content[$key])) $node->attrs['content'] = $content[$key];
     }
 
+    // Texto con formato, igual que en render_dom.php
+    foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-edit-html'])) as $node) {
+        $key = $node->attrs['data-edit-html'];
+        if (!array_key_exists($key, $content) || !is_string($content[$key])) continue;
+        $html = neutron_sanitize_html($content[$key]);
+        $node->children = $html === '' ? [] : neutron_parse_html($html)->children;
+    }
+
     // Enlaces editables, igual que en render_dom.php
     neutron_fallback_filter($root, function (object $node) use ($content, $options): bool {
         if (!isset($node->attrs['data-edit-href'])) return true;

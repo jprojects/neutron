@@ -1,0 +1,11 @@
+{
+  "title": "Escriu-nos",
+  "text": "Et respondrem el més aviat possible.",
+  "@f_name": "Nom",
+  "@f_phone": "Telèfon",
+  "@f_email": "Correu electrònic",
+  "@f_message": "Missatge",
+  "@f_privacy": "He llegit i accepto la",
+  "@f_privacy_link": "política de privacitat",
+  "@f_send": "Enviar"
+}

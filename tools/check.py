@@ -15,7 +15,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 GOOGLE_TEST_KEY = '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI'
 SOCIAL = r'instagram\.com|facebook\.com|twitter\.com|x\.com/|youtube\.com|tiktok\.com|linkedin\.com|pinterest\.|tripadvisor\.'
-PENDING = re.compile(r'\[(PENDENT|PENDIENTE|PENDING|TODO)[^\]]*\]|lorem ipsum', re.I)
+PENDING = re.compile(r'\[(PENDENT|PENDIENTE|PENDING|EN ATTENTE|TODO)[^\]]*\]|lorem ipsum', re.I)
 
 ap = argparse.ArgumentParser(description='Comprueba una web Neutron antes de entregarla')
 ap.add_argument('web', help='carpeta de la instalación')
@@ -135,7 +135,13 @@ if langs:
     for l in codes:
         if l == langs['default']: continue
         tr = load(site / f'content.{l}.json')
-        todo = [k for k, v in main.items() if k not in tr and not k.startswith('social_') and not (isinstance(v, str) and v.startswith(('site/', 'http')))]
+        def needs(k, v):
+            if k in tr or k.startswith('social_'): return False
+            if isinstance(v, list):                                   # galerías: solo imágenes, comunes
+                return any(isinstance(x, str) and not x.startswith('site/') for it in v if isinstance(it, dict) for x in it.values())
+            if not isinstance(v, str) or v.startswith(('site/', 'http')) or not re.search(r'[^\W\d_]', v): return False
+            return len(v.split()) > 3 or v != main.get('site_name')   # etiquetas cortas iguales en los idiomas («Menú», «Enviar»)
+        todo = [k for k, v in main.items() if needs(k, v) and not (isinstance(v, str) and len(v.split()) <= 3)]
         if todo: report('!', f'{l}: {len(todo)} textos sin traducir (se ve el {langs["default"]}): {", ".join(todo[:6])}')
         else: report('✓', f'{l}: todo traducido')
 

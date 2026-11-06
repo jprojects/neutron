@@ -1,0 +1,11 @@
+{
+  "name": "text-image",
+  "description": "Título y párrafos (lista editable) con una imagen al lado, a la izquierda (left) o a la derecha (right); la imagen se queda fija mientras se lee",
+  "variants": [
+    "right",
+    "left"
+  ],
+  "images": [
+    "image"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "eyebrow": "Contacte",
+  "title": "On som",
+  "text": "Vine a veure’ns o contacta’ns per telèfon o per correu.",
+  "@label_address": "Adreça",
+  "@address": "Carrer, número · Codi postal Població",
+  "@label_phone": "Telèfon",
+  "@phone": "000 000 000",
+  "@label_email": "Correu",
+  "@email": "info@exemple.cat",
+  "@label_hours": "Horari",
+  "@hours": "De dilluns a divendres, de 9 a 14 h i de 16 a 20 h",
+  "@map_text": "El mapa és de Google Maps, que pot fer servir cookies. Es carrega només si ho acceptes.",
+  "@map_accept": "Mostrar el mapa",
+  "@map_link": "Obrir a Google Maps"
+}

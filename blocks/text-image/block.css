@@ -1,0 +1,14 @@
+.b-text-image__in { display: grid; grid-template-columns: 1.05fr 1fr; gap: 80px; align-items: start; }
+.b-text-image--left .b-text-image__figure { order: -1; }
+.b-text-image--left .b-text-image__in { grid-template-columns: 1fr 1.05fr; }
+.b-text-image h2 { font-size: clamp(32px, 4.2vw, 50px); margin-bottom: 26px; }
+.b-text-image__text p { max-width: 62ch; }
+.b-text-image__figure { margin: 0; position: sticky; top: calc(var(--header-h) + 32px); }
+.b-text-image__figure img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--radius); box-shadow: var(--shadow); }
+.is-admin .b-text-image__figure { position: static; }
+@media (max-width: 900px) {
+  .b-text-image__in, .b-text-image--left .b-text-image__in { grid-template-columns: 1fr; gap: 40px; }
+  .b-text-image--left .b-text-image__figure { order: 0; }
+  .b-text-image__figure { position: static; }
+  .b-text-image__figure img { aspect-ratio: 4 / 3; }
+}

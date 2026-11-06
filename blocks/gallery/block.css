@@ -1,0 +1,11 @@
+.b-gallery__list { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; align-items: start; }
+.b-gallery__list li { overflow: hidden; border-radius: var(--radius); background: var(--c-soft); }
+.b-gallery__list img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; transition: transform 1.2s cubic-bezier(.2,.7,.2,1); }
+.b-gallery__list li:hover img { transform: scale(1.04); }
+.b-gallery--stagger .b-gallery__list li:nth-child(3n+2) { margin-top: 48px; }
+.is-admin .b-gallery--stagger .b-gallery__list li:nth-child(3n+2) { margin-top: 0; }
+@media (max-width: 640px) {
+  .b-gallery__list { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 12px; margin: 0 -18px; padding: 0 18px 8px; scrollbar-width: none; }
+  .b-gallery__list::-webkit-scrollbar { display: none; }
+  .b-gallery__list li { flex: 0 0 74%; scroll-snap-align: center; margin-top: 0 !important; }
+}

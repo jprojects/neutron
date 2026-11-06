@@ -1,0 +1,14 @@
+.b-contact__in { display: grid; grid-template-columns: 1fr 1.1fr; gap: 72px; align-items: start; }
+.b-contact h2 { font-size: clamp(32px, 4.2vw, 50px); }
+.b-contact__list { list-style: none; margin: 0; padding: 0; }
+.b-contact__list li { display: flex; gap: 18px; padding: 20px 0; border-bottom: 1px solid var(--c-line); }
+.b-contact__list li:first-child { border-top: 1px solid var(--c-line); }
+.b-contact__list svg { flex: none; width: 20px; height: 20px; margin-top: 4px; fill: var(--c-primary); }
+.b-contact__list small { display: block; font: 600 11px/1.4 var(--font-body); letter-spacing: .2em; text-transform: uppercase; color: var(--c-muted); }
+.b-contact__list a, .b-contact__list span { color: var(--c-head); text-decoration: none; font-size: 18px; }
+.b-contact__map { position: relative; margin-top: 72px; aspect-ratio: 21 / 8; background: var(--c-soft); }
+.b-contact__map iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.b-contact__consent { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; padding: 24px; text-align: center; }
+.b-contact__consent p { margin: 0; max-width: 48ch; }
+.b-contact__map iframe[src] + .b-contact__consent { display: none; }
+@media (max-width: 900px) { .b-contact__in { grid-template-columns: 1fr; gap: 36px; } .b-contact__map { aspect-ratio: 4 / 3; margin-top: 48px; } }

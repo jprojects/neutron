@@ -2,6 +2,16 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.11.0 — 2026-11-06
+
+- `data-edit-html="clave"`: texto con formato por idioma (títulos, listas, enlaces, tablas), limpio con la lista blanca
+  y editable con la barra de formato, en los dos motores. La lista blanca admite ahora tablas y `code`, y un `<div>` que
+  envuelve bloques se quita en lugar de convertirse en párrafo.
+- Herramientas (no son del núcleo): bloques reutilizables en `blocks/` (cabecera, portada, cabecera de página, texto con
+  imagen, galería, tarjetas, llamada a la acción, contacto con mapa, formulario y pie, con textos en ca/es/en) y
+  `tools/compose.py` para montar el `site/` con ellos; `tools/legal.py` hace las páginas legales con Pulsar;
+  `tools/migrate.py` saca de la web antigua los datos del titular (razón social, NIF).
+
 ## 1.10.1 — 2026-11-06
 
 - Corregido: el motor sin DOM trataba un «<» suelto («< Anterior», «3 < 5») como el principio de una etiqueta y

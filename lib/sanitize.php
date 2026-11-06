@@ -3,10 +3,10 @@ if (!defined('NEUTRON_APP')) { http_response_code(403); exit; }
 
 require_once __DIR__ . '/render.php';
 
-// Limpieza del texto con formato (el cuerpo de las entradas) con una lista blanca. Se aplica al guardar y otra
+// Limpieza del texto con formato (el cuerpo de las entradas y los campos data-edit-html) con una lista blanca. Se aplica al guardar y otra
 // vez al pintar: nunca se confía en lo que manda el navegador.
 //
-// - Etiquetas permitidas: p, h2, h3, strong, em, a, ul, ol, li, blockquote, img, br.
+// - Etiquetas permitidas: p, h2, h3, strong, em, a, ul, ol, li, blockquote, img, br, code y tablas (table, thead, tbody, tr, th, td).
 // - Se convierten: b → strong, i → em, h1 → h2, h4-h6 → h3, div → p.
 // - Se eliminan con todo su contenido: script, style, iframe, formularios, svg…
 // - El resto (span, font, section…) se quita dejando su contenido.
@@ -14,12 +14,13 @@ require_once __DIR__ . '/render.php';
 //   del propio sitio: site/uploads/… o site/assets/…). Ningún style, class ni on….
 // - El texto suelto en la raíz se mete en párrafos.
 
-const NEUTRON_SANITIZE_ALLOWED = ['p', 'h2', 'h3', 'strong', 'em', 'a', 'ul', 'ol', 'li', 'blockquote', 'img', 'br'];
+const NEUTRON_SANITIZE_ALLOWED = ['p', 'h2', 'h3', 'strong', 'em', 'a', 'ul', 'ol', 'li', 'blockquote', 'img', 'br', 'code',
+    'table', 'thead', 'tbody', 'tr', 'th', 'td'];
 const NEUTRON_SANITIZE_RENAME = ['b' => 'strong', 'i' => 'em', 'h1' => 'h2', 'h4' => 'h3', 'h5' => 'h3', 'h6' => 'h3', 'div' => 'p'];
 const NEUTRON_SANITIZE_DROP = ['script', 'style', 'iframe', 'frame', 'frameset', 'object', 'embed', 'applet', 'form', 'input',
     'button', 'select', 'option', 'textarea', 'svg', 'math', 'template', 'noscript', 'head', 'title', 'meta', 'link', 'base',
     'video', 'audio', 'source', 'track', 'canvas', 'picture', 'map', 'area'];
-const NEUTRON_SANITIZE_INLINE = ['strong', 'em', 'a', 'br', 'img'];
+const NEUTRON_SANITIZE_INLINE = ['strong', 'em', 'a', 'br', 'img', 'code'];
 const NEUTRON_SANITIZE_MAX = 200000;
 
 function neutron_sanitize_html(string $html): string {
@@ -58,6 +59,12 @@ function neutron_sanitize_children(array $children): array {
         if (in_array($tag, NEUTRON_SANITIZE_DROP, true)) continue;
         $tag = NEUTRON_SANITIZE_RENAME[$tag] ?? $tag;
         $kids = neutron_sanitize_children($node->children ?? []);
+        // Un <div> que envuelve bloques (una tabla, párrafos) se quita; el que solo lleva texto pasa a <p>
+        if ($tag === 'p' && strtolower((string)$node->tag) === 'div' && array_filter($kids, fn($k) => $k->type === 'element'
+            && !in_array($k->tag, NEUTRON_SANITIZE_INLINE, true))) {
+            array_push($out, ...$kids);
+            continue;
+        }
         if (!in_array($tag, NEUTRON_SANITIZE_ALLOWED, true)) {
             array_push($out, ...$kids); // se quita la etiqueta, se queda el contenido
             continue;
@@ -102,7 +109,7 @@ function neutron_sanitize_serialize(object $node): string {
     if ($node->tag === 'img' || $node->tag === 'br') return '<' . $node->tag . $attrs . '>';
     $inner = '';
     foreach ($node->children as $child) $inner .= neutron_sanitize_serialize($child);
-    // Elementos vacíos que solo ensucian (un <strong></strong> que deja el editor)
-    if (trim(strip_tags($inner, '<img><br>')) === '' && !str_contains($inner, '<img')) return '';
+    // Elementos vacíos que solo ensucian (un <strong></strong> que deja el editor); las celdas vacías se quedan
+    if (trim(strip_tags($inner, '<img><br>')) === '' && !str_contains($inner, '<img') && !in_array($node->tag, ['td', 'th', 'tr'], true)) return '';
     return '<' . $node->tag . $attrs . '>' . $inner . '</' . $node->tag . '>';
 }

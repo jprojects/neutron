@@ -42,7 +42,9 @@ actualízalo con cada función nueva.
   cartas y menús como secciones con sus platos, no como bloques de texto.
 - **Webs nuevas, con las herramientas** (README → «Herramientas»): `tools/new-site.py <cliente>` (crea
   `~/Projects/neutron-<cliente>` y apunta la contraseña), `tools/migrate.py URL <carpeta>` (contenido, imágenes,
-  favicon, redirecciones e informe en `_migracio/`; leer el informe antes de diseñar), y al terminar
+  favicon, datos legales, redirecciones e informe en `_migracio/`; leer el informe antes de diseñar),
+  `tools/compose.py <carpeta>` con los bloques de `blocks/` (receta en `site/compose.json`; el diseño propio en
+  `site/assets/custom.css`), `tools/legal.py <carpeta>` (las legales con Pulsar), y al terminar
   `tools/check.py <carpeta> --guia` hasta que no quede ningún ✗. Si una herramienta falla o se queda corta con una web,
   se mejora la herramienta (en vez de hacerlo a mano), para la próxima.
 - Webs de varias páginas: cabecera, menú y pie en `site/partials/` con `data-include`; claves de cada página con

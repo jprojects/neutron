@@ -1,0 +1,16 @@
+{
+  "eyebrow": "Contact",
+  "title": "Find us",
+  "text": "Come and see us or get in touch by phone or email.",
+  "@label_address": "Address",
+  "@address": "Street, number · Postcode Town",
+  "@label_phone": "Phone",
+  "@phone": "000 000 000",
+  "@label_email": "Email",
+  "@email": "info@example.com",
+  "@label_hours": "Opening hours",
+  "@hours": "Monday to Friday, 9 am–2 pm and 4–8 pm",
+  "@map_text": "The map is provided by Google Maps, which may use cookies. It only loads if you accept.",
+  "@map_accept": "Show the map",
+  "@map_link": "Open in Google Maps"
+}

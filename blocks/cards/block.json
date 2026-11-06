@@ -1,0 +1,9 @@
+{
+  "name": "cards",
+  "description": "Lista editable de tarjetas numeradas (servicios, ventajas, pasos)",
+  "variants": [
+    "numbered",
+    "plain"
+  ],
+  "images": []
+}

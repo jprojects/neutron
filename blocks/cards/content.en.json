@@ -1,0 +1,18 @@
+{
+  "eyebrow": "Services",
+  "title": "What we offer",
+  "items": [
+    {
+      "title": "First service",
+      "text": "A short description of the service: what it is and who it is for."
+    },
+    {
+      "title": "Second service",
+      "text": "A short description of the service: what it is and who it is for."
+    },
+    {
+      "title": "Third service",
+      "text": "A short description of the service: what it is and who it is for."
+    }
+  ]
+}

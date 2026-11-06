@@ -518,6 +518,19 @@ for lp in listings:
            and not re.fullmatch(r'/[a-z]{2}/?', urllib.parse.urlsplit(q['final']).path) and q is not home:
             posts.append(q)
 
+# Datos del titular para las páginas legales (tools/legal.py): del aviso legal de la web antigua, si lo tiene
+legal_pages = [p for p in pages.values() if re.search(r'legal|privac|aviso|avis|mentions|imprint|cookies', p['url'] + ' ' + p['title'], re.I)]
+legal_txt = '\n'.join(re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', ' ', p['html']))) for p in legal_pages)
+NIF_RE = r'\b(?:[ABCDEFGHJNPQRSUVW]-?\d{7}-?[0-9A-J]|\d{8}-?[A-Z]|[XYZ]-?\d{7}-?[A-Z])\b'
+nifs = collections.Counter(re.sub(r'-', '', m) for m in re.findall(NIF_RE, legal_txt))
+names = collections.Counter(re.sub(r'\s+', ' ', m).strip(' ,') for m in re.findall(
+    r'([A-ZÀ-Ú0-9][\wÀ-ú&\'.-]*(?:\s+[\wÀ-ú&\'.-]+){0,5}?,?\s+S\.?\s?(?:L\.?\s?U?|A|C\.?P|COOP|Coop)\.?)(?=[\s,;)(]|$)', legal_txt))
+legal_found = {'name': names.most_common(1)[0][0] if names else '', 'nif': nifs.most_common(1)[0][0] if nifs else '',
+               'email': emails.most_common(1)[0][0] if emails else '', 'phone': phones.most_common(1)[0][0] if phones else '',
+               'website': f'{root.scheme}://{root.netloc}'}
+if cps: legal_found['address_hint'] = cps.most_common(1)[0][0]
+(out / 'legal.json').write_text(json.dumps(legal_found, ensure_ascii=False, indent=4) + '\n')
+
 # Propuesta de redirecciones: la última parte de la ruta, sin extensión, como nombre de página nueva
 multi = len([l for l in langs if l != '?']) > 1
 main_lang = langs.most_common(1)[0][0] if langs else 'ca'
@@ -590,6 +603,9 @@ if not third: w('- Ninguno: `categories` vacío (sin faldón).')
 w('\n## Formularios (→ `contact.json`, siempre con reCAPTCHA)\n')
 for where, action, fields in forms[:10]: w(f'- `/{where}` → `{action}`: ' + '; '.join(fields))
 if not forms: w('- Ninguno.')
+w('\n## Datos legales (→ `_migracio/legal.json`, los usa `tools/legal.py`)\n')
+w(f"- Titular: {legal_found['name'] or 'no encontrado'} · NIF/CIF: {legal_found['nif'] or 'no encontrado'}"
+  + (f" (de {len(legal_pages)} páginas legales de la web antigua; verificarlos)" if legal_pages else ' (la web antigua no tiene páginas legales: pedírselos al cliente)'))
 w('\n## Diseño\n')
 w('- Google Fonts: ' + (', '.join(gfonts) or '—') + ' (alojarlas en `site/assets/fonts/`)')
 w('- Tipografías en el CSS: ' + (', '.join(f'{f} ({c})' for f, c in families.most_common(6)) or '—'))

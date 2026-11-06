@@ -1,0 +1,15 @@
+.b-form__form { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; background: var(--c-bg); padding: 40px; border-radius: var(--radius); box-shadow: var(--shadow); }
+.b-form__form .full { grid-column: 1 / -1; }
+.b-form__form label { display: block; font: 600 12px/1.4 var(--font-body); letter-spacing: .14em; text-transform: uppercase; color: var(--c-head); }
+.b-form__form input[type="text"], .b-form__form input[type="email"], .b-form__form input[type="tel"], .b-form__form textarea {
+  display: block; width: 100%; margin-top: 9px; padding: 13px 14px; font: 400 16px/1.4 var(--font-body); color: var(--c-head); letter-spacing: normal;
+  text-transform: none; background: var(--c-soft); border: 1px solid var(--c-line); border-radius: var(--radius); }
+.b-form__form textarea { resize: vertical; min-height: 130px; }
+.b-form__form input:focus, .b-form__form textarea:focus { outline: 0; border-color: var(--c-primary); background: var(--c-bg); }
+.b-form__check { display: flex !important; gap: 12px; align-items: flex-start; font: 400 14px/1.5 var(--font-body) !important; letter-spacing: normal !important; text-transform: none !important; color: var(--c-text) !important; }
+.b-form__check input { width: 18px; height: 18px; margin-top: 2px; accent-color: var(--c-primary); flex: none; }
+.b-form__hp { position: absolute; left: -9999px; }
+.b-form__status { margin: 0; font-weight: 600; }
+.b-form__status:empty { display: none; }
+.b-form__status.is-error { color: #a12c22; }
+@media (max-width: 640px) { .b-form__form { grid-template-columns: 1fr; padding: 26px 20px; } }

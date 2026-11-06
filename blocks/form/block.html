@@ -1,0 +1,20 @@
+<section class="section section--soft b-form" id="formulari">
+  <div class="narrow">
+    <header class="section-head section-head--center">
+      <h2 data-edit="{p}_title">{{title}}</h2>
+      <p data-edit="{p}_text">{{text}}</p>
+    </header>
+    <form class="b-form__form" action="contact.php" method="post" novalidate data-neutron-form>
+      <label><span data-edit="f_name">{{@f_name}}</span> *<input type="text" name="name" required maxlength="200" autocomplete="name"></label>
+      <label><span data-edit="f_phone">{{@f_phone}}</span><input type="tel" name="phone" maxlength="40" autocomplete="tel"></label>
+      <label class="full"><span data-edit="f_email">{{@f_email}}</span> *<input type="email" name="email" required maxlength="200" autocomplete="email"></label>
+      <label class="full"><span data-edit="f_message">{{@f_message}}</span> *<textarea name="message" required maxlength="5000" rows="5"></textarea></label>
+      <label class="b-form__hp" aria-hidden="true">Web<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+      <label class="b-form__check full"><input type="checkbox" name="privacy" value="Sí" required>
+        <span><span data-edit="f_privacy">{{@f_privacy}}</span> <a href="{{#privacy_href}}" target="_blank" data-edit="f_privacy_link">{{@f_privacy_link}}</a>. *</span></label>
+      <div class="full"><button class="btn" type="submit" data-edit="f_send">{{@f_send}}</button></div>
+      <p class="b-form__status full" role="status" data-form-status></p>
+      <div class="full" data-recaptcha></div>
+    </form>
+  </div>
+</section>

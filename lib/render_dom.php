@@ -35,6 +35,12 @@ function neutron_render_dom(string $html, array $content, array $options = []): 
         if (array_key_exists($key, $content) && is_string($content[$key])) $node->setAttribute('content', $content[$key]);
     }
 
+    // Texto con formato (data-edit-html): HTML limpio con la lista blanca de lib/sanitize.php
+    foreach (iterator_to_array($xpath->query('//*[@data-edit-html]')) as $node) {
+        $key = $node->getAttribute('data-edit-html');
+        if (array_key_exists($key, $content) && is_string($content[$key])) neutron_dom_set_html($node, neutron_sanitize_html($content[$key]));
+    }
+
     // Enlaces editables (redes sociales…): sin dirección, fuera
     foreach (iterator_to_array($xpath->query('//*[@data-edit-href]')) as $node) {
         [$href, $remove, $attrs] = neutron_edit_href($content, $node->getAttribute('data-edit-href'), $node->getAttribute('href'), !empty($options['editing']));
@@ -239,18 +245,7 @@ function neutron_dom_fill_post(DOMXPath $xpath, DOMElement $root, array $post, a
             }
         }
         if ($node->hasAttribute('data-post-html')) {
-            while ($node->firstChild) $node->removeChild($node->firstChild);
-            $html = neutron_sanitize_html($post[$node->getAttribute('data-post-html')] ?? '');
-            if ($html !== '') {
-                $tmp = new DOMDocument();
-                libxml_use_internal_errors(true);
-                $tmp->loadHTML(mb_convert_encoding('<div>' . $html . '</div>', 'HTML-ENTITIES', 'UTF-8'));
-                libxml_clear_errors();
-                $wrap = $tmp->getElementsByTagName('div')->item(0);
-                foreach (iterator_to_array($wrap->childNodes) as $child) {
-                    $node->appendChild($node->ownerDocument->importNode($child, true));
-                }
-            }
+            neutron_dom_set_html($node, neutron_sanitize_html($post[$node->getAttribute('data-post-html')] ?? ''));
         }
         if ($node->hasAttribute('data-post-link')) {
             $node->setAttribute('href', neutron_post_href($post));
@@ -326,5 +321,19 @@ function neutron_dom_inject_script(DOMDocument $dom, string $id, array $config, 
         $js->setAttribute('src', $src);
         $js->setAttribute('defer', 'defer');
         $body->appendChild($js);
+    }
+}
+
+// Sustituye el contenido de un nodo por un HTML ya limpio (neutron_sanitize_html)
+function neutron_dom_set_html(DOMElement $node, string $html): void {
+    while ($node->firstChild) $node->removeChild($node->firstChild);
+    if ($html === '') return;
+    $tmp = new DOMDocument();
+    libxml_use_internal_errors(true);
+    $tmp->loadHTML(mb_convert_encoding('<div>' . $html . '</div>', 'HTML-ENTITIES', 'UTF-8'));
+    libxml_clear_errors();
+    $wrap = $tmp->getElementsByTagName('div')->item(0);
+    foreach (iterator_to_array($wrap->childNodes) as $child) {
+        $node->appendChild($node->ownerDocument->importNode($child, true));
     }
 }

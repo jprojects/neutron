@@ -1,0 +1,11 @@
+{
+  "title": "Write to us",
+  "text": "We will reply as soon as possible.",
+  "@f_name": "Name",
+  "@f_phone": "Phone",
+  "@f_email": "Email",
+  "@f_message": "Message",
+  "@f_privacy": "I have read and accept the",
+  "@f_privacy_link": "privacy policy",
+  "@f_send": "Send"
+}

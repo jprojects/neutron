@@ -1,0 +1,8 @@
+{
+  "name": "footer",
+  "description": "Pie: nombre, frase, datos de contacto, páginas, redes (data-edit-href) y enlaces legales",
+  "variants": [
+    "dark"
+  ],
+  "images": []
+}

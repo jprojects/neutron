@@ -1,0 +1,11 @@
+{
+  "name": "hero",
+  "description": "Portada: título grande, texto y botones sobre una foto (image) o al lado de la foto (split)",
+  "variants": [
+    "image",
+    "split"
+  ],
+  "images": [
+    "image"
+  ]
+}

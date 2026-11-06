@@ -1,0 +1,8 @@
+{
+  "name": "cta",
+  "description": "Franja oscura con una frase y los botones de contactar y llamar",
+  "variants": [
+    "dark"
+  ],
+  "images": []
+}
