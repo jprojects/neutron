@@ -458,6 +458,13 @@ function neutron_tokenize(string $html): array {
             continue;
         }
 
+        // Un «<» que no abre una etiqueta («< Anterior», «a < b») es texto, como en el navegador y en DOMDocument
+        if (!preg_match('/^<[a-zA-Z\/!?]/', substr($html, $lt, 2))) {
+            $tokens[] = ['type' => 'text', 'text' => '<'];
+            $pos = $lt + 1;
+            continue;
+        }
+
         $gt = strpos($html, '>', $lt);
         if ($gt === false) {
             $tokens[] = ['type' => 'text', 'text' => substr($html, $lt)];

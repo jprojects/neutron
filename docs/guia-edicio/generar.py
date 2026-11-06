@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-# Guia d'edició en PDF per a un client, amb captures de la seva pròpia web.
+# Guía de edición en PDF para un cliente, con capturas de su propia web (el texto de la guía es en catalán).
 #
 #   python3 docs/guia-edicio/generar.py ~/Projects/neutron-pepgallifa --nom "Pep Gallifa" --url https://www.pepgallifa.com
 #
-# Treballa sobre una còpia temporal de la instal·lació (amb una contrasenya de prova): la web de veritat no es toca.
-# Els apartats que la web no té (blog, idiomes, formulari, diverses pàgines, xarxes socials) no surten a la guia.
-# El PDF es desa a la carpeta de la web, amb la data al nom (guia-edicio-AAAA-MM-DD.pdf): així queda amb la web i no es perd
-# la de la vegada anterior. Cal Node 22, Chromium (tools/cdp.mjs) i PIL.
+# Trabaja sobre una copia temporal de la instalación (con una contraseña de prueba): la web de verdad no se toca.
+# Los apartados que la web no tiene (blog, idiomas, formulario, varias páginas, redes sociales) no salen en la guía.
+# El PDF se guarda en la carpeta de la web, con la fecha en el nombre (guia-edicio-AAAA-MM-DD.pdf): así queda con la web y no
+# se pierde la anterior. Hace falta Node 22, Chromium (tools/cdp.mjs) y PIL.
 import argparse, datetime, html, json, os, re, shutil, socket, subprocess, sys, tempfile, time
 from pathlib import Path
 from PIL import Image
@@ -18,19 +18,19 @@ IDIOMES = {'ca': 'català', 'es': 'castellà', 'en': 'anglès', 'fr': 'francès'
 MESOS = ['gener', 'febrer', 'març', 'abril', 'maig', 'juny', 'juliol', 'agost', 'setembre', 'octubre', 'novembre', 'desembre']
 PROVA = 'guia-prova-1234'
 
-ap = argparse.ArgumentParser(description="Guia d'edició en PDF d'una web Neutron")
-ap.add_argument('web', help='carpeta de la instal·lació (p. ex. ~/Projects/neutron-pepgallifa)')
-ap.add_argument('--nom', required=True, help='nom de la web per a la portada')
+ap = argparse.ArgumentParser(description='Guía de edición en PDF de una web Neutron')
+ap.add_argument('web', help='carpeta de la instalación (p. ej. ~/Projects/neutron-pepgallifa)')
+ap.add_argument('--nom', required=True, help='nombre de la web para la portada')
 ap.add_argument('--url', required=True, help='adreça pública, p. ex. https://www.pepgallifa.com')
-ap.add_argument('--sortida', help='PDF de sortida (per defecte <web>/guia-edicio-<data>.pdf)')
+ap.add_argument('--sortida', help='PDF de salida (por defecto <web>/guia-edicio-<fecha>.pdf)')
 a = ap.parse_args()
 web = Path(a.web).expanduser().resolve()
 slug = web.name
 sortida = Path(a.sortida).expanduser() if a.sortida else web / f'guia-edicio-{datetime.date.today().isoformat()}.pdf'
-treball = Path.home() / 'cdp-tmp' / f'guia-{slug}'          # Chromium és un snap: només veu la carpeta personal
+treball = Path.home() / 'cdp-tmp' / f'guia-{slug}'          # Chromium es un snap: solo ve la carpeta personal
 shutil.rmtree(treball, ignore_errors=True); treball.mkdir(parents=True)
 
-# ---------------------------------------------------------------- què té la web
+# ---------------------------------------------------------------- qué tiene la web
 site = web / 'site'
 htmls = [site / 'template.html'] + sorted((site / 'pages').glob('*.html')) + sorted((site / 'partials').glob('*.html'))
 tot = '\n'.join(p.read_text(errors='replace') for p in htmls if p.exists())
@@ -45,9 +45,9 @@ te = {
     'pages': len(pagines) >= 1,
     'social': 'data-edit-href' in tot,
 }
-print('La web té:', ', '.join(k for k, v in te.items() if v) or 'només el bàsic')
+print('La web tiene:', ', '.join(k for k, v in te.items() if v) or 'solo lo básico')
 
-# ---------------------------------------------------------------- còpia temporal i servidor
+# ---------------------------------------------------------------- copia temporal y servidor
 tmp = Path(tempfile.mkdtemp(prefix='neutron-guia-'))
 copia = tmp / 'web'
 shutil.copytree(web, copia, ignore=shutil.ignore_patterns('data', '.git'))
@@ -70,7 +70,7 @@ pasos.write_text('''
 import { writeFileSync } from 'node:fs';
 const B = %(base)s, P = %(prefix)s, COLS = %(cols)s, PW = %(pw)s, OUT = %(out)s;
 const R = {};
-// Rectangle d'un element a la pantalla (coordenades del viewport) en el moment de la captura
+// Rectángulo de un elemento en la pantalla (coordenadas del viewport) en el momento de la captura
 const rect = sel => `(() => { const e = ${sel}; if (!e) return null; const r = e.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; })()`;
 const quiet = "document.documentElement.style.scrollBehavior='auto'; document.querySelectorAll('.nc-banner, [class*=neutron-cookie]').forEach(e => e.remove())";
 async function snap(c, name, sel) { await c.sleep(400); R[name] = await c.evalJs(rect(sel)); await c.shot('guia/' + name); }
@@ -87,7 +87,7 @@ export default [
   ['galeria', async c => {
     const sel = "[...document.querySelectorAll('[data-edit-collection]')].find(e => e.querySelector('[data-edit-item] img'))";
     if (await c.evalJs(`!!${sel}`)) { R.galeria_llista = true; await c.evalJs(`(${sel}).scrollIntoView({block: 'center'})`); await snap(c, 'galeria', sel); return R.galeria; }
-    // Sense cap llista amb fotos: el grup d'imatges soltes (data-edit-img) més avall de la capçalera
+    // Sin ninguna lista con fotos: el grupo de imágenes sueltas (data-edit-img) más abajo de la cabecera
     const img = "[...document.querySelectorAll('[data-edit-img]')].find(e => e.getBoundingClientRect().top + scrollY > innerHeight * .8)";
     if (!await c.evalJs(`!!${img}`)) return null;
     await c.evalJs(`(${img}).scrollIntoView({block: 'center'})`);
@@ -132,7 +132,7 @@ finally:
     shutil.rmtree(tmp, ignore_errors=True)
 R = json.loads(rects.read_text())
 
-# ---------------------------------------------------------------- retalls (les captures són a 2x)
+# ---------------------------------------------------------------- recortes (las capturas son a 2x)
 cap = Path.home() / 'cdp-tmp' / 'guia'
 def retall(nom, sortida, marge=24, minw=0, maxh=None, sencer=False, alt=None, dreta=None):
     if not R.get(nom) and not sencer: return False
@@ -142,8 +142,8 @@ def retall(nom, sortida, marge=24, minw=0, maxh=None, sencer=False, alt=None, dr
         x, y, w, h = 0, 0, W, (maxh or H)
     else:
         x, y, w, h = R[nom]
-        if alt: h = alt                      # des de dalt de l'element, aquesta alçada (la barra de format i el text de sota)
-        if dreta: x, y, w = W - dreta, 0, dreta    # el tros de la dreta de la barra (els avisos)
+        if alt: h = alt                      # desde arriba del elemento, esta altura (la barra de formato y el texto de debajo)
+        if dreta: x, y, w = W - dreta, 0, dreta    # el trozo de la derecha de la barra (los avisos)
         if w < minw: x -= (minw - w) / 2; w = minw
         x, y, w, h = x - marge, y - marge, w + 2 * marge, h + 2 * marge
         if maxh and h > maxh: h = maxh
@@ -167,7 +167,7 @@ fets = {
     'shot-cos': retall('cos', 'c-cos.jpg', marge=16, alt=300),
 }
 
-# ---------------------------------------------------------------- plantilla
+# ---------------------------------------------------------------- plantilla de la guía
 t = (AQUI / 'guia.template.html').read_text()
 cond = {**te, 'blog': te['blog'] and fets['nova'], 'social': te['social'] and fets['xarxes'], 'shot-galeria': fets['shot-galeria'],
         'shot-llista': fets['shot-llista'], 'shot-cos': fets['shot-cos']}

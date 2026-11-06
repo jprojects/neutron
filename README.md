@@ -461,6 +461,19 @@ instalación de la 1.0.0 se hace a mano (copiar el núcleo); a partir de ahí, d
 > La autoprueba necesita que el servidor atienda dos peticiones a la vez. Con `php -S` usa
 > `PHP_CLI_SERVER_WORKERS=4`; si no, se da por «no alcanzable» y la actualización sigue sin ella.
 
+## Herramientas para hacer webs (no son del núcleo)
+
+En `tools/` y `docs/`, para el repo de Neutron (no llegan a las instalaciones). Python 3 con PIL, PHP y, para lo que usa
+el navegador, Node 22 y Chromium.
+
+| Comando | Qué hace |
+|---|---|
+| `python3 tools/new-site.py <cliente> --nom "…" [--idiomes ca,es,en] [--migrar URL]` | Crea `~/Projects/neutron-<cliente>`: núcleo de la última etiqueta, `site/` básico (carpetas, `languages.json`, `cookies.json` en cada idioma), `config.local.php` con contraseña aleatoria y token de Cosmo, y la contraseña en `credencials.local.md`. |
+| `python3 tools/migrate.py URL <instalación> [--render] [--max 150]` | Rastrea la web antigua y deja en `_migracio/` el contenido por páginas e idiomas (`contenido.json`, sin el menú ni el pie), una propuesta de `redirects.json` y un `informe.md` (CMS, idiomas, menú, contacto, redes, terceros → cookies, formularios, tipografías, colores, logo, blog). Descarga las imágenes en WebP (2000 px como mucho) a `site/assets/img/` y hace el favicon. `--render` usa Chromium para las webs que montan el contenido con JavaScript. |
+| `python3 tools/check.py <instalación> [--guia --nom "…" --url …]` | Antes de entregar: núcleo sin tocar, contraseña, token, reCAPTCHA, favicon, cookies, páginas legales, textos `[PENDENT]`, imágenes, traducciones y, sobre una copia servida con `php -S`, todas las páginas (título, descripción, h1), enlaces internos, redirecciones, URLs de la web antigua, terceros sin consentimiento y los dos motores. Con `--guia`, si no hay errores, genera la guía. |
+| `python3 docs/guia-edicio/generar.py <instalación> --nom "…" --url …` | Guía de edición en PDF (catalán) con capturas de la web del cliente, en su carpeta (`guia-edicio-AAAA-MM-DD.pdf`). |
+| `node tools/cdp.mjs <url> <pasos.mjs>` | Chromium sin ventana por el protocolo de DevTools, para probar el editor y hacer capturas. |
+
 ## Versiones y publicación
 
 Semver en `VERSION`, con su entrada en `CHANGELOG.md`. Cada versión se etiqueta en git como `vX.Y.Z`:

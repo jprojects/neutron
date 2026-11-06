@@ -40,7 +40,11 @@ actualízalo con cada función nueva.
   siempre con `data-edit-href="social_<red>"`; las redes que el cliente aún no usa, con `href=""`, para que pueda
   añadirlas). Las listas se pueden anidar (hasta 3 niveles):
   cartas y menús como secciones con sus platos, no como bloques de texto.
-- Cada web nueva es su propia carpeta `~/Projects/<nombre>`; si ese nombre ya lo usa otro proyecto, `<nombre>-web`.
+- **Webs nuevas, con las herramientas** (README → «Herramientas»): `tools/new-site.py <cliente>` (crea
+  `~/Projects/neutron-<cliente>` y apunta la contraseña), `tools/migrate.py URL <carpeta>` (contenido, imágenes,
+  favicon, redirecciones e informe en `_migracio/`; leer el informe antes de diseñar), y al terminar
+  `tools/check.py <carpeta> --guia` hasta que no quede ningún ✗. Si una herramienta falla o se queda corta con una web,
+  se mejora la herramienta (en vez de hacerlo a mano), para la próxima.
 - Webs de varias páginas: cabecera, menú y pie en `site/partials/` con `data-include`; claves de cada página con
   prefijo; resaltar el menú con `[aria-current="page"]`; `site/redirects.json` con todas las URLs de la web anterior.
 - **Blog**: colección en `site/blog/` (`_item.html` + JSON por entrada) y listado en `site/pages/blog.html`; enlaces
@@ -55,8 +59,8 @@ actualízalo con cada función nueva.
   `/favicon.ico`); si no tiene, hacerlo a partir del logo. Va en `site/favicon.ico` (16/32/48 px) y
   `site/apple-touch-icon.png` (180×180), con `<link rel="icon" href="favicon.ico">` y
   `<link rel="apple-touch-icon" href="apple-touch-icon.png">` en el `<head>` de todas las páginas.
-- Cada web nueva es una instalación aparte en `~/Projects/<nombre>` (núcleo con `git archive` + su `site/` +
-  `config.local.php` con `bin/install.php`), no en `site/` de este repo, que es Assaice.
+- Cada web nueva es una instalación aparte en `~/Projects/neutron-<cliente>` (con `tools/new-site.py`), no en `site/`
+  de este repo, que es Assaice. Las anteriores a noviembre de 2026 están en `~/Projects/<nombre>`.
   La contraseña del editor de cada web (al crearla o al cambiarla) se apunta en `credencials.local.md` de este repo
   (en el `.gitignore`; nunca en el scratchpad, que se borra, ni en la memoria).
 - **En una web (instalación) no se tocan los ficheros de `core.json`**, para que siempre se pueda actualizar desde

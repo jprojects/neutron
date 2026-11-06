@@ -2,6 +2,14 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.10.1 — 2026-11-06
+
+- Corregido: el motor sin DOM trataba un «<» suelto («< Anterior», «3 < 5») como el principio de una etiqueta y
+  descuadraba lo que venía detrás; ahora es texto, como en DOMDocument y en el navegador.
+- Herramientas para hacer webs (en `tools/`, no son del núcleo): `new-site.py` crea la instalación, `migrate.py` migra el
+  contenido de la web antigua (textos, imágenes en WebP, favicon, redirecciones e informe) y `check.py` lo comprueba todo
+  antes de entregar. Ver «Herramientas» en el README.
+
 ## 1.10.0 — 2026-11-06
 
 - Imágenes optimizadas al subirlas desde el editor: se reducen a 2000 px de lado como mucho y se pasan a WebP en el
