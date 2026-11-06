@@ -35,6 +35,14 @@ function neutron_render_dom(string $html, array $content, array $options = []): 
         if (array_key_exists($key, $content) && is_string($content[$key])) $node->setAttribute('content', $content[$key]);
     }
 
+    // Enlaces editables (redes sociales…): sin dirección, fuera
+    foreach (iterator_to_array($xpath->query('//*[@data-edit-href]')) as $node) {
+        [$href, $remove, $attrs] = neutron_edit_href($content, $node->getAttribute('data-edit-href'), $node->getAttribute('href'), !empty($options['editing']));
+        if ($remove) { $node->parentNode->removeChild($node); continue; }
+        $node->setAttribute('href', $href);
+        foreach ($attrs as $name => $value) $node->setAttribute($name, $value);
+    }
+
     // Colecciones (blog): listados data-posts y, en la página de una entrada, sus campos data-post*
     if (isset($options['posts'])) {
         neutron_dom_fill_posts($dom, $xpath, $options['posts']);

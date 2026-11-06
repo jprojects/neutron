@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<title>Com gestionar la vostra web · Guia d'edició</title>
+<style>
+@font-face { font-family: Lato; font-weight: 400; src: url(lato-400.woff2) format("woff2"); }
+@font-face { font-family: Lato; font-weight: 700; src: url(lato-700.woff2) format("woff2"); }
+@font-face { font-family: Lora; font-weight: 400; src: url(lora-400.woff2) format("woff2"); }
+@font-face { font-family: Lora; font-weight: 600; src: url(lora-600.woff2) format("woff2"); }
+@font-face { font-family: Lora; font-style: italic; font-weight: 400; src: url(lora-400-italic.woff2) format("woff2"); }
+
+@page { size: A4; margin: 20mm 19mm 22mm; }
+@page :first { margin: 0; }
+:root { --ink: #2c2a2e; --muted: #625d66; --accent: #2563eb; --soft: #eef3fd; --line: #e3e1e6; --warm: #fff6e5; }
+* { box-sizing: border-box; }
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+body { margin: 0; font: 10.5pt/1.55 Lato, sans-serif; color: var(--ink); }
+h1, h2, h3 { font-family: Lora, serif; font-weight: 600; line-height: 1.2; color: #1d1b20; }
+h2 { font-size: 19pt; margin: 0 0 4mm; padding-top: 1mm; break-after: avoid; }
+h2 .n { display: inline-block; width: 9mm; height: 9mm; line-height: 9mm; margin-right: 3mm; border-radius: 50%; background: var(--accent);
+  color: #fff; font: 700 12pt/9mm Lato, sans-serif; text-align: center; vertical-align: 2pt; }
+h3 { font-size: 12.5pt; margin: 6mm 0 2mm; break-after: avoid; }
+p { margin: 0 0 3mm; }
+ul, ol { margin: 0 0 3mm; padding-left: 5.5mm; }
+li { margin-bottom: 1.2mm; }
+strong { font-weight: 700; }
+code, .k { font: 700 9.5pt Lato, sans-serif; background: #f1f0f3; border: 1px solid var(--line); border-radius: 3px; padding: .2mm 1.4mm; white-space: nowrap; }
+.btn { display: inline-block; font: 700 9pt Lato, sans-serif; color: #fff; background: #3b82f6; border-radius: 3px; padding: .3mm 2mm; white-space: nowrap; }
+.btn.green { background: #10b981; } .btn.red { background: #dc2626; } .btn.grey { background: #e2e8f0; color: #1e293b; }
+.ui { font-weight: 700; color: #1d4ed8; }
+section { margin-top: 11mm; }
+section.cont { margin-top: 11mm; }
+section.page { break-before: page; margin-top: 0; }
+figure { margin: 4mm 0 5mm; break-inside: avoid; }
+figure img { width: 100%; border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 2mm 5mm rgba(0,0,0,.08); }
+figure.small img { width: 52%; margin: 0 auto; display: block; }
+figure.mid img { width: 74%; margin: 0 auto; display: block; }
+figcaption { font-size: 8.8pt; color: var(--muted); margin-top: 2mm; text-align: center; }
+.tip, .warn { border-radius: 6px; padding: 3.5mm 4.5mm; margin: 4mm 0; break-inside: avoid; }
+.tip { background: var(--soft); border-left: 1.2mm solid var(--accent); }
+.warn { background: var(--warm); border-left: 1.2mm solid #f59e0b; }
+.tip p:last-child, .warn p:last-child { margin: 0; }
+.tip b, .warn b { display: block; margin-bottom: 1mm; }
+table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 9.8pt; break-inside: avoid; }
+th, td { text-align: left; vertical-align: top; padding: 2mm 2.6mm; border-bottom: 1px solid var(--line); }
+th { background: #f6f5f8; font-weight: 700; }
+td:first-child { white-space: nowrap; width: 1%; }
+.steps { counter-reset: s; list-style: none; padding: 0; }
+.steps li { counter-increment: s; position: relative; padding-left: 9mm; margin-bottom: 2.4mm; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: .2mm; width: 6mm; height: 6mm; border-radius: 50%; background: var(--soft);
+  color: var(--accent); font: 700 9pt/6mm Lato, sans-serif; text-align: center; }
+
+/* Portada */
+.cover { height: 297mm; padding: 34mm 24mm 22mm; display: flex; flex-direction: column; color: #fff;
+  background: radial-gradient(120mm 120mm at 100% 0, rgba(255,255,255,.12), transparent 70%), linear-gradient(160deg, #1e3a8a, #2563eb 55%, #3b82f6); }
+.cover .tag { font: 700 10pt Lato, sans-serif; letter-spacing: .25em; text-transform: uppercase; opacity: .8; }
+.cover h1 { color: #fff; font-size: 38pt; margin: 8mm 0 6mm; max-width: 140mm; }
+.cover p.sub { font: italic 15pt/1.45 Lora, serif; max-width: 130mm; opacity: .92; }
+.cover .shot { margin-top: auto; border-radius: 8px; overflow: hidden; box-shadow: 0 6mm 18mm rgba(0,0,0,.35); border: 2px solid rgba(255,255,255,.4); }
+.cover .shot img { width: 100%; display: block; }
+.cover .foot { margin-top: 10mm; display: flex; justify-content: space-between; font-size: 9.5pt; opacity: .85; }
+
+/* Índex */
+.toc { list-style: none; padding: 0; margin: 6mm 0 0; columns: 2; column-gap: 10mm; }
+.toc li { break-inside: avoid; padding: 2.2mm 0; border-bottom: 1px solid var(--line); font-size: 10.5pt; }
+.toc span { display: inline-block; width: 7mm; color: var(--accent); font-weight: 700; }
+.lead { font: 12pt/1.6 Lora, serif; color: #3b3840; }
+.cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4mm; margin: 6mm 0; }
+.card { border: 1px solid var(--line); border-radius: 6px; padding: 4mm; break-inside: avoid; }
+.card b { display: block; font-family: Lora, serif; font-size: 11.5pt; margin-bottom: 1.5mm; }
+.card p { margin: 0; font-size: 9.5pt; color: var(--muted); }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 7mm; align-items: start; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+  <div class="tag">Guia d'edició · Neutron</div>
+  <h1>Com gestionar la vostra web</h1>
+  <p class="sub">Canviar textos, imatges i llistes, publicar notícies al blog i desar els canvis, directament des de la mateixa pàgina.</p>
+  <div class="shot"><img src="cover.jpg" alt=""></div>
+  <div class="foot"><span>Versió de novembre de 2026</span><span>Per als responsables del contingut de la web</span></div>
+</div>
+
+<section class="page">
+  <h2>Abans de començar</h2>
+  <p class="lead">La vostra web funciona amb <strong>Neutron</strong>, un gestor de continguts senzill: no cal cap programa ni cap tauler a part. Els canvis es fan
+    <strong>sobre la mateixa pàgina</strong> que veuen els visitants: feu clic en un text, l'escriviu de nou i premeu <span class="btn">Guardar cambios</span>.</p>
+  <div class="cards">
+    <div class="card"><b>Textos</b><p>Títols, paràgrafs, telèfons, horaris, preus… qualsevol text marcat com a editable.</p></div>
+    <div class="card"><b>Imatges</b><p>Feu clic en una foto per substituir-la per una altra del vostre ordinador.</p></div>
+    <div class="card"><b>Llistes</b><p>Afegir, treure i ordenar elements: fotos d'una galeria, tarifes, serveis, formacions…</p></div>
+  </div>
+  <p>Si la web té blog o secció de notícies, també hi podreu crear entrades noves, desar-les com a esborrany i publicar-les quan vulgueu.</p>
+  <div class="tip"><b>Els botons de l'editor surten en castellà</b>
+    <p>Els textos de la vostra web són en el vostre idioma, però els botons de l'editor (<span class="btn">Guardar cambios</span>, <span class="btn">Salir</span>,
+    <span class="btn green">+ Nueva entrada</span>…) apareixen en castellà. En aquesta guia els escrivim tal com els veureu a la pantalla.</p></div>
+  <div class="tip"><b>Millor des d'un ordinador</b>
+    <p>L'editor funciona en qualsevol navegador actual (Chrome, Firefox, Safari, Edge). Es pot fer servir des del mòbil, però és més còmode amb pantalla gran i ratolí.</p></div>
+
+  <h3>Índex</h3>
+  <ol class="toc">
+    <li><span>1</span>Entrar a l'editor</li>
+    <li><span>2</span>La barra d'edició</li>
+    <li><span>3</span>Canviar textos</li>
+    <li><span>4</span>Canviar imatges</li>
+    <li><span>5</span>Llistes i galeries</li>
+    <li><span>6</span>Enllaços de les xarxes socials</li>
+    <li><span>7</span>Desar i sortir</li>
+    <li><span>8</span>Webs de diverses pàgines</li>
+    <li><span>9</span>El blog: entrades noves</li>
+    <li><span>10</span>Webs en diversos idiomes</li>
+    <li><span>11</span>Formulari de contacte</li>
+    <li><span>12</span>Què no es pot fer des de l'editor</li>
+    <li><span>13</span>Consells i resum ràpid</li>
+  </ol>
+</section>
+
+<section class="page">
+  <h2><span class="n">1</span>Entrar a l'editor</h2>
+  <p>Afegiu <code>?admin</code> al final de l'adreça de la web i premeu Retorn. Per exemple:</p>
+  <p style="text-align:center"><code style="font-size:11pt">https://www.lavostraweb.cat/?admin</code></p>
+  <p>Apareixerà una finestra que demana la contrasenya. Escriviu-la i premeu <span class="btn">Entrar</span>.</p>
+  <figure class="small"><img src="c-login.jpg" alt=""><figcaption>La finestra d'accés. La contrasenya us la proporcionem nosaltres.</figcaption></figure>
+  <div class="warn"><b>Seguretat</b>
+    <p>Després de <strong>5 intents fallits</strong>, l'accés queda bloquejat durant 15 minuts. No compartiu la contrasenya i, si l'heu oblidat o
+    creieu que algú altre la sap, demaneu-nos-en una de nova.</p></div>
+  <p>Mentre teniu la sessió oberta, podeu tornar a l'editor des de qualsevol pàgina afegint <code>?admin</code> a l'adreça. Els visitants mai veuen l'editor: només qui ha entrat amb la contrasenya.</p>
+
+  <section class="cont">
+  <h2><span class="n">2</span>La barra d'edició</h2>
+  <p>Un cop dins, a dalt de tot apareix una barra fosca i els elements que es poden editar queden marcats amb una <strong>vora de punts</strong>.</p>
+  <figure><img src="c-barra.jpg" alt=""><figcaption>La barra d'edició, a sobre de la capçalera de la web.</figcaption></figure>
+  <table>
+    <tr><th>Botó</th><th>Per a què serveix</th></tr>
+    <tr><td><span class="ui">Página</span></td><td>Llista de les pàgines de la web: trieu-ne una per anar-hi sense sortir de l'editor (només si la web té més d'una pàgina).</td></tr>
+    <tr><td><span class="ui">Idioma</span></td><td>La mateixa pàgina en un altre idioma (només a les webs multilingües).</td></tr>
+    <tr><td><span class="btn">Guardar cambios</span></td><td>Desa tot el que heu canviat a la pàgina. <strong>Fins que no el premeu, els canvis no queden desats.</strong></td></tr>
+    <tr><td><span class="btn">Salir</span></td><td>Torna a veure la pàgina com un visitant, però manté la sessió oberta.</td></tr>
+    <tr><td><span class="btn">Cerrar sesión</span></td><td>Surt de l'editor del tot. Feu-ho sempre en un ordinador compartit.</td></tr>
+    <tr><td><span class="btn green">+ Nueva entrada</span></td><td>Crea una entrada nova al blog (surt a les pàgines que tenen un llistat d'entrades).</td></tr>
+  </table>
+  <p>A la dreta de la barra hi ha els <strong>avisos</strong>: <span class="ui">Cambios sin guardar</span> quan heu tocat alguna cosa,
+    <span class="ui">Guardando...</span> mentre es desa i <span class="ui">Guardado ✓</span> quan ja està.</p>
+  </section>
+</section>
+
+<section>
+  <h2><span class="n">3</span>Canviar textos</h2>
+  <ol class="steps">
+    <li>Feu clic sobre el text que voleu canviar (té una vora de punts al voltant).</li>
+    <li>Escriviu com en qualsevol document: podeu esborrar, afegir o seleccionar i substituir.</li>
+    <li>Quan acabeu, premeu <span class="btn">Guardar cambios</span>.</li>
+  </ol>
+  <figure class="mid"><img src="c-text.jpg" alt=""><figcaption>Editant el títol de la portada: el cursor és dins del text i la barra avisa «Cambios sin guardar».</figcaption></figure>
+  <div class="two">
+    <div>
+      <h3>Textos repetits</h3>
+      <p>Hi ha dades que surten en més d'un lloc (el telèfon a la capçalera i al peu, per exemple). Si en canvieu un, els altres es canvien alhora.</p>
+      <h3>Text sense format</h3>
+      <p>Aquests textos són <strong>text pla</strong>: no admeten negretes ni enllaços, i l'aspecte (lletra, mida, color) ja el posa el disseny.
+        Si enganxeu text d'un altre lloc, s'hi enganxa només el text.</p>
+    </div>
+    <div>
+      <h3>Textos que són enllaços</h3>
+      <p>Al menú i als botons, un clic serveix per <strong>editar el text</strong>. Per <strong>anar</strong> a la pàgina on porta l'enllaç, feu
+        <code>Ctrl</code> + clic (<code>Cmd</code> + clic al Mac).</p>
+      <div class="tip"><b>Consell</b><p>Mantingueu els títols curts: el disseny està pensat per a la llargada dels textos actuals, i un títol molt llarg pot quedar malament al mòbil.</p></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="n">4</span>Canviar imatges</h2>
+  <ol class="steps">
+    <li>Feu clic sobre la imatge (les imatges que es poden canviar també tenen vora de punts).</li>
+    <li>S'obre la finestra del vostre ordinador: trieu la foto nova.</li>
+    <li>Espereu l'avís <span class="ui">Imagen lista (recuerda guardar)</span>.</li>
+    <li>Premeu <span class="btn">Guardar cambios</span>.</li>
+  </ol>
+  <table>
+    <tr><th>Formats</th><td>JPG, PNG, GIF o WebP. No s'admeten SVG ni documents (PDF, Word…).</td></tr>
+    <tr><th>Mida màxima</th><td>5 MB per imatge.</td></tr>
+    <tr><th>Recomanat</th><td>Fotos en JPG d'uns 1.600 píxels d'amplada. Les fotos del mòbil solen ser molt més grans: reduïu-les abans i la web anirà més ràpida.</td></tr>
+    <tr><th>Enquadrament</th><td>Moltes imatges es retallen automàticament per encaixar en el disseny (quadrades, apaïsades…). Deixeu el motiu principal al centre de la foto.</td></tr>
+  </table>
+  <div class="warn"><b>Drets d'imatge</b><p>Feu servir només fotos pròpies o amb permís. Si hi surten persones, assegureu-vos que n'estan d'acord.</p></div>
+
+  <section class="cont">
+  <h2><span class="n">5</span>Llistes i galeries</h2>
+  <p>Moltes parts de la web són <strong>llistes</strong>: les fotos d'una galeria, les tarifes, els serveis, els paràgrafs d'un text llarg, les formacions…
+    Cada element de la llista té, a la cantonada, dos botons petits:</p>
+  <table>
+    <tr><td><span class="k">↑</span></td><td><strong>Pujar</strong>: mou l'element una posició amunt. Per baixar-ne un, pugeu el de sota.</td></tr>
+    <tr><td><span class="k" style="color:#dc2626">✕</span></td><td><strong>Treure</strong>: elimina l'element. Sempre n'ha de quedar com a mínim un.</td></tr>
+    <tr><td><span class="btn green">+ Afegir…</span></td><td>Sota cada llista: n'afegeix un element nou al final, copiat de l'últim. Després canvieu-ne el text i la imatge.</td></tr>
+  </table>
+  <figure class="mid"><img src="c-tarifes.jpg" alt=""><figcaption>Les tarifes són una llista: cada preu té els botons ↑ i ✕, i a sota hi ha «+ Afegir tarifa».</figcaption></figure>
+  </section>
+</section>
+
+<section>
+  <figure class="mid"><img src="c-llistes.jpg" alt=""><figcaption>Una galeria de fotos: cada foto és un element de la llista i es canvia fent-hi clic.</figcaption></figure>
+  <p>Les llistes poden tenir llistes a dins (per exemple, les seccions d'una carta, cadascuna amb els seus plats): funcionen igual, cada nivell amb els seus botons.</p>
+
+  <section class="page">
+  <h2><span class="n">6</span>Enllaços de les xarxes socials</h2>
+  <p>Les icones de les xarxes socials (Instagram, Facebook, YouTube…) tenen l'adreça editable. En mode d'edició, feu clic a la icona i s'obrirà una finestra amb
+    l'adreça actual:</p>
+  <div class="two">
+    <figure style="margin-top:0"><img src="c-enllac.jpg" alt=""><figcaption>La finestra per canviar l'adreça d'un enllaç.</figcaption></figure>
+    <div>
+      <ul>
+        <li><strong>Canviar-la</strong>: escriviu l'adreça nova (copieu-la del navegador: <code>https://www.instagram.com/…</code>) i premeu <span class="btn">Aceptar</span>.</li>
+        <li><strong>Treure una xarxa</strong>: deixeu l'adreça buida. La icona deixarà de sortir a la web.</li>
+        <li><strong>Afegir-ne una</strong>: les xarxes sense adreça surten <strong>atenuades</strong> a l'editor (els visitants no les veuen). Feu-hi clic i poseu-hi l'adreça.</li>
+      </ul>
+      <p>Com sempre, després premeu <span class="btn">Guardar cambios</span>.</p>
+    </div>
+  </div>
+  <figure class="mid"><img src="c-xarxes.jpg" alt=""><figcaption>Al peu, Instagram i YouTube tenen adreça; Facebook i TikTok, atenuats, no surten a la web.</figcaption></figure>
+  <p>Si un enllaç amb text (per exemple, un correu) també té l'adreça editable, al costat hi veureu un botó petit <span class="btn">🔗</span>. Si voleu una xarxa
+    que no hi és, demaneu-nos-la i l'afegirem.</p>
+  </section>
+
+  <section class="cont">
+  <h2><span class="n">7</span>Desar i sortir</h2>
+  <p>Res del que canvieu no es publica fins que premeu <span class="btn">Guardar cambios</span>. En aquell moment els canvis ja els veu tothom.</p>
+  <figure class="mid"><img src="c-guardat.jpg" alt=""><figcaption>Quan l'avís diu «Guardado ✓», els canvis ja són a la web.</figcaption></figure>
+  <ul>
+    <li>Si intenteu sortir, canviar de pàgina o tancar la pestanya amb canvis sense desar, l'editor <strong>us avisa</strong> abans.</li>
+    <li>Cada pàgina es desa per separat: deseu <strong>abans</strong> de passar a una altra pàgina.</li>
+    <li>Si apareix un error en desar, comproveu la connexió i torneu-ho a provar. Si continua, aviseu-nos: no tanqueu la pestanya, així no es perd el que heu escrit.</li>
+  </ul>
+  <div class="tip"><b>Còpies de seguretat</b><p>Nosaltres podem fer i recuperar còpies de seguretat de la web. Si s'esborra alguna cosa per error, aviseu-nos com més aviat millor.</p></div>
+
+  <h2 style="margin-top:9mm"><span class="n">8</span>Webs de diverses pàgines</h2>
+  <p>Si la web té més d'una pàgina, a la barra hi ha el desplegable <span class="ui">Página</span>: trieu-ne una i s'obre ja en mode d'edició.
+    També podeu fer <code>Ctrl</code> + clic en un enllaç del menú. La capçalera, el menú i el peu són comuns: si els canvieu en una pàgina, canvien a totes.</p>
+  </section>
+</section>
+
+<section>
+  <h2><span class="n">9</span>El blog: entrades noves</h2>
+  <h3>Crear una entrada</h3>
+  <ol class="steps">
+    <li>Aneu a la pàgina del blog (o a qualsevol pàgina amb el llistat d'entrades) i premeu <span class="btn green">+ Nueva entrada</span>.</li>
+    <li>Escriviu el títol a la finestra i premeu <span class="btn">Crear</span>.</li>
+    <li>S'obre l'entrada nova, que és un <strong>esborrany</strong>: només la veieu vosaltres.</li>
+  </ol>
+  <figure class="small"><img src="c-nova.jpg" alt=""><figcaption>La finestra per crear una entrada.</figcaption></figure>
+  <div class="warn"><b>L'adreça de l'entrada</b><p>L'adreça (per exemple <code>/blog/com-es-una-primera-sessio</code>) es crea a partir del primer títol i ja no canvia,
+    encara que després el modifiqueu. Així els enllaços que ja s'han compartit continuen funcionant.</p></div>
+  <h3>Escriure-la</h3>
+  <figure class="mid"><img src="c-entrada.jpg" alt=""><figcaption>Una entrada en esborrany: la franja taronja ho recorda, i la barra té la data i els botons «Publicar» i «Borrar entrada».</figcaption></figure>
+</section>
+
+<section>
+  <p>A la pàgina de l'entrada podeu editar el <strong>títol</strong>, el <strong>resum</strong> (el text curt que surt al llistat), la <strong>imatge</strong>
+    (clic per canviar-la) i el <strong>cos</strong> del text. El cos sí que admet format, amb aquesta barra:</p>
+  <figure class="mid"><img src="c-cos.jpg" alt=""><figcaption>La barra de format del cos de l'entrada.</figcaption></figure>
+  <table>
+    <tr><td><span class="k">N</span> <span class="k"><i>C</i></span></td><td>Negreta i cursiva del text seleccionat.</td></tr>
+    <tr><td><span class="k">Título</span> <span class="k">Subtít.</span></td><td>Converteix el paràgraf en un subtítol (gran o petit). <span class="k">¶</span> el torna a paràgraf normal.</td></tr>
+    <tr><td><span class="k">• Lista</span> <span class="k">1. Lista</span></td><td>Llista amb punts o numerada.</td></tr>
+    <tr><td><span class="k">❝</span></td><td>Cita destacada.</td></tr>
+    <tr><td><span class="k">Enlace</span> <span class="k">Quitar enlace</span></td><td>Seleccioneu un text i poseu-hi l'adreça (<code>https://…</code>, <code>mailto:…</code> o una pàgina de la web), o traieu-lo.</td></tr>
+    <tr><td><span class="k">Imagen</span></td><td>Insereix una foto on teniu el cursor; us demanarà una breu descripció per a qui no la pot veure.</td></tr>
+  </table>
+  <p>Si enganxeu text d'un Word o d'una altra web, se'n conserva només el format permès (negretes, llistes, enllaços…); la resta s'elimina perquè la web mantingui el seu disseny.</p>
+  <h3>Publicar, data i esborrar</h3>
+  <table>
+    <tr><td><span class="ui">Fecha</span></td><td>La data que surt a l'entrada. Les entrades s'ordenen per data, de la més nova a la més antiga.</td></tr>
+    <tr><td><span class="btn">Publicar</span></td><td>La fa visible a tothom (abans desa els canvis pendents). Un cop publicada, el botó passa a dir <span class="btn">Pasar a borrador</span>, per amagar-la.</td></tr>
+    <tr><td><span class="btn red">Borrar entrada</span></td><td>L'elimina de la web, després de demanar confirmació. Si ha estat un error, aviseu-nos: en guardem una còpia.</td></tr>
+  </table>
+  <p>Al llistat del blog, mentre sou a l'editor, els esborranys porten l'etiqueta «Borrador». Els visitants no els veuen.</p>
+</section>
+
+<section>
+  <h2><span class="n">10</span>Webs en diversos idiomes</h2>
+  <p>Si la web té diversos idiomes, a la barra apareix el desplegable <span class="ui">Idioma</span>, que obre la mateixa pàgina en un altre idioma.</p>
+  <ul>
+    <li>Els <strong>textos</strong> es desen en l'idioma de la pàgina on sou: canvieu el català a la versió catalana, l'anglès a l'anglesa, etc.</li>
+    <li>Allà on encara no hi ha traducció es veu el text de l'idioma principal. Quan hi escriviu la traducció i deseu, aquell idioma ja tindrà el seu text.</li>
+    <li>Les <strong>imatges</strong> de les pàgines són les mateixes en tots els idiomes: si en canvieu una, canvia a tots.</li>
+    <li>Les <strong>entrades del blog</strong> es creen en l'idioma principal. Per traduir-ne una, obriu-la en l'altre idioma i escriviu-hi el títol, el resum i el text;
+      l'editor avisa «Sin traducir» mentre no està traduïda. La imatge d'una entrada sí que pot ser diferent en cada idioma (un cartell amb text, per exemple).</li>
+  </ul>
+
+  <h2 style="margin-top:9mm"><span class="n">11</span>Formulari de contacte</h2>
+  <p>Si la web té formulari de contacte, els missatges us arriben <strong>per correu electrònic</strong>, amb les dades que ha escrit la persona. Si responeu el correu, la resposta va directament a ella.</p>
+  <ul>
+    <li>El formulari està protegit contra el correu brossa amb <strong>Google reCAPTCHA</strong>, sense que els visitants hagin de resoldre cap prova.</li>
+    <li>En mode d'edició el formulari no envia res: per provar-lo, sortiu de l'editor.</li>
+    <li>Si un dia deixeu de rebre missatges, aviseu-nos i ho revisarem.</li>
+  </ul>
+</section>
+
+<section>
+  <h2><span class="n">12</span>Què no es pot fer des de l'editor</h2>
+  <p>L'editor està pensat perquè el contingut el porteu vosaltres i el disseny es mantingui sempre correcte. Per això hi ha coses que no es poden canviar des de la pàgina;
+    si en necessiteu alguna, demaneu-nos-la i la farem nosaltres:</p>
+  <div class="cards" style="grid-template-columns: 1fr 1fr">
+    <div class="card"><b>Disseny</b><p>Colors, tipus de lletra, mida dels elements, ordre de les seccions, logotip de la capçalera.</p></div>
+    <div class="card"><b>Estructura</b><p>Seccions o pàgines noves, opcions noves al menú, un formulari o un mapa nous.</p></div>
+    <div class="card"><b>Enllaços</b><p>Les adreces on porten els menús i els botons (sí que en podeu canviar el text). Les de les xarxes socials, sí: vegeu l'apartat 6.</p></div>
+    <div class="card"><b>Textos legals i accés</b><p>Avís legal, privacitat i cookies; contrasenya oblidada; correu on arriben els missatges.</p></div>
+  </div>
+
+  <h2 style="margin-top:9mm"><span class="n">13</span>Consells i resum ràpid</h2>
+  <table>
+    <tr><th>Vull…</th><th>Com</th></tr>
+    <tr><td>Entrar</td><td>Adreça de la web + <code>?admin</code> i la contrasenya.</td></tr>
+    <tr><td>Canviar un text</td><td>Clic al text, escriure, <span class="btn">Guardar cambios</span>.</td></tr>
+    <tr><td>Canviar una foto</td><td>Clic a la foto, triar-ne una altra, esperar «Imagen lista», <span class="btn">Guardar cambios</span>.</td></tr>
+    <tr><td>Afegir o treure</td><td><span class="btn green">+ Afegir…</span> sota la llista; <span class="k" style="color:#dc2626">✕</span> per treure, <span class="k">↑</span> per ordenar.</td></tr>
+    <tr><td>Anar a una altra pàgina</td><td>Desplegable <span class="ui">Página</span> o <code>Ctrl</code> + clic a l'enllaç (deseu abans).</td></tr>
+    <tr><td>Escriure al blog</td><td><span class="btn green">+ Nueva entrada</span>, títol, escriure, <span class="btn">Publicar</span>.</td></tr>
+    <tr><td>Acabar</td><td><span class="btn">Cerrar sesión</span>.</td></tr>
+  </table>
+  <div class="tip"><b>Bons hàbits</b>
+    <p>Deseu sovint · Reviseu els canvis també al mòbil · Reduïu les fotos abans de pujar-les · Tanqueu la sessió en ordinadors compartits ·
+      Davant qualsevol dubte, pregunteu-nos abans de treure contingut.</p></div>
+</section>
+
+</body>
+</html>

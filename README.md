@@ -94,9 +94,23 @@ reCAPTCHA y la autoprueba; `dom` es opcional (sin ella se usa un parser HTML pro
 | `data-edit-field="campo"` | campo de cada elemento de la lista (texto, o `src` si es `<img>`) | `{"campo": "…"}` |
 | `data-edit-add="Afegir plat"` | texto del botón para añadir elementos a esa lista (opcional) | — |
 | `data-edit-content="clave"` | pone el atributo `content` (`<meta name="description">`); no se edita en la página | `"clave": "texto"` |
+| `data-edit-href="clave"` | dirección de un `<a>` editable (redes sociales); vacía, el enlace no sale | `"clave": "https://…"` |
 
 El valor que hay en la plantilla solo se ve si `content.json` no tiene esa clave (también en las listas: sin la
-clave se ve el molde tal cual). No se pueden editar enlaces (`href`).
+clave se ve el molde tal cual).
+
+**Enlaces editables** (`data-edit-href`): pensado para las redes sociales y enlaces parecidos. La dirección sale del
+contenido; si no está, de la plantilla. Solo `http(s)`, `mailto:`, `tel:` y enlaces de la propia web (lo demás, como
+`javascript:`, se descarta). **Vacía, el enlace no sale en la página**: así el cliente puede quitar una red, y la
+plantilla puede traer redes sin dirección (`href=""`) que no se ven hasta que se les pone una. En el editor, los enlaces
+sin dirección se ven atenuados; un clic en un enlace sin texto editable (un icono) abre la ventana para cambiar la
+dirección, y si el enlace tiene texto editable sale un botón 🔗 a su lado. El resto de enlaces de la plantilla no se
+pueden editar: solo su texto.
+
+```html
+<a href="https://www.instagram.com/…" data-edit-href="social_instagram" target="_blank" rel="noopener" aria-label="Instagram">…</a>
+<a href="" data-edit-href="social_youtube" target="_blank" rel="noopener" aria-label="YouTube">…</a>   <!-- no sale hasta tener dirección -->
+```
 
 ### Listas dentro de listas
 
@@ -346,6 +360,7 @@ En webs de varias páginas, la barra del editor tiene un selector **Página** co
 Dentro de la página, un clic en un texto editable es para editarlo (también en los enlaces del menú);
 **Ctrl/Cmd + clic** en un enlace, o un clic en un enlace sin texto editable, lleva a esa página sin salir del modo
 edición. Si hay cambios sin guardar, avisa antes de cambiar de página, salir o cerrar la pestaña.
+**+ Nueva entrada** (blog) y los enlaces editables piden los datos en una ventana del propio editor.
 En las webs de varios idiomas, otro selector **Idioma** abre la misma página en otro idioma (ver «Varios idiomas»).
 La sesión solo arranca con `?admin`: los visitantes no reciben la cookie `neutron_admin_sid`.
 5 intentos fallidos por IP bloquean 15 minutos. Imágenes JPG, PNG, GIF o WebP de hasta 5 MB (SVG no, por XSS).
@@ -454,7 +469,8 @@ Lo que no esté en `core.json` no llega a las instalaciones al actualizar.
 ## Seguridad
 
 - Contraseña del editor con `password_hash`, CSRF en todas las acciones del editor, límite de intentos por IP.
-- Solo texto plano en el contenido; subidas validadas por tipo real (`finfo`), sin SVG.
+- Solo texto plano en el contenido (el cuerpo de las entradas, con lista blanca); los enlaces editables solo admiten
+  `http(s)`, `mailto:`, `tel:` y rutas de la web, y se comprueban al pintar; subidas validadas por tipo real (`finfo`), sin SVG.
 - `lib/`, `data/`, `bin/`, la configuración, `site/*.json`, la plantilla, `site/pages/` y `site/partials/` no se
   sirven directamente.
 - API remota: token de 32+ caracteres comparado en tiempo constante, IP opcional, 404 si falla.

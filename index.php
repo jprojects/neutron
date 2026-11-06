@@ -152,7 +152,7 @@ $self = match (true) {
     default => $page . '.html',
 };
 
-$options = ['current_href' => neutron_current_hrefs($page === '404' ? '-' : ($collection ?? $page))];
+$options = ['current_href' => neutron_current_hrefs($page === '404' ? '-' : ($collection ?? $page)), 'editing' => $editing];
 if ($collection !== null || $lang !== null) {
     // /blog/… y /ca/… están por debajo de la raíz: <base> para que las rutas relativas (site/assets/…) sigan valiendo
     $options['base'] = neutron_base_path() . '/';

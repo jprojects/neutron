@@ -33,6 +33,16 @@ function neutron_render_fallback(string $html, array $content, array $options = 
         if (array_key_exists($key, $content) && is_string($content[$key])) $node->attrs['content'] = $content[$key];
     }
 
+    // Enlaces editables, igual que en render_dom.php
+    neutron_fallback_filter($root, function (object $node) use ($content, $options): bool {
+        if (!isset($node->attrs['data-edit-href'])) return true;
+        [$href, $remove, $attrs] = neutron_edit_href($content, $node->attrs['data-edit-href'], $node->attrs['href'] ?? '', !empty($options['editing']));
+        if ($remove) return false;
+        $node->attrs['href'] = $href;
+        foreach ($attrs as $name => $value) $node->attrs[$name] = $value;
+        return true;
+    });
+
     // Colecciones (blog), igual que en render_dom.php
     if (isset($options['posts'])) {
         neutron_fallback_fill_posts($root, $options['posts']);

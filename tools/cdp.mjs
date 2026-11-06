@@ -4,7 +4,7 @@
 //   node tools/cdp.mjs <url inicial> <pasos.mjs> [captura.png]
 //
 // pasos.mjs exporta una lista de [nombre, paso]; el paso es una expresión JS que se evalúa en la página, o una
-// función async ({ go, evalJs, sleep }) => resultado. Se imprime el resultado de cada uno. El perfil y la captura
+// función async ({ go, evalJs, sleep, shot }) => resultado; shot('nombre') guarda una captura en ~/cdp-tmp/nombre.png. Se imprime el resultado de cada uno. El perfil y la captura
 // van en ~/cdp-tmp (Chromium es un snap y no ve /tmp). Pantalla de móvil: CDP_SIZE=390,844 (por defecto, 1280×1600).
 import { spawn } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -39,16 +39,19 @@ await send('Page.enable');
 await send('Runtime.enable');
 if (process.env.CDP_SIZE) {
   const [width, height] = process.env.CDP_SIZE.split(',').map(Number);
-  await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 2, mobile: true });
+  await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 2, mobile: width < 800 });
 }
+const capture = async file => {
+  const r = await send('Page.captureScreenshot', { format: 'png' });
+  writeFileSync(file, Buffer.from(r.result.data, 'base64'));
+  return file;
+};
 await go(url);
 for (const [name, step] of steps) {
-  const out = typeof step === 'string' ? await evalJs(step) : await step({ go, evalJs, sleep, send });
+  const out = typeof step === 'string' ? await evalJs(step)
+    : await step({ go, evalJs, sleep, send, shot: n => capture(home + '/' + n + '.png') });
   console.log(name.padEnd(30), JSON.stringify(out));
 }
-if (shot) {
-  const r = await send('Page.captureScreenshot', { format: 'png' });
-  writeFileSync(shot, Buffer.from(r.result.data, 'base64'));
-}
+if (shot) await capture(shot);
 ws.close();
 chrome.kill();

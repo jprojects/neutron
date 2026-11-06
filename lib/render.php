@@ -3,6 +3,7 @@ if (!defined('NEUTRON_APP')) { http_response_code(403); exit; }
 
 require_once __DIR__ . '/render_dom.php';
 require_once __DIR__ . '/render_fallback.php';
+require_once __DIR__ . '/sanitize.php';
 
 // Niveles de listas dentro de listas (data-edit-collection dentro de un data-edit-item)
 const NEUTRON_MAX_NESTING = 3;
@@ -55,4 +56,17 @@ function neutron_normalize_href(string $href): ?string {
         return 'index.php?page=' . $m[1];
     }
     return $path;
+}
+
+// <a data-edit-href="clave">: la dirección del enlace sale del contenido (o, si no hay clave, de la plantilla). Solo
+// http(s), mailto, tel y enlaces de la web; vacía o no permitida, el enlace no sale. En el editor se deja, marcado,
+// para poder ponerle una dirección, con la guardada en data-edit-href-value (sin el idioma que el render pone delante).
+// Devuelve [href o null, ¿quitar el elemento?, atributos a poner].
+function neutron_edit_href(array $content, string $key, string $templateHref, bool $editing): array {
+    $value = array_key_exists($key, $content) && is_string($content[$key]) ? trim($content[$key]) : $templateHref;
+    $href = neutron_sanitize_href($value);
+    $attrs = $editing ? ['data-edit-href-value' => $href ?? ''] : [];
+    if ($href !== null) return [$href, false, $attrs];
+    if (!$editing) return [null, true, []];
+    return ['#', false, $attrs + ['data-edit-href-empty' => '']];
 }

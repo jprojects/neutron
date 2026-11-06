@@ -2,6 +2,15 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.9.0 — 2026-11-06
+
+- Enlaces editables: `<a data-edit-href="clave">` (redes sociales…). El cliente puede cambiar la dirección o vaciarla,
+  y entonces el enlace no sale en la página; la plantilla puede traer redes sin dirección para añadirlas después. Solo
+  `http(s)`, `mailto:`, `tel:` y enlaces de la web, comprobado al pintar (los dos motores) y en el editor.
+- Editor: «Nueva entrada» y la dirección de los enlaces se piden en una ventana del propio editor, en lugar del
+  `prompt()` del navegador; los errores salen en la misma ventana.
+- `tools/cdp.mjs`: `shot()` para varias capturas en una misma ejecución y `CDP_SIZE` para probar con pantalla de móvil.
+
 ## 1.8.0 — 2026-11-03
 
 - Entradas de una colección: la imagen también se puede traducir (`i18n.<idioma>.image`), para carteles con texto.

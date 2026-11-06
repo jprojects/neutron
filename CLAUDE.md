@@ -36,7 +36,9 @@ actualízalo con cada función nueva.
   `type="text/plain" data-consent="…"`, aviso con `[data-cookie-accept="…"]`, y `[data-cookie-settings]` en el pie.
   Si cambian las categorías, subir `version`. Todo descrito en la política de cookies del sitio. Sin terceros que
   pidan consentimiento, `categories` vacío (no sale faldón) pero `cookies.json` igualmente.
-- Solo texto plano en `data-edit`; no se pueden editar `href`. Las listas se pueden anidar (hasta 3 niveles):
+- Solo texto plano en `data-edit`. Los `href` no se editan, salvo los enlaces con `data-edit-href` (redes sociales:
+  siempre con `data-edit-href="social_<red>"`; las redes que el cliente aún no usa, con `href=""`, para que pueda
+  añadirlas). Las listas se pueden anidar (hasta 3 niveles):
   cartas y menús como secciones con sus platos, no como bloques de texto.
 - Cada web nueva es su propia carpeta `~/Projects/<nombre>`; si ese nombre ya lo usa otro proyecto, `<nombre>-web`.
 - Webs de varias páginas: cabecera, menú y pie en `site/partials/` con `data-include`; claves de cada página con

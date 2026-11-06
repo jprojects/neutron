@@ -128,6 +128,7 @@
         return;
       }
       if (onEditable) { e.preventDefault(); return; }
+      if (a.hasAttribute('data-edit-href')) return; // un clic cambia su dirección (setupHref)
       if (internal && !samePage) { e.preventDefault(); goEditing(url); }
     }, true);
 
@@ -144,6 +145,7 @@
     });
 
     document.querySelectorAll('[data-edit-img]').forEach(makeImageSwappable);
+    document.querySelectorAll('[data-edit-href]').forEach(setupHref);
 
     // Listas: cada campo o sublista pertenece al data-edit-item más cercano, así puede haber
     // listas dentro de listas (secciones de una carta con sus platos).
@@ -364,13 +366,137 @@
       }).catch(function () { statusEl.textContent = 'Error de red'; });
     }
 
+    // Ventana del editor con un campo de texto. onSubmit(valor, fallo): llamar a fallo('mensaje') la deja abierta con el
+    // error; si no, se cierra sola. Esc, Cancelar o un clic fuera la cierran sin hacer nada.
+    function openDialog(opts, onSubmit) {
+      var overlay = document.createElement('div');
+      overlay.className = 'neutron-overlay';
+      overlay.innerHTML =
+        '<form class="neutron-login-box neutron-dialog" novalidate>' +
+          '<h2></h2>' +
+          '<label><span></span><input type="text" name="value" maxlength="' + (opts.maxLength || 500) + '"></label>' +
+          '<p class="neutron-hint"></p>' +
+          '<p class="neutron-error" hidden></p>' +
+          '<div class="neutron-dialog-buttons">' +
+            '<button type="button" class="neutron-secondary" data-dialog="cancel">Cancelar</button>' +
+            '<button type="submit"></button>' +
+          '</div>' +
+        '</form>';
+      var form = overlay.querySelector('form');
+      var input = form.querySelector('input');
+      var errorEl = form.querySelector('.neutron-error');
+      var submit = form.querySelector('[type="submit"]');
+      form.querySelector('h2').textContent = opts.title;
+      form.querySelector('label span').textContent = opts.label;
+      form.querySelector('.neutron-hint').textContent = opts.hint || '';
+      submit.textContent = opts.button || 'Aceptar';
+      input.value = opts.value || '';
+      if (opts.placeholder) input.placeholder = opts.placeholder;
+      document.body.appendChild(overlay);
+      input.focus();
+      input.select();
+
+      function close() {
+        document.removeEventListener('keydown', onKey);
+        overlay.remove();
+      }
+      function onKey(e) { if (e.key === 'Escape') close(); }
+      document.addEventListener('keydown', onKey);
+      overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) close(); });
+      form.querySelector('[data-dialog="cancel"]').addEventListener('click', close);
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var value = input.value.trim();
+        if (opts.required && !value) { input.focus(); return; }
+        submit.disabled = true;
+        errorEl.hidden = true;
+        var finished = false;
+        onSubmit(value, function fail(message) {
+          finished = true;
+          errorEl.textContent = message;
+          errorEl.hidden = false;
+          submit.disabled = false;
+          input.focus();
+        }, function ok() { finished = true; close(); });
+        // Si onSubmit no es asíncrono y no ha fallado, se cierra ya
+        if (!opts.async && !finished) close();
+      });
+    }
+
+    // «Nueva entrada»: ventana con el título (el error, si lo hay, sale en la misma ventana)
     function createPost(collection) {
-      var title = prompt('Título de la nueva entrada');
-      if (!title || !title.trim()) return;
-      postRequest({ action: 'create', collection: collection, title: title.trim() }).then(function (data) {
-        if (!data.ok) { statusEl.textContent = 'Error: ' + (data.error || ''); return; }
-        goEditing(new URL(data.url, document.baseURI));
-      }).catch(function () { statusEl.textContent = 'Error de red'; });
+      openDialog({ title: 'Nueva entrada', label: 'Título', maxLength: 200, required: true, async: true, button: 'Crear',
+        hint: 'Se crea como borrador: después podrás escribirla y publicarla.' }, function (title, fail, ok) {
+        postRequest({ action: 'create', collection: collection, title: title }).then(function (data) {
+          if (!data.ok) throw new Error(data.error || 'No se pudo crear');
+          ok();
+          goEditing(new URL(data.url, document.baseURI));
+        }).catch(function (err) {
+          fail(err && err.message && err.message !== 'Failed to fetch' ? err.message : 'Error de red');
+        });
+      });
+    }
+
+    // Enlaces editables (data-edit-href): la dirección se cambia en una ventana; vacía, el enlace no sale en la web.
+    // Un enlace sin texto editable (un icono) se edita con un clic; uno con texto editable, con el botón 🔗 de al lado.
+    function setupHref(a) {
+      a.classList.add('neutron-href');
+      markHref(a);
+      var hasText = !!a.querySelector('[contenteditable="true"]') || a.getAttribute('contenteditable') === 'true';
+      if (hasText) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'neutron-href-btn';
+        b.textContent = '🔗';
+        b.title = 'Cambiar la dirección del enlace';
+        b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); editHref(a); });
+        a.insertAdjacentElement('afterend', b);
+      } else {
+        a.addEventListener('click', function (e) {
+          if (e.ctrlKey || e.metaKey) return;
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          editHref(a);
+        });
+      }
+    }
+
+    function markHref(a) {
+      var empty = (a.getAttribute('data-edit-href-value') || '') === '';
+      a.classList.toggle('neutron-href-empty', empty);
+      a.title = empty ? 'Sin enlace: no se ve en la web. Haz clic para ponerle una dirección.'
+        : 'Enlace: ' + a.getAttribute('data-edit-href-value') + ' (clic para cambiarlo)';
+    }
+
+    function editHref(a) {
+      var name = a.getAttribute('aria-label') || a.textContent.trim() || 'Enlace';
+      openDialog({ title: 'Enlace: ' + name, label: 'Dirección', value: a.getAttribute('data-edit-href-value') || '',
+        placeholder: 'https://…', button: 'Aceptar',
+        hint: 'Una dirección completa (https://…), un correo (mailto:…), un teléfono (tel:…) o una página de la web. Déjala vacía para que el enlace no se vea en la web.'
+      }, function (value, fail) {
+        if (value !== '' && !hrefAllowed(value)) {
+          fail('Dirección no válida: empieza por https://, mailto: o tel:, o es una página de la web.');
+          return;
+        }
+        if (/^www\./i.test(value)) value = 'https://' + value;
+        var key = a.getAttribute('data-edit-href');
+        document.querySelectorAll('[data-edit-href]').forEach(function (other) {
+          if (other.getAttribute('data-edit-href') !== key) return;
+          other.setAttribute('data-edit-href-value', value);
+          if (value) other.setAttribute('href', value); else other.setAttribute('href', '#');
+          markHref(other);
+        });
+        markDirty();
+      });
+    }
+
+    // Igual que neutron_sanitize_href() en lib/sanitize.php
+    function hrefAllowed(href) {
+      var probe = href.replace(/[\x00-\x20]+/g, '');
+      if (probe.indexOf('//') === 0) return false;
+      var m = /^([a-z][a-z0-9+.-]*):/i.exec(probe);
+      return !m || ['http', 'https', 'mailto', 'tel'].indexOf(m[1].toLowerCase()) !== -1;
     }
 
     // Texto con formato: barra con los formatos que admite el servidor (lib/sanitize.php)
@@ -520,6 +646,11 @@
       var fields = {};
       document.querySelectorAll('[data-edit]').forEach(function (el) {
         fields[el.getAttribute('data-edit')] = el.textContent.trim();
+      });
+
+      // Direcciones de los enlaces editables (vacía = el enlace no sale)
+      document.querySelectorAll('[data-edit-href]').forEach(function (el) {
+        fields[el.getAttribute('data-edit-href')] = el.getAttribute('data-edit-href-value') || '';
       });
 
       // Las imágenes van aparte: en una web de varios idiomas son comunes a todos
