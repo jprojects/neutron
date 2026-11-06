@@ -365,6 +365,14 @@ En las webs de varios idiomas, otro selector **Idioma** abre la misma página en
 La sesión solo arranca con `?admin`: los visitantes no reciben la cookie `neutron_admin_sid`.
 5 intentos fallidos por IP bloquean 15 minutos. Imágenes JPG, PNG, GIF o WebP de hasta 5 MB (SVG no, por XSS).
 
+**Imágenes optimizadas al subirlas**: el editor reduce la imagen en el navegador a 2000 px de lado como mucho y la pasa
+a WebP (calidad 82; JPG, o PNG si tiene transparencia, en los navegadores que no saben hacer WebP), con la orientación
+de la foto ya aplicada y sin los datos EXIF (ubicación incluida). Una foto del móvil de 3–8 MB queda en unos 200–500 KB,
+así que el cliente la puede subir tal cual, aunque el hosting limite las subidas a 2 MB (`upload_max_filesize`). Los GIF
+se suben sin tocar (pueden ser animados). Si llega una imagen grande sin pasar por ahí (un navegador antiguo),
+`admin/upload.php` hace lo mismo con GD, si hay memoria; si no, la guarda tal cual. El lado máximo es
+`NEUTRON_UPLOAD_MAX_SIDE` en `admin/upload.php` y `MAX_SIDE` en `assets/editor.js`.
+
 ## Configuración
 
 `config.php` tiene los valores por defecto comentados; `config.local.php` devuelve solo lo que cambia:

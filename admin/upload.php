@@ -4,6 +4,9 @@ define('NEUTRON_APP', true);
 require_once __DIR__ . '/../lib/bootstrap.php';
 require_once __DIR__ . '/../lib/auth.php';
 
+// Lado máximo de las imágenes subidas (el mismo que MAX_SIDE en assets/editor.js)
+const NEUTRON_UPLOAD_MAX_SIDE = 2000;
+
 neutron_block_if_maintenance(true);
 neutron_start_session();
 header('Content-Type: application/json');
@@ -61,5 +64,75 @@ if (!move_uploaded_file($file['tmp_name'], $dest)) {
     exit;
 }
 
-neutron_log('info', 'Imagen subida: {name}', ['name' => $name, 'bytes' => $file['size']]);
+// Red de seguridad: el editor ya reduce y pasa a WebP antes de subir; si llega una grande (navegador antiguo), se hace aquí
+$optimized = neutron_upload_optimize($dest, $mime);
+if ($optimized !== null) {
+    @unlink($dest);
+    $dest = $optimized;
+    $name = basename($optimized);
+}
+
+neutron_log('info', 'Imagen subida: {name}', ['name' => $name, 'bytes' => filesize($dest), 'original' => $file['size']]);
 echo json_encode(['ok' => true, 'url' => 'site/uploads/' . $name]);
+
+/**
+ * Reduce a NEUTRON_UPLOAD_MAX_SIDE px de lado y guarda en WebP (o JPG sin soporte WebP) una imagen grande.
+ * Devuelve la ruta nueva, o null si no hace falta o no se puede (sin GD, sin memoria, GIF, orientación EXIF sin ext-exif).
+ */
+function neutron_upload_optimize(string $path, string $mime): ?string {
+    if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true) || !extension_loaded('gd')) return null;
+    $info = @getimagesize($path);
+    if (!$info) return null;
+    [$w, $h] = $info;
+    $max = NEUTRON_UPLOAD_MAX_SIDE;
+    if (max($w, $h) <= $max && filesize($path) <= 1024 * 1024) return null;
+
+    // Memoria: la imagen descomprimida (4 bytes por píxel) más la reducida, con margen
+    $limit = neutron_upload_bytes((string)ini_get('memory_limit'));
+    if ($limit > 0 && ($w * $h * 4 * 1.8) + memory_get_usage() > $limit) return null;
+
+    $orientation = 1;
+    if ($mime === 'image/jpeg') {
+        $exif = function_exists('exif_read_data') ? @exif_read_data($path) : false;
+        $orientation = (int)($exif['Orientation'] ?? 1);
+        // Sin ext-exif no se sabe si la foto va girada: mejor dejarla como está (el navegador la gira bien)
+        if (!function_exists('exif_read_data') && neutron_upload_has_exif($path)) return null;
+    }
+    $src = match ($mime) {
+        'image/jpeg' => @imagecreatefromjpeg($path),
+        'image/png' => @imagecreatefrompng($path),
+        'image/webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
+    };
+    if (!$src) return null;
+    $rot = [3 => 180, 6 => -90, 8 => 90][$orientation] ?? 0;
+    if ($rot) { $r = imagerotate($src, $rot, 0); imagedestroy($src); $src = $r; [$w, $h] = [imagesx($src), imagesy($src)]; }
+
+    $scale = min(1, $max / max($w, $h));
+    $nw = max(1, (int)round($w * $scale));
+    $nh = max(1, (int)round($h * $scale));
+    $dst = imagecreatetruecolor($nw, $nh);
+    imagealphablending($dst, false);
+    imagesavealpha($dst, true);
+    imagecopyresampled($dst, $src, 0, 0, 0, 0, $nw, $nh, $w, $h);
+    imagedestroy($src);
+
+    $webp = function_exists('imagewebp');
+    $out = dirname($path) . '/' . bin2hex(random_bytes(10)) . ($webp ? '.webp' : '.jpg');
+    $ok = $webp ? imagewebp($dst, $out, 82) : imagejpeg($dst, $out, 85);
+    imagedestroy($dst);
+    if (!$ok || !is_file($out) || filesize($out) >= filesize($path)) { @unlink($out); return null; }
+    return $out;
+}
+
+function neutron_upload_bytes(string $v): int {
+    $v = trim($v);
+    if ($v === '' || $v === '-1') return -1;
+    $n = (int)$v;
+    return match (strtolower(substr($v, -1))) { 'g' => $n << 30, 'm' => $n << 20, 'k' => $n << 10, default => $n };
+}
+
+// ¿Lleva el JPEG un bloque EXIF (APP1 «Exif»)? Basta mirar el principio del fichero
+function neutron_upload_has_exif(string $path): bool {
+    $head = (string)@file_get_contents($path, false, null, 0, 65536);
+    return str_contains($head, "Exif\0\0");
+}

@@ -2,6 +2,15 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.10.0 — 2026-11-06
+
+- Imágenes optimizadas al subirlas desde el editor: se reducen a 2000 px de lado como mucho y se pasan a WebP en el
+  navegador (JPG o PNG si no sabe hacer WebP), con la orientación de la foto aplicada y sin datos EXIF. Las fotos del
+  móvil se pueden subir tal cual (de 3–8 MB a unos 200–500 KB), aunque el hosting limite las subidas a 2 MB. Los GIF no se
+  tocan. Si llega una imagen grande sin optimizar, `admin/upload.php` la reduce con GD.
+- Guía de edición para los clientes: `docs/guia-edicio/generar.py` la hace con capturas de la web de cada cliente y solo
+  con los apartados que tiene; se guarda en la carpeta de la web.
+
 ## 1.9.1 — 2026-11-06
 
 - Corregido: en una web de varios idiomas, guardar desde un idioma que no es el principal copiaba a ese idioma las

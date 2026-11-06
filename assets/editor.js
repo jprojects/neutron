@@ -619,7 +619,45 @@
       });
     }
 
+    // Antes de subirla, la imagen se reduce (como mucho MAX_SIDE px de lado) y se pasa a WebP en el propio navegador:
+    // una foto del móvil de 5 MB queda en unos 300 KB, se sube antes y pierde los datos EXIF (ubicación incluida).
+    // Si el navegador no sabe hacer WebP, JPG (o PNG si tiene transparencia). Los GIF se suben tal cual (pueden ser animados).
+    var MAX_SIDE = 2000;
+    var QUALITY = 0.82;
+
+    function optimizeImage(file) {
+      if (!/^image\/(jpeg|png|webp)$/.test(file.type) || !window.createImageBitmap) return Promise.resolve(file);
+      return createImageBitmap(file, { imageOrientation: 'from-image' }).then(function (bmp) {
+        var scale = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(bmp.width * scale);
+        canvas.height = Math.round(bmp.height * scale);
+        var ctx = canvas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+        if (bmp.close) bmp.close();
+        return toBlob(canvas, 'image/webp', QUALITY).then(function (blob) {
+          if (blob && blob.type === 'image/webp') return blob;
+          return toBlob(canvas, file.type === 'image/png' ? 'image/png' : 'image/jpeg', QUALITY);
+        }).then(function (blob) {
+          // Si no gana nada (una imagen pequeña ya optimizada), se sube la original
+          if (!blob || (scale === 1 && blob.size >= file.size)) return file;
+          var ext = { 'image/webp': 'webp', 'image/jpeg': 'jpg', 'image/png': 'png' }[blob.type] || 'img';
+          return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.' + ext, { type: blob.type });
+        });
+      }).catch(function () { return file; }); // formato que el navegador no sabe leer: que decida el servidor
+    }
+
+    function toBlob(canvas, type, quality) {
+      return new Promise(function (resolve) { canvas.toBlob(resolve, type, quality); });
+    }
+
     function upload(file, done) {
+      statusEl.textContent = 'Preparando imagen...';
+      optimizeImage(file).then(function (ready) { send(ready, done); });
+    }
+
+    function send(file, done) {
       var fd = new FormData();
       fd.append('image', file);
       statusEl.textContent = 'Subiendo imagen...';
