@@ -44,7 +44,7 @@ actualízalo con cada función nueva.
   `~/Projects/neutron-<cliente>` y apunta la contraseña), `tools/migrate.py URL <carpeta>` (contenido, imágenes,
   favicon, datos legales, redirecciones e informe en `_migracio/`; leer el informe antes de diseñar),
   `tools/compose.py <carpeta>` con los bloques de `blocks/` (receta en `site/compose.json`; el diseño propio en
-  `site/assets/custom.css`), `tools/legal.py <carpeta>` (las legales con Pulsar), y al terminar
+  `site/assets/custom.css`), `tools/legal.py <carpeta> --nif …` (las legales con Pulsar; los datos fiscales, de Asteroid), y al terminar
   `tools/check.py <carpeta> --guia` hasta que no quede ningún ✗. Si una herramienta falla o se queda corta con una web,
   se mejora la herramienta (en vez de hacerlo a mano), para la próxima.
 - Webs de varias páginas: cabecera, menú y pie en `site/partials/` con `data-include`; claves de cada página con

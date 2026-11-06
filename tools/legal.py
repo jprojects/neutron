@@ -9,9 +9,12 @@
 # - Datos del titular: site/legal.json (no se sirve: el .htaccess bloquea site/*.json). Si no existe, se crea con lo que
 #   ya se sabe (nombre comercial, dirección, correo, teléfono) y lo que falta queda como «[PENDENT: …]», que
 #   tools/check.py no deja entregar. Al tener los datos: rellenar legal.json y volver a lanzar.
+# - Asteroid (el hosting bloquea el User-Agent de urllib: va con uno propio): con el NIF (--nif, o el de legal.json o la migración) busca el cliente en Asteroid (API, con el token del
+#   MCP: ASTEROID_TOKEN o ~/.config/asteroid-mcp/token) y coge el nombre fiscal, el domicilio fiscal, el teléfono y el
+#   correo. Al crear legal.json manda Asteroid; después solo rellena lo que falte. --sin-asteroid para no consultarlo.
 # Las páginas son site/pages/{avis-legal,politica-de-privacitat,politica-de-cookies}.html con un campo data-edit-html por
 # idioma (legal_*_html en content.<idioma>.json). Un texto que se ha editado a mano no se vuelve a escribir (salvo --force).
-import argparse, hashlib, html, json, re, subprocess, sys, tempfile
+import argparse, hashlib, html, json, os, re, subprocess, sys, tempfile, urllib.parse, urllib.request
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -67,6 +70,8 @@ ap.add_argument('web', help='carpeta de la instalación')
 ap.add_argument('--pulsar', default=str(Path.home() / 'Projects' / 'pulsar'), help='carpeta de Pulsar (por defecto ~/Projects/pulsar)')
 ap.add_argument('--url', help='dirección pública de la web (si no está en legal.json)')
 ap.add_argument('--force', action='store_true', help='reescribir también los textos editados a mano')
+ap.add_argument('--nif', help='NIF del titular (para buscarlo en Asteroid)')
+ap.add_argument('--sin-asteroid', action='store_true', help='no consultar Asteroid')
 a = ap.parse_args()
 web = Path(a.web).expanduser().resolve()
 site = web / 'site'
@@ -85,8 +90,38 @@ content = {l: load(cfile(l)) for l in langs}
 recipe = load(site / 'compose.json')
 
 # ---------------------------------------------------------------- datos del titular
+def asteroid(nif, name):
+    """Cliente de Asteroid por NIF (o por nombre, si sale uno solo): {name, nif, address, phone, email} o None."""
+    if not nif and not name: print('Asteroid: sin NIF ni nombre comercial que buscar (usa --nif).'); return None
+    base = os.environ.get('ASTEROID_URL', 'https://sat.aficat.com').rstrip('/')
+    token = os.environ.get('ASTEROID_TOKEN', '')
+    tf = Path(os.environ.get('ASTEROID_TOKEN_FILE', Path.home() / '.config' / 'asteroid-mcp' / 'token'))
+    if not token and tf.is_file(): token = tf.read_text().strip()
+    if not token: print('Asteroid: sin token (ASTEROID_TOKEN o ~/.config/asteroid-mcp/token); no se consulta.'); return None
+    norm = lambda v: re.sub(r'[\s.-]', '', str(v or '')).upper()
+    for q, exact in ([(nif, True)] if nif else []) + ([(name, False)] if name else []):
+        url = f"{base}/index.php?r=api&p={urllib.parse.quote('v1/clients')}&" + urllib.parse.urlencode({'q': q, 'fields': 'all', 'per_page': 20})
+        try:
+            req = urllib.request.Request(url, headers={'Authorization': f'Bearer {token}', 'Accept': 'application/json', 'User-Agent': 'Neutron-legal/1.0'})
+            rows = json.load(urllib.request.urlopen(req, timeout=15)).get('data', [])
+        except Exception as e:
+            print(f'Asteroid: no responde ({e}); no se consulta.'); return None
+        rows = [r for r in rows if norm(r.get('nif')) == norm(nif)] if exact else rows
+        if len(rows) == 1:
+            r = rows[0]
+            place = ' '.join(x for x in (r.get('postal_code'), r.get('city')) if x)
+            if r.get('province') and r.get('province') != r.get('city'): place += f" ({r['province']})"
+            address = ', '.join(x for x in (r.get('address'), place.strip()) if x)
+            print(f"Asteroid: cliente {r.get('id')} «{r.get('name')}» ({'NIF' if exact else 'por nombre: compruébalo'}).")
+            return {'name': r.get('legal_name') or r.get('name') or '', 'nif': r.get('nif') or '', 'address': address,
+                    'phone': r.get('phone') or '', 'email': r.get('email') or '', 'asteroid_client': r.get('id')}
+        if len(rows) > 1: print(f'Asteroid: {len(rows)} clientes para «{q}»; no se elige ninguno (usa --nif).')
+    if nif or name: print('Asteroid: no encuentro el cliente.')
+    return None
+
 lf = site / 'legal.json'
 data = load(lf)
+fresh = not data
 if not data:
     c = content[main]
     data = {'owner_type': 'empresa', 'name': '', 'trade_name': c.get('site_name') or recipe.get('name', ''), 'nif': '',
@@ -96,7 +131,15 @@ if not data:
     if mig.exists():
         for k, v in load(mig).items():
             if v and not data.get(k): data[k] = v
-    lf.write_text(json.dumps(data, ensure_ascii=False, indent=4) + '\n')
+if a.nif and not data.get('nif'): data['nif'] = a.nif.strip().upper()
+if not a.sin_asteroid and (fresh or any(not data.get(k) for k in ('name', 'nif', 'address'))):
+    ast = asteroid(data.get('nif'), None if data.get('nif') else data.get('trade_name'))
+    if ast:
+        for k, v in ast.items():
+            # al crear legal.json, los datos fiscales de Asteroid mandan sobre lo que sale de la web; después, solo lo vacío
+            if v and (not data.get(k) or (fresh and k in ('name', 'nif', 'address', 'asteroid_client'))): data[k] = v
+lf.write_text(json.dumps(data, ensure_ascii=False, indent=4) + '\n')
+if fresh:
     print(f'Creado {lf.relative_to(web)}: revisa los datos del titular.')
 if a.url and not data.get('website'):
     data['website'] = a.url; lf.write_text(json.dumps(data, ensure_ascii=False, indent=4) + '\n')
@@ -123,7 +166,7 @@ runner.close()
 
 def pulsar_texts(l):
     pend = lambda k: data.get(k) or PENDING.get(l, PENDING['en']).format(FIELD[k].get(l, FIELD[k]['en']))
-    inp = {**data, 'lang': l if l in ('ca', 'es', 'en', 'fr') else 'en', 'jurisdiction': 'es', 'cmp': 'otro',
+    inp = {**data, 'lang': l if l in ('ca', 'es', 'en', 'fr') else 'en', 'jurisdiction': 'es', 'cmp': 'neutron',
            'name': pend('name'), 'nif': pend('nif'), 'address': pend('address'), 'website': data.get('website') or pend('website'),
            'email': data.get('email') or 'info@example.com', 'purposes': purposes, 'cookies': cookies,
            'custom_cookies': ADMIN_COOKIE.get(l, ADMIN_COOKIE['en'])}
@@ -131,7 +174,7 @@ def pulsar_texts(l):
     if r.returncode or not r.stdout.startswith('{'):
         sys.exit(f'Pulsar ha fallado ({l}): {r.stderr or r.stdout[:500]}')
     out = json.loads(r.stdout)
-    # La cookie de consentimiento de Neutron (mientras Pulsar no conozca Neutron como gestor de consentimiento)
+    # Con un Pulsar anterior a «neutron» en CMPS sale el nombre genérico: la cookie de consentimiento es la de Neutron
     out['cookies'] = out['cookies'].replace('<code>cookie_consent</code>', '<code>neutron_consent</code>')
     # Los enlaces entre las dos políticas, con los nombres de página de Neutron (Pulsar usa los suyos)
     files = {'privacy': 'politica-de-privacitat.html', 'cookies': 'politica-de-cookies.html'}
