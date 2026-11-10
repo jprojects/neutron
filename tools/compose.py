@@ -87,6 +87,7 @@ def load_block(name):
     meta['html'] = (d / 'block.html').read_text()
     meta['css'] = (d / 'block.css').read_text() if (d / 'block.css').exists() else ''
     meta['js'] = (d / 'block.js').read_text() if (d / 'block.js').exists() else ''
+    meta['item'] = (d / 'item.html').read_text() if (d / 'item.html').exists() else ''
     return meta
 
 # ---------------------------------------------------------------- contenido existente
@@ -105,9 +106,19 @@ def put(l, key, value, image=False):
 
 # ---------------------------------------------------------------- páginas y enlaces
 pages = recipe['pages']
+# Colecciones de los bloques (documentos, álbumes, vídeos, noticias): nombre en el idioma principal o el de la receta
+def collection_of(spec):
+    if isinstance(spec, str): spec = {'block': spec}
+    c = load_block(spec['block']).get('collection')
+    return (spec.get('collection') or c['names'].get(main) or c['names']['en'], c) if c else (None, None)
 for p in pages:
     p['slug'] = 'home' if p['file'] == 'template' else re.sub(r'[^a-z0-9]+', '_', p['file'])
     p['href'] = './' if p['file'] == 'template' else p['file'] + '.html'
+    # La página con el listado de una colección con página propia (noticias) se abre en /<colección>/
+    for spec in p['blocks']:
+        name, c = collection_of(spec)
+        if c and c.get('item_page') and name == p['file']: p['href'] = p['file'] + '/'
+collections_out = {}
 cta_page = next((p for p in pages if p['file'] == recipe.get('cta')), None) or \
            next((p for p in pages if any((b if isinstance(b, str) else b['block']) in ('contact', 'form') for b in p['blocks'])), None)
 cta_href = cta_page['href'] if cta_page else './'
@@ -182,6 +193,10 @@ def render_block(spec, page, n):
     h = b['html']
     for v in b.get('variants', []):
         h = re.sub(rf'<!--variant:{v}-->(.*?)<!--/variant:{v}-->\n?', (lambda m: m.group(1)) if v == variant else '', h, flags=re.S)
+    col_name, col_def = collection_of(spec)
+    if col_def:
+        collections_out[col_name] = (col_def, b)
+        h = h.replace('{collection}', col_name)
     h = h.replace('{variant}', variant).replace('{p}', prefix)
     specials = {'nav': lambda: nav_html(), 'nav_plain': lambda: nav_html(False), 'langs': langs_html, 'social': social_html,
                 'cta_href': lambda: cta_href, 'privacy_href': lambda: 'politica-de-privacitat.html', 'legal_links': lambda: '{{#legal_links}}',
@@ -273,6 +288,36 @@ if recipe.get('legal'):
   <p data-edit="{file.replace('-', '_')}_pending">[PENDENT: text legal (tools/legal.py)]</p>
 </div></section>''', f'{key}_seo', f'{key}_seo'))
         for l in langs: put(l, f'{key}_seo', f"{content[l].get(key) or content[main].get(key, '')} · {site_name}")
+
+# Definición de cada colección (en el idioma principal) y, si tiene página propia, la página de cada elemento
+pick = lambda v: v.get(main) or v.get('en') or next(iter(v.values()), '') if isinstance(v, dict) else (v or '')
+for col_name, (c, b) in collections_out.items():
+    schema = {'label': pick(c.get('label', {})), 'item': pick(c.get('item', {})), 'help': pick(c.get('help', {})), 'sort': c.get('sort', '-date'),
+              'fields': [{'name': n, 'type': t, 'label': pick(lab)} for n, t, lab in c['fields']], 'translated': c.get('translated', ['title'])}
+    write(f'{col_name}/_collection.json', json.dumps(schema, ensure_ascii=False, indent=2) + '\n')
+    if c.get('item_page') and b.get('item'):
+        for l in langs:
+            for k, v in (b['content'].get(l) or b['content'].get(main) or {}).items():
+                if k.startswith('@'): put(l, k[1:], v)
+        body = re.sub(r'\{\{@(\w+)\}\}', lambda m: esc(content[main].get(m.group(1), '')), b['item'].replace('{collection}', col_name))
+        write(f'{col_name}/_item.html', f'''<!DOCTYPE html>
+<html lang="{main}">
+<head>
+<template data-include="head"></template>
+<title data-post="title">{esc(schema['item'])} · {esc(site_name)}</title>
+</head>
+<body>
+
+<div data-include="header"></div>
+
+<main>
+{body}</main>
+
+<div data-include="footer"></div>
+<script src="site/assets/site.js" defer></script>
+</body>
+</html>
+''')
 
 write('partials/header.html', header_html + '\n')
 write('partials/footer.html', footer_html + '\n')

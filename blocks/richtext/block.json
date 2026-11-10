@@ -1,0 +1,8 @@
+{
+  "name": "richtext",
+  "description": "Texto largo con formato (títulos, listas, enlaces, imágenes, tablas), editable con la barra de formato: páginas de texto, historia, estatutos…",
+  "variants": [
+    "narrow",
+    "wide"
+  ]
+}

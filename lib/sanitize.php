@@ -89,7 +89,8 @@ function neutron_sanitize_children(array $children): array {
 // Enlace permitido o null. Se quitan espacios y caracteres de control antes de mirar el esquema
 // ("java\tscript:" sigue siendo javascript:).
 function neutron_sanitize_href(string $href): ?string {
-    $href = trim($href);
+    // Espacios codificados (%20): DOMDocument los codifica al escribir el href y el motor sin DOM no; así coinciden
+    $href = str_replace(' ', '%20', trim($href));
     $probe = preg_replace('/[\x00-\x20]+/', '', $href);
     if ($href === '' || str_starts_with($probe, '//')) return null;
     if (preg_match('~^([a-z][a-z0-9+.-]*):~i', $probe, $m)) {

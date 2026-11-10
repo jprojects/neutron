@@ -503,7 +503,8 @@ def is_post(p):
     if re.search(r'view=article&id=\d+:[^&]+&catid=', urllib.parse.urlsplit(p['final']).query): return True   # Joomla
     return bool(re.search(rf'/{BLOGWORDS}/[^/]+', path, re.I) or re.search(r'/\d{4}/\d{2}/', path) or
                 (p['date'] and next(iter(p['tree'].find_all('article')), None) is not None))
-posts = [p for p in pages.values() if is_post(p)]
+# Las páginas legales de un Joomla son artículos, pero no entradas del blog
+posts = [p for p in pages.values() if is_post(p) and not re.search(r'legal|privac|cookies|aviso|avís|mentions', p['url'] + ' ' + p['title'], re.I)]
 # Las páginas del menú (de cualquier idioma) no son entradas
 menu_urls = set()
 for p in pages.values():
@@ -563,6 +564,13 @@ for old in list(redir):
     if m and by_id.get(m.group(2)): redir[old] = by_id[m.group(2)]
 (out / 'redirects.json').write_text(json.dumps(redir, ensure_ascii=False, indent=4) + '\n')
 
+# Colecciones: noticias, documentos, galería y vídeos (tools/migrate_collections.py)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import migrate_collections
+cols = migrate_collections.run({'pages': pages, 'posts': posts, 'main_lang': main_lang, 'inst': inst, 'fetch': fetch, 'slugify': slugify,
+                                'clean_text': clean_text, 'save_image': save_image, 'sin_imagenes': a.sin_imagenes,
+                                'main_container': main_container})
+
 # contenido.json y páginas originales
 pages_out = []
 for i, p in enumerate(sorted(pages.values(), key=lambda p: (p['lang'], len(p['url']), p['url']))):
@@ -570,7 +578,10 @@ for i, p in enumerate(sorted(pages.values(), key=lambda p: (p['lang'], len(p['ur
     (out / 'paginas' / fn).write_text(p['html'])
     pages_out.append({'url': p['url'], 'final': p['final'], 'alias': p.get('alias', []), 'lang': p['lang'], 'title': p['title'],
                       'description': p['description'], 'date': p['date'], 'post': p in posts, 'imagen_og': p.get('og_local'),
-                      'html': 'paginas/' + fn, 'blocks': p['blocks']})
+                      'html': 'paginas/' + fn, 'blocks': p['blocks'],
+                      # El cuerpo limpio (para un bloque richtext): sin el h1, con las imágenes ya descargadas
+                      'body_html': migrate_collections.clean_body(mc := main_container(p['tree']), p['final'], save_image,
+                                                                  skip={next(iter(mc.find_all('h1')), None)})})
 (out / 'contenido.json').write_text(json.dumps(pages_out, ensure_ascii=False, indent=1) + '\n')
 (out / 'comun.json').write_text(json.dumps(common, ensure_ascii=False, indent=1) + '\n')
 
@@ -615,6 +626,17 @@ w(f"- Favicon: {'`site/favicon.ico` y `site/apple-touch-icon.png` desde `' + fav
 w(f'\n## Blog ({len(posts)} entradas)\n')
 for p in sorted(posts, key=lambda p: p['date'], reverse=True)[:40]: w(f"- {p['date'] or 'sin fecha'} · [{p['lang']}] {p['title'][:70]} · `/{rel(p['url'])}`")
 if not posts: w('- No se han detectado entradas.')
+w('\n## Colecciones (→ `site/<colección>/`, con los bloques `news`, `documents`, `albums` y `videos` de compose.py)\n')
+cr, cn = cols['report'], cols['names']
+if 'news' in cr: w(f"- **Noticias**: {cr['news']['count']} en `site/{cn['news']}/` (cuerpo, fecha y resumen; revisar el formato)")
+if 'docs' in cr: w(f"- **Documentos**: {cr['docs']['count']} en `site/{cn['docs']}/`, ficheros en `site/uploads/docs/`"
+                   + (f"; categorías: {', '.join(cr['docs']['categories'])}" if cr['docs']['categories'] else '')
+                   + (f"; {cr['docs']['downloads']} descargas de la web antigua en `data/downloads.json`" if cr['docs']['downloads'] else ''))
+if 'gallery' in cr: w(f"- **Galería**: {cr['gallery']['albums']} álbumes con {cr['gallery']['images']} fotos en `site/{cn['gallery']}/`")
+if 'videos' in cr: w(f"- **Vídeos**: {cr['videos']['count']} en `site/{cn['videos']}/` (YouTube o Vimeo, con consentimiento)")
+if 'own_videos' in cr: w('- **Vídeos propios** (en el hosting): ' + ', '.join(f'`{v}`' for v in cr['own_videos'][:5])
+                        + ' → subirlos a YouTube o Vimeo y añadirlos en el panel (en el hosting pesan y no se ven bien en el móvil)')
+if not cr: w('- Ninguna.')
 w('\n## Imágenes\n')
 if img_report:
     before, after = sum(r[2] for r in img_report), sum(r[3] for r in img_report)

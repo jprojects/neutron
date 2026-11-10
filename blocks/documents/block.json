@@ -1,0 +1,82 @@
+{
+  "name": "documents",
+  "description": "Documentos para descargar (colección con su gestor en el panel): por categorías (grouped) o en una lista (list), con tipo, peso, fecha y descargas",
+  "variants": [
+    "grouped",
+    "list"
+  ],
+  "collection": {
+    "names": {
+      "ca": "documentacio",
+      "es": "documentacion",
+      "en": "documents"
+    },
+    "label": {
+      "ca": "Documentació",
+      "es": "Documentación",
+      "en": "Documents"
+    },
+    "item": {
+      "ca": "Document",
+      "es": "Documento",
+      "en": "Document"
+    },
+    "help": {
+      "ca": "Documents per descarregar. Les categories es gestionen a «Categorías…».",
+      "es": "Documentos para descargar. Las categorías se gestionan en «Categorías…».",
+      "en": "Downloadable documents. Categories are managed in «Categorías…»."
+    },
+    "sort": "-date",
+    "fields": [
+      [
+        "title",
+        "text",
+        {
+          "ca": "Títol",
+          "es": "Título",
+          "en": "Title"
+        }
+      ],
+      [
+        "category",
+        "category",
+        {
+          "ca": "Categoria",
+          "es": "Categoría",
+          "en": "Category"
+        }
+      ],
+      [
+        "date",
+        "date",
+        {
+          "ca": "Publicat",
+          "es": "Publicado",
+          "en": "Published"
+        }
+      ],
+      [
+        "file",
+        "file",
+        {
+          "ca": "Fitxer",
+          "es": "Fichero",
+          "en": "File"
+        }
+      ],
+      [
+        "summary",
+        "textarea",
+        {
+          "ca": "Descripció",
+          "es": "Descripción",
+          "en": "Description"
+        }
+      ]
+    ],
+    "translated": [
+      "title",
+      "summary"
+    ]
+  }
+}

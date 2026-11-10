@@ -1,0 +1,9 @@
+{
+  "eyebrow": "News",
+  "title": "News",
+  "empty": "No news yet.",
+  "prev": "← Newer",
+  "next": "Older →",
+  "all": "All news",
+  "@news_back": "← All news"
+}

@@ -1,0 +1,20 @@
+<section class="section b-videos">
+  <div class="container">
+    <header class="section-head">
+      <span class="eyebrow" data-edit="{p}_eyebrow">{{eyebrow}}</span>
+      <h2 data-edit="{p}_title">{{title}}</h2>
+    </header>
+    <div class="b-videos__list" data-posts="{collection}">
+      <article class="b-videos__item" data-post-item>
+        <div class="b-videos__frame">
+          <img class="b-videos__thumb" data-post-src="video.thumb" src="" alt="" loading="lazy">
+          <iframe data-consent="videos" data-consent-src="" data-post-src="video" title="Vídeo" loading="lazy" allow="fullscreen; picture-in-picture" allowfullscreen></iframe>
+          <div class="b-videos__consent"><p data-edit="videos_consent">{{@videos_consent}}</p>
+            <button class="btn btn--light" type="button" data-cookie-accept="videos" data-edit="videos_accept">{{@videos_accept}}</button></div>
+        </div>
+        <h3 data-post="title">Vídeo</h3>
+      </article>
+    </div>
+    <p data-posts-empty="{collection}" data-edit="{p}_empty">{{empty}}</p>
+  </div>
+</section>

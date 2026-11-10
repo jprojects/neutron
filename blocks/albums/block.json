@@ -1,0 +1,53 @@
+{
+  "name": "albums",
+  "description": "Galería por álbumes (colección con su gestor en el panel: subir muchas fotos a la vez), con visor de fotos",
+  "variants": [
+    "albums"
+  ],
+  "collection": {
+    "names": {
+      "ca": "galeria",
+      "es": "galeria",
+      "en": "gallery"
+    },
+    "label": {
+      "ca": "Galeria",
+      "es": "Galería",
+      "en": "Gallery"
+    },
+    "item": {
+      "ca": "Àlbum",
+      "es": "Álbum",
+      "en": "Album"
+    },
+    "help": {
+      "ca": "Cada àlbum (un any, un acte) amb les seves fotos.",
+      "es": "Cada álbum (un año, un acto) con sus fotos.",
+      "en": "Each album (a year, an event) with its photos."
+    },
+    "sort": "-title",
+    "fields": [
+      [
+        "title",
+        "text",
+        {
+          "ca": "Títol de l'àlbum",
+          "es": "Título del álbum",
+          "en": "Album title"
+        }
+      ],
+      [
+        "images",
+        "images",
+        {
+          "ca": "Fotos",
+          "es": "Fotos",
+          "en": "Photos"
+        }
+      ]
+    ],
+    "translated": [
+      "title"
+    ]
+  }
+}

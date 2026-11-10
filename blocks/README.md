@@ -40,7 +40,8 @@ plantilla generada se ha tocado a mano, no la vuelve a escribir (salvo `--force`
 | `content.ca.json`, `.es`, `.en` | Textos por defecto. `clave` → `{p}_clave`; `@clave` → `clave` (global: teléfono, correo, menú…). |
 | `block.css` | Estilos, **solo con variables del tema** (`var(--c-primary)`…), con la clase `.b-<nombre>` delante. |
 | `block.js` | Opcional. Se junta en `site/assets/site.js`. |
-| `block.json` | `name`, `description`, `variants` (la primera es la de por defecto), `images` (claves que son imágenes: van a `content.json`, comunes a los idiomas), `cookies` (categorías que necesita: `maps`, `videos`…), `form` (si lleva el formulario). |
+| `block.json` | `name`, `description`, `variants` (la primera es la de por defecto), `images` (claves que son imágenes: van a `content.json`, comunes a los idiomas), `cookies` (categorías que necesita: `maps`, `videos`…), `form` (si lleva el formulario)., `collection` (ver abajo). |
+| `item.html` | Opcional, con `collection.item_page`: el cuerpo de la página de cada elemento (`site/<colección>/_item.html`). |
 
 Marcas especiales en `block.html`:
 
@@ -52,3 +53,29 @@ Marcas especiales en `block.html`:
 Reglas: todo lo que ve el visitante es editable (`data-edit*`) salvo los enlaces; nada de JS de formularios ni de
 cookies propio (es del núcleo); los bloques se prueban con los dos motores, en el editor y en el móvil
 (`tools/check.py` sobre una web de prueba compuesta con todos).
+
+## Bloques con colección
+
+`documents` (documentos por categorías), `albums` (galería por álbumes, con visor), `videos` (YouTube o Vimeo con
+consentimiento) y `news` (noticias con su página, RSS y paginación) muestran una **colección** con su gestor en el panel
+(ver «Colecciones» en el README del núcleo). Su `block.json` lleva:
+
+```json
+"collection": {
+  "names": {"ca": "documentacio", "es": "documentacion", "en": "documents"},
+  "label": {"ca": "Documentació", …}, "item": {…}, "help": {…},
+  "sort": "-date",
+  "fields": [["title", "text", {"ca": "Títol", …}], ["file", "file", {…}], …],
+  "translated": ["title", "summary"],
+  "item_page": true
+}
+```
+
+`compose.py` pone `{collection}` en el HTML (el nombre en el idioma principal, o `"collection"` de la receta:
+`{"block": "documents", "collection": "arxiu"}`), escribe `site/<colección>/_collection.json` con las etiquetas en el
+idioma principal (no lo vuelve a escribir si se ha tocado a mano) y, con `item_page`, `site/<colección>/_item.html`; la
+página de la receta que se llama como la colección se abre en `/<colección>/` (el menú enlaza ahí). Los elementos los
+crea `tools/migrate.py` (o el cliente desde el panel).
+
+`richtext`: texto largo con formato (`data-edit-html`), para las páginas de texto de una web migrada (historia,
+estatutos…); `migrate.py` deja el cuerpo limpio de cada página en `_migracio/contenido.json` (`body_html`).

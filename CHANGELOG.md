@@ -2,6 +2,19 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.19.0 — 2026-11-10
+
+- La limpieza del texto con formato codifica los espacios de los enlaces (`%20`): los dos motores dan el mismo HTML con
+  enlaces a ficheros con espacios en el nombre.
+- Herramientas (no son del núcleo), para migrar webs con componentes:
+  - `migrate.py` crea las **colecciones**: noticias (el blog de categoría de Joomla y los artículos), **documentos** (los
+    descarga con su categoría, fecha y descargas), **galería** por álbumes y **vídeos**; guarda el cuerpo limpio de cada
+    página para el bloque `richtext`, y avisa de los vídeos propios del hosting.
+  - Bloques nuevos: `documents`, `albums` (con visor de fotos), `videos`, `news` y `richtext`; `compose.py` escribe la
+    definición de sus colecciones y la página de cada noticia.
+  - `new-site.py` copia el núcleo según el `core.json` de la etiqueta (antes faltaba `download.php`) y `check.py` ya no
+    deja fuera los documentos de `site/uploads` al probar.
+
 ## 1.18.0 — 2026-11-10
 
 - **Colecciones con su propia definición** (`site/<colección>/_collection.json`): campos de texto, texto con formato,

@@ -1,0 +1,65 @@
+{
+  "name": "videos",
+  "description": "Vídeos de YouTube o Vimeo (colección con su gestor en el panel), con consentimiento de cookies y miniatura mientras tanto",
+  "variants": [
+    "grid"
+  ],
+  "cookies": [
+    "videos"
+  ],
+  "collection": {
+    "names": {
+      "ca": "videos",
+      "es": "videos",
+      "en": "videos"
+    },
+    "label": {
+      "ca": "Vídeos",
+      "es": "Vídeos",
+      "en": "Videos"
+    },
+    "item": {
+      "ca": "Vídeo",
+      "es": "Vídeo",
+      "en": "Video"
+    },
+    "help": {
+      "ca": "Enganxa l'adreça del vídeo de YouTube o Vimeo.",
+      "es": "Pega la dirección del vídeo de YouTube o Vimeo.",
+      "en": "Paste the YouTube or Vimeo address."
+    },
+    "sort": "order",
+    "fields": [
+      [
+        "title",
+        "text",
+        {
+          "ca": "Títol",
+          "es": "Título",
+          "en": "Title"
+        }
+      ],
+      [
+        "video",
+        "video",
+        {
+          "ca": "Vídeo (YouTube o Vimeo)",
+          "es": "Vídeo (YouTube o Vimeo)",
+          "en": "Video (YouTube or Vimeo)"
+        }
+      ],
+      [
+        "date",
+        "date",
+        {
+          "ca": "Data",
+          "es": "Fecha",
+          "en": "Date"
+        }
+      ]
+    ],
+    "translated": [
+      "title"
+    ]
+  }
+}

@@ -1,0 +1,29 @@
+<section class="section b-news b-news--{variant}">
+  <div class="container">
+    <header class="section-head">
+      <span class="eyebrow" data-edit="{p}_eyebrow">{{eyebrow}}</span>
+      <h2 data-edit="{p}_title">{{title}}</h2>
+    </header>
+<!--variant:page-->
+    <div class="b-news__list" data-posts="{collection}" data-posts-per-page="9">
+<!--/variant:page-->
+<!--variant:latest-->
+    <div class="b-news__list" data-posts="{collection}" data-posts-limit="3">
+<!--/variant:latest-->
+      <article class="b-news__item" data-post-item>
+        <a class="b-news__img" data-post-link href="#"><img data-post-img="image" src="" alt="" loading="lazy"></a>
+        <time data-post="date"></time>
+        <h3><a data-post-link href="#" data-post="title">Notícia</a></h3>
+        <p data-post="summary"></p>
+      </article>
+    </div>
+    <p data-posts-empty="{collection}" data-edit="{p}_empty">{{empty}}</p>
+<!--variant:page-->
+    <nav class="b-news__pager"><a class="btn btn--ghost" data-posts-prev="{collection}" href="#" data-edit="{p}_prev">{{prev}}</a>
+      <a class="btn btn--ghost" data-posts-next="{collection}" href="#" data-edit="{p}_next">{{next}}</a></nav>
+<!--/variant:page-->
+<!--variant:latest-->
+    <p class="actions"><a class="btn btn--ghost" href="{collection}/" data-edit="{p}_all">{{all}}</a></p>
+<!--/variant:latest-->
+  </div>
+</section>

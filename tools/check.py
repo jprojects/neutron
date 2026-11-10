@@ -155,7 +155,9 @@ def free_port():
     with socket.socket() as s:
         s.bind(('127.0.0.1', 0)); return s.getsockname()[1]
 def copy_site(dest, fallback=False):
-    shutil.copytree(web, dest, ignore=shutil.ignore_patterns('data', '_migracio', '*.pdf', '.git'))
+    # Fuera: data/, la migración y la guía del cliente (los PDF de la raíz); los documentos de site/uploads se quedan
+    top = str(web)
+    shutil.copytree(web, dest, ignore=lambda d, names: [n for n in names if n in ('data', '_migracio', '.git') or (d == top and n.endswith('.pdf'))])
     (dest / 'data').mkdir()
     if fallback:
         r = dest / 'lib' / 'render.php'

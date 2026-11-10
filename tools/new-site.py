@@ -14,8 +14,10 @@ import argparse, datetime, json, os, secrets, string, subprocess, sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
-CORE = ['VERSION', 'CHANGELOG.md', 'README.md', 'core.json', '.htaccess', 'index.php', 'contact.php', 'config.php', 'router.php',
-        'admin', 'lib', 'assets', 'bin', 'data/.htaccess']
+# El núcleo de una etiqueta: lo que dice SU core.json (los patrones «carpeta/**» se copian enteros)
+def core_paths(tag):
+    data = json.loads(subprocess.run(['git', '-C', str(REPO), 'show', f'{tag}:core.json'], capture_output=True, text=True, check=True).stdout)
+    return [x.split('/*')[0] for x in data['core']]
 NOMS = {'ca': 'Català', 'es': 'Español', 'en': 'English', 'fr': 'Français', 'de': 'Deutsch', 'it': 'Italiano', 'pt': 'Português'}
 # Textos del faldón de cookies en cada idioma (el núcleo solo los trae en castellano)
 COOKIES = {
@@ -50,7 +52,7 @@ etiqueta = a.etiqueta or subprocess.run(['git', '-C', str(REPO), 'tag', '--sort=
 
 # Núcleo
 dest.mkdir(parents=True)
-arch = subprocess.Popen(['git', '-C', str(REPO), 'archive', etiqueta] + CORE, stdout=subprocess.PIPE)
+arch = subprocess.Popen(['git', '-C', str(REPO), 'archive', etiqueta] + core_paths(etiqueta), stdout=subprocess.PIPE)
 subprocess.run(['tar', '-x', '-C', str(dest)], stdin=arch.stdout, check=True)
 arch.wait()
 

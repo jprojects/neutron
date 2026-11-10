@@ -1,0 +1,39 @@
+<section class="section b-documents b-documents--{variant}">
+  <div class="container">
+    <header class="section-head">
+      <span class="eyebrow" data-edit="{p}_eyebrow">{{eyebrow}}</span>
+      <h2 data-edit="{p}_title">{{title}}</h2>
+      <p data-edit="{p}_text">{{text}}</p>
+    </header>
+<!--variant:grouped-->
+    <div data-posts="{collection}" data-posts-group="category" data-posts-group-other="{{other}}">
+      <details class="b-documents__group" data-post-group open>
+        <summary><span data-post-group-title>Categoria</span> <span class="b-documents__count" data-post-group-count>0</span></summary>
+        <p class="b-documents__desc" data-post-group-description></p>
+        <ul class="b-documents__list" data-post-group-items>
+          <li class="b-documents__item" data-post-item>
+            <a class="b-documents__link" data-post-href="file" href="#" target="_blank" rel="noopener">
+              <span class="b-documents__ext" data-post="file.ext">PDF</span>
+              <span class="b-documents__info"><strong data-post="title">Document</strong>
+                <small><time data-post="date"></time> · <span data-post="file.size"></span></small>
+                <span class="b-documents__summary" data-post="summary"></span></span>
+            </a>
+          </li>
+        </ul>
+      </details>
+    </div>
+<!--/variant:grouped-->
+<!--variant:list-->
+    <ul class="b-documents__list" data-posts="{collection}">
+      <li class="b-documents__item" data-post-item>
+        <a class="b-documents__link" data-post-href="file" href="#" target="_blank" rel="noopener">
+          <span class="b-documents__ext" data-post="file.ext">PDF</span>
+          <span class="b-documents__info"><strong data-post="title">Document</strong>
+            <small><time data-post="date"></time> · <span data-post="file.size"></span></small></span>
+        </a>
+      </li>
+    </ul>
+<!--/variant:list-->
+    <p class="b-documents__empty" data-posts-empty="{collection}" data-edit="{p}_empty">{{empty}}</p>
+  </div>
+</section>

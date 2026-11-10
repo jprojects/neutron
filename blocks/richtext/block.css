@@ -1,0 +1,10 @@
+.b-richtext__body > :first-child { margin-top: 0; }
+.b-richtext__body h2 { font-size: clamp(26px, 3.2vw, 36px); margin: 1.6em 0 .5em; }
+.b-richtext__body h3 { font-size: clamp(20px, 2.2vw, 24px); margin: 1.4em 0 .4em; }
+.b-richtext__body ul, .b-richtext__body ol { padding-left: 1.3em; margin: 0 0 1.1em; }
+.b-richtext__body li { margin-bottom: .35em; }
+.b-richtext__body img { border-radius: var(--radius); margin: 1.2em 0; }
+.b-richtext__body blockquote { margin: 1.4em 0; padding: .2em 0 .2em 1.2em; border-left: 3px solid var(--c-primary); color: var(--c-muted); font-style: italic; }
+.b-richtext__body table { width: 100%; border-collapse: collapse; display: block; overflow-x: auto; margin: 0 0 1.4em; font-size: 15px; }
+.b-richtext__body th, .b-richtext__body td { border: 1px solid var(--c-line); padding: 8px 10px; text-align: left; vertical-align: top; }
+.b-richtext__body th { background: var(--c-soft); }

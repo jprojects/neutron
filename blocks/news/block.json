@@ -1,0 +1,80 @@
+{
+  "name": "news",
+  "description": "Noticias o blog (colección con página propia por noticia, RSS y gestor en el panel): el listado con páginas (page) o las últimas (latest)",
+  "variants": [
+    "page",
+    "latest"
+  ],
+  "collection": {
+    "names": {
+      "ca": "noticies",
+      "es": "noticias",
+      "en": "news"
+    },
+    "label": {
+      "ca": "Notícies",
+      "es": "Noticias",
+      "en": "News"
+    },
+    "item": {
+      "ca": "Notícia",
+      "es": "Noticia",
+      "en": "Article"
+    },
+    "sort": "-date",
+    "fields": [
+      [
+        "title",
+        "text",
+        {
+          "ca": "Títol",
+          "es": "Título",
+          "en": "Title"
+        }
+      ],
+      [
+        "date",
+        "date",
+        {
+          "ca": "Data",
+          "es": "Fecha",
+          "en": "Date"
+        }
+      ],
+      [
+        "image",
+        "image",
+        {
+          "ca": "Imatge",
+          "es": "Imagen",
+          "en": "Image"
+        }
+      ],
+      [
+        "summary",
+        "textarea",
+        {
+          "ca": "Resum",
+          "es": "Resumen",
+          "en": "Summary"
+        }
+      ],
+      [
+        "body",
+        "html",
+        {
+          "ca": "Text",
+          "es": "Texto",
+          "en": "Text"
+        }
+      ]
+    ],
+    "translated": [
+      "title",
+      "image",
+      "summary",
+      "body"
+    ],
+    "item_page": true
+  }
+}
