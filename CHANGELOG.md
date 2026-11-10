@@ -2,6 +2,14 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.17.0 — 2026-11-10
+
+- **Mensajes en el panel**: los del formulario de contacto se guardan en la web antes de enviar el correo, así que no se
+  pierden si el correo falla (el visitante recibe «enviado» y el mensaje queda marcado). Lista con los no leídos,
+  responder, marcar como no leído y borrar; se borran solos a los `contact.keep_days` días (365).
+- **Copias del contenido**: antes de cada guardado queda copia de cómo estaba. En el panel, el antes y el ahora de cada
+  cambio, **Recuperar lo de antes** de un campo y **Volver a esta versión** (que también se puede deshacer).
+
 ## 1.16.0 — 2026-11-10
 
 - **IA en el panel**: botón ✨ IA en cada texto para mejorarlo, corregir la ortografía o traducirlo a los otros idiomas,

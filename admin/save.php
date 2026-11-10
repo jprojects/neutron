@@ -5,6 +5,7 @@ require_once __DIR__ . '/../lib/bootstrap.php';
 require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/content.php';
 require_once __DIR__ . '/../lib/render.php';
+require_once __DIR__ . '/../lib/history.php';
 
 neutron_block_if_maintenance(true);
 neutron_start_session();
@@ -116,6 +117,14 @@ function neutron_clean_items(array $items, int $depth = 0): array {
         $clean[] = $cleanItem;
     }
     return $clean;
+}
+
+// Copia de cómo estaba lo que se va a cambiar (panel → Copias)
+if ($changes) {
+    $files = [];
+    foreach ($changes as [$sc]) $files[] = $sc === '_' ? 'content.json' : 'content.' . $sc . '.json';
+    $source = in_array($body['source'] ?? '', ['editor', 'panel', 'ai'], true) ? $body['source'] : 'editor';
+    neutron_history_snapshot($files, array_map(fn($c) => $c[1], $changes), $source, $lang);
 }
 
 $now = microtime(true);

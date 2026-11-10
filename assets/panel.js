@@ -99,9 +99,9 @@
 
   function renderNav() {
     nav.innerHTML = '';
-    [['home', 'Inicio'], ['content', 'Contenido']].concat(cfg.seo ? [['seo', 'SEO']] : []).forEach(function (item) {
-      nav.appendChild(h('button', { type: 'button', class: 'np-nav-item' + (state.view === item[0] ? ' is-active' : ''), text: item[1],
-        onclick: function () { go(item[0]); } }));
+    [['home', 'Inicio'], ['content', 'Contenido'], ['messages', 'Mensajes'], ['history', 'Copias']].concat(cfg.seo ? [['seo', 'SEO']] : []).forEach(function (item) {
+      nav.appendChild(h('button', { type: 'button', class: 'np-nav-item' + (state.view === item[0] ? ' is-active' : ''), onclick: function () { go(item[0]); } },
+        [item[1], item[0] === 'messages' && state.unread ? h('span', { class: 'np-badge', text: String(state.unread) }) : null]));
     });
   }
 
@@ -111,7 +111,8 @@
     state.dirty = false;
     state.view = view;
     renderNav();
-    if (view === 'home') loadHome(); else if (view === 'seo') loadSeo(); else loadContent();
+    if (view === 'home') loadHome(); else if (view === 'seo') loadSeo(); else if (view === 'messages') loadMessages();
+    else if (view === 'history') loadHistory(); else loadContent();
   }
 
   function confirmLeave() {
@@ -127,6 +128,8 @@
       document.querySelector('.np-site').textContent = home.name;
       document.title = 'Panel · ' + home.name;
       var where = keyIndex(content.schema);
+      state.unread = home.unread || 0;
+      renderNav();
       main.innerHTML = '';
       main.appendChild(h('header', { class: 'np-head' }, [h('h1', { text: home.name }),
         h('a', { class: 'np-button np-secondary', href: siteHref('./'), target: '_blank', rel: 'noopener', text: 'Ver la web ↗' })]));
@@ -138,6 +141,10 @@
           } }) : null
         ]));
       });
+      if (home.unread) {
+        main.appendChild(h('button', { type: 'button', class: 'np-alert', onclick: function () { go('messages'); } },
+          [h('strong', { text: home.unread === 1 ? '1 mensaje nuevo' : home.unread + ' mensajes nuevos' }), h('span', { text: 'del formulario de contacto · Ver →' })]));
+      }
       var langs = home.languages ? Object.keys(home.languages.languages).length : 1;
       main.appendChild(h('div', { class: 'np-stats' }, [
         stat(home.pages, home.pages === 1 ? 'página' : 'páginas'),
@@ -354,7 +361,7 @@
         status.textContent = 'Guardando…';
         var langs = Object.keys(inputs);
         Promise.all(langs.map(function (l) {
-          var payload = { lang: l, fields: {}, images: {}, collections: {} };
+          var payload = { lang: l, fields: {}, images: {}, collections: {}, source: 'ai' };
           payload.fields[f.key] = inputs[l].value;
           return post('save.php', payload);
         })).then(function (rs) {
@@ -464,6 +471,182 @@
   }
 
 
+
+  // ------------------------------------------------------------------ mensajes del formulario (lib/messages.php)
+  var inbox = { items: [], current: null, total: 0, keep: 365 };
+
+  function loadMessages() {
+    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    api('messages').then(function (d) {
+      inbox.items = d.items; inbox.total = d.total; inbox.keep = d.keep_days;
+      state.unread = d.unread; renderNav();
+      renderMessages();
+    }).catch(failed);
+  }
+
+  function dateText(iso) {
+    var d = new Date(iso);
+    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) + ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  function renderMessages() {
+    main.innerHTML = '';
+    main.appendChild(h('header', { class: 'np-head' }, [h('h1', { text: 'Mensajes' }),
+      h('span', { class: 'np-muted', text: inbox.total + (inbox.total === 1 ? ' mensaje' : ' mensajes') })]));
+    main.appendChild(h('p', { class: 'np-muted np-small', text: 'Los mensajes del formulario de contacto de la web. También llegan por correo; aquí se guardan ' + inbox.keep + ' días.' }));
+    if (!inbox.items.length) { main.appendChild(h('section', { class: 'np-card' }, [h('p', { class: 'np-muted', text: 'Todavía no ha llegado ningún mensaje.' })])); return; }
+    var detail = h('section', { class: 'np-card np-msg-detail' }, [h('p', { class: 'np-muted', text: 'Elige un mensaje para leerlo.' })]);
+    var list = h('div', { class: 'np-card np-msg-list' }, inbox.items.map(function (m) {
+      return h('button', { type: 'button', class: 'np-msg' + (m.read ? '' : ' is-unread') + (inbox.current === m.id ? ' is-active' : ''), onclick: function () { openMessage(m, detail, list); } }, [
+        h('span', { class: 'np-msg-top' }, [h('strong', { text: m.from || 'Sin nombre' }), h('span', { class: 'np-muted np-small', text: ago(Date.parse(m.at) / 1000) })]),
+        h('span', { class: 'np-muted np-small', text: m.excerpt || '' })
+      ]);
+    }));
+    main.appendChild(h('div', { class: 'np-msg-wrap' }, [list, detail]));
+  }
+
+  function openMessage(m, detail, list) {
+    inbox.current = m.id;
+    Array.prototype.forEach.call(list.children, function (b, i) { b.classList.toggle('is-active', inbox.items[i].id === m.id); });
+    detail.innerHTML = '<p class="np-muted">Cargando…</p>';
+    api('message', { id: m.id }).then(function (d) {
+      if (!d.ok) { detail.innerHTML = ''; detail.appendChild(h('p', { class: 'np-error', text: d.error })); return; }
+      var msg = d.message;
+      if (!m.read) { m.read = true; state.unread = Math.max(0, (state.unread || 0) - 1); renderNav(); list.children[inbox.items.indexOf(m)].classList.remove('is-unread'); }
+      detail.innerHTML = '';
+      detail.appendChild(h('div', { class: 'np-card-head' }, [h('h2', { text: msg.from || 'Mensaje' }), h('span', { class: 'np-muted np-small', text: dateText(msg.at) })]));
+      if (msg.mailed === false) detail.appendChild(h('p', { class: 'np-hint', text: 'Este mensaje no se pudo enviar por correo: solo está aquí.' }));
+      var dl = h('dl', { class: 'np-msg-fields' });
+      msg.fields.forEach(function (f) {
+        if (!f.value) return;
+        dl.appendChild(h('dt', { text: f.label }));
+        dl.appendChild(h('dd', { text: /^(1|on|yes|true)$/i.test(f.value) ? 'Sí' : f.value }));   // casillas (privacidad)
+      });
+      detail.appendChild(dl);
+      if (msg.page) detail.appendChild(h('p', { class: 'np-muted np-small', text: 'Enviado desde ' + msg.page + (msg.lang ? ' (' + msg.lang.toUpperCase() + ')' : '') }));
+      var subject = 'Re: ' + (document.querySelector('.np-site').textContent || 'tu mensaje');
+      detail.appendChild(h('div', { class: 'np-ai-actions' }, [
+        msg.email ? h('a', { class: 'np-button', href: 'mailto:' + encodeURIComponent(msg.email) + '?subject=' + encodeURIComponent(subject), text: 'Responder' }) : null,
+        h('button', { type: 'button', class: 'np-button np-secondary', text: 'Marcar como no leído', onclick: function () {
+          post('api.php?a=message-unread&id=' + encodeURIComponent(m.id), {}).then(function () { m.read = false; state.unread++; renderNav(); inbox.current = null; renderMessages(); });
+        } }),
+        h('button', { type: 'button', class: 'np-button np-secondary np-danger', text: 'Borrar', onclick: function () {
+          if (!confirm('¿Borrar este mensaje? No se puede deshacer.')) return;
+          post('api.php?a=message-delete&id=' + encodeURIComponent(m.id), {}).then(function (r) {
+            if (!r.ok) { alert('No se ha podido borrar'); return; }
+            inbox.items.splice(inbox.items.indexOf(m), 1); inbox.total--; inbox.current = null; renderMessages();
+          });
+        } })
+      ]));
+    }).catch(function () { detail.innerHTML = '<p class="np-error">Error de red</p>'; });
+  }
+
+  // ------------------------------------------------------------------ copias del contenido (lib/history.php)
+  var SOURCES = { editor: 'En la web', panel: 'Panel', ai: 'Traducción con IA', restore: 'Antes de volver a una copia' };
+
+  function loadHistory() {
+    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    Promise.all([api('history'), api('content')]).then(function (r) {
+      state.historyIndex = fieldIndex(r[1].schema);
+      renderHistory(r[0].items);
+    }).catch(failed);
+  }
+
+  // Clave → {page, section, label, type} para poner nombre a los cambios
+  function fieldIndex(schema) {
+    var out = {};
+    function add(pageTitle, sections) {
+      sections.forEach(function (s) { s.fields.forEach(function (f) { out[f.key] = out[f.key] || { page: pageTitle, section: s.title, label: f.label, type: f.type }; }); });
+    }
+    add('Común', schema.common);
+    schema.pages.forEach(function (p) { add(p.title, p.sections); });
+    return out;
+  }
+
+  function describeKeys(keys) {
+    var idx = state.historyIndex, places = [];
+    keys.forEach(function (k) {
+      var w = idx[k];
+      var place = w ? w.page + ' › ' + w.section : k;
+      if (places.indexOf(place) < 0) places.push(place);
+    });
+    return places.slice(0, 3).join(', ') + (places.length > 3 ? ' y ' + (places.length - 3) + ' más' : '');
+  }
+
+  function renderHistory(items) {
+    main.innerHTML = '';
+    main.appendChild(h('header', { class: 'np-head' }, [h('h1', { text: 'Copias' })]));
+    main.appendChild(h('p', { class: 'np-muted', text: 'Cada vez que se guarda un cambio, queda una copia de cómo estaba antes. Puedes recuperar un texto concreto o volver a una versión entera. (Las copias completas de la web las hace AFI aparte.)' }));
+    if (!items.length) { main.appendChild(h('section', { class: 'np-card' }, [h('p', { class: 'np-muted', text: 'Aún no hay copias: se harán a partir del próximo cambio que se guarde.' })])); return; }
+    var list = h('section', { class: 'np-card' });
+    var lastDay = '';
+    items.forEach(function (v) {
+      var d = new Date(v.at);
+      var day = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      if (day !== lastDay) { list.appendChild(h('h2', { class: 'np-day', text: day.charAt(0).toUpperCase() + day.slice(1) })); lastDay = day; }
+      list.appendChild(h('button', { type: 'button', class: 'np-version-row', onclick: function () { openVersion(v.id); } }, [
+        h('span', { class: 'np-muted', text: d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) }),
+        h('span', { text: describeKeys(v.keys) }),
+        h('span', { class: 'np-tag', text: (SOURCES[v.source] || v.source) + (v.lang ? ' · ' + v.lang.toUpperCase() : '') })
+      ]));
+    });
+    main.appendChild(list);
+  }
+
+  function valueView(v, type) {
+    if (v === null || v === undefined || v === '') return h('em', { class: 'np-muted', text: '(vacío)' });
+    if (type === 'img') return h('img', { class: 'np-thumb', src: src(v), alt: '' });
+    if (Array.isArray(v)) return h('span', { text: 'Lista de ' + v.length + (v.length === 1 ? ' elemento' : ' elementos') });
+    if (type === 'html') return h('span', { text: String(v).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400) });
+    return h('span', { text: String(v) });
+  }
+
+  function openVersion(id) {
+    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    api('history-detail', { id: id }).then(function (d) {
+      if (!d.ok) { failed(); return; }
+      var v = d.version, idx = state.historyIndex;
+      main.innerHTML = '';
+      main.appendChild(h('header', { class: 'np-head' }, [
+        h('div', {}, [h('button', { type: 'button', class: 'np-link', text: '← Todas las copias', onclick: function () { loadHistory(); } }),
+          h('h1', { text: 'Copia del ' + dateText(v.at) })]),
+        h('button', { type: 'button', class: 'np-button np-secondary', text: 'Volver a esta versión', onclick: function () {
+          if (!confirm('Todos los campos de esta copia volverán a como estaban antes de este cambio. Lo de ahora queda guardado en otra copia, por si quieres deshacerlo. ¿Seguimos?')) return;
+          post('api.php?a=history-restore&id=' + encodeURIComponent(id), {}).then(function (r) {
+            if (!r.ok) { alert(r.error || 'No se ha podido'); return; }
+            alert('Hecho: la web vuelve a estar como en esta copia.');
+            loadHistory();
+          });
+        } })
+      ]));
+      main.appendChild(h('p', { class: 'np-muted', text: 'Lo que había antes del cambio, y lo que hay ahora. ' + (SOURCES[v.source] ? 'Cambio hecho: ' + SOURCES[v.source].toLowerCase() + '.' : '') }));
+      v.changes.forEach(function (c) {
+        var w = idx[c.key] || { page: '', section: c.key, label: '', type: Array.isArray(c.before) ? 'collection' : 'text' };
+        var same = JSON.stringify(c.before) === JSON.stringify(c.now);
+        var card = h('section', { class: 'np-card' }, [
+          h('div', { class: 'np-card-head' }, [h('h2', { text: (w.page ? w.page + ' › ' : '') + w.section + (w.label ? ' · ' + w.label : '') }),
+            c.lang ? h('span', { class: 'np-tag', text: c.lang.toUpperCase() }) : null]),
+          h('div', { class: 'np-compare' }, [
+            h('div', {}, [h('div', { class: 'np-label', text: 'Antes' }), valueView(c.before, w.type)]),
+            h('div', {}, [h('div', { class: 'np-label', text: 'Ahora' }), valueView(c.now, w.type)])
+          ])
+        ]);
+        if (same) card.appendChild(h('p', { class: 'np-muted np-small', text: 'Ahora vuelve a estar igual que antes.' }));
+        else card.appendChild(h('button', { type: 'button', class: 'np-button np-secondary np-small-button', text: 'Recuperar lo de antes', onclick: function (e) {
+          var payload = { lang: c.lang, fields: {}, images: {}, collections: {}, source: 'panel' };
+          var group = w.type === 'img' ? 'images' : Array.isArray(c.before) ? 'collections' : 'fields';
+          payload[group][c.key] = c.before === null ? '' : c.before;
+          e.target.disabled = true;
+          post('save.php', payload).then(function (r) {
+            if (!r.ok) { e.target.disabled = false; alert(r.error || 'No se ha podido'); return; }
+            openVersion(id);
+          });
+        } }));
+        main.appendChild(card);
+      });
+    }).catch(failed);
+  }
+
   // ------------------------------------------------------------------ SEO y GEO (Pulsar, lib/seo.php)
   var FIX_LABELS = { title: 'Título de la pestaña', description: 'Descripción para Google' };
   var seo = { page: '', type: 'seo', data: null, running: false };
@@ -566,7 +749,7 @@
   function payload(force) {
     var types = {};
     state.pages.forEach(function (p) { p.sections.forEach(function (s) { s.fields.forEach(function (f) { types[f.key] = f.type; }); }); });
-    var out = { fields: {}, images: {}, collections: {}, lang: state.lang, base: state.base };
+    var out = { fields: {}, images: {}, collections: {}, lang: state.lang, base: state.base, source: 'panel' };
     if (force) out.force = true;
     Object.keys(state.values).forEach(function (k) {
       var group = types[k] === 'img' ? 'images' : types[k] === 'collection' ? 'collections' : 'fields';

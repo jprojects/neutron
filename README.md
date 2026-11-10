@@ -398,6 +398,17 @@ El cliente entra en `/admin/` con la misma contraseña que el editor (la sesión
   editor), enlaces editables, la descripción para Google (`data-edit-content`) y listas con sus sublistas (añadir,
   quitar y mover). En otro idioma, lo que aún no está traducido sale marcado y con el texto del idioma principal.
   «Ver en la web» abre esa página en modo edición, en la sección (si tiene `id`).
+- **Mensajes**: los del formulario de contacto, guardados en `data/messages/` (uno por fichero, sin la IP) antes de
+  enviar el correo, así que no se pierden si el correo falla o el destinatario está mal configurado: en ese caso el
+  visitante recibe «enviado», el log anota el error y el mensaje sale marcado en el panel. Lista con los no leídos (y su
+  número en el menú y en el inicio), detalle con **Responder** (correo al remitente), marcar como no leído y borrar. Se
+  borran solos a los `contact.keep_days` días (365; 0 = no se guardan). La política de privacidad del sitio debe decir
+  que los mensajes se conservan ese tiempo.
+- **Copias**: antes de cada guardado (en la web, en el panel o una traducción con IA) se copia cómo estaban los ficheros
+  de textos que cambian, con los campos afectados (`data/history/`, las últimas 300; `lib/history.php`). Por cada copia
+  se ve el antes y el ahora de cada campo, con **Recuperar lo de antes** (un campo) y **Volver a esta versión** (todos
+  los de esa copia; deja a su vez una copia de lo que había, así que se puede deshacer). Las entradas del blog no
+  tienen copias todavía; las copias completas de la web las hace Cosmo.
 - **SEO** (si está configurado `pulsar`): análisis **SEO** (Google) y **GEO** (asistentes de IA) de cualquier página con
   la API de Pulsar: nota, puntuación por categoría y lo que se puede mejorar, con la solución (los textos son de Pulsar,
   en catalán). Los problemas del título y de la descripción tienen **Corregir**, que abre ese campo en *Contenido*. Se
@@ -418,7 +429,7 @@ bloque que contiene `<section>` (un `<main>`) se recorre por dentro. El nombre d
 descripción) va en «Datos de la página». Una clave que sale en varios sitios (el teléfono en la cabecera y en el pie)
 se edita una sola vez, en el primero. El botón de añadir de una lista usa su `data-edit-add`.
 
-El panel lee con `admin/api.php` (`?a=home`, `?a=content&lang=…`, `?a=seo`; analiza con `POST ?a=seo-run`) y guarda con `admin/save.php`, igual que el editor:
+El panel lee con `admin/api.php` (`?a=home`, `?a=content&lang=…`, `?a=seo`, `?a=messages`, `?a=history`…; ver la cabecera del fichero) y guarda con `admin/save.php`, igual que el editor:
 solo lo cambiado y con los mismos avisos si otra ventana ha cambiado lo mismo.
 
 ## Configuración

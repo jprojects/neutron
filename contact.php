@@ -4,6 +4,7 @@ define('NEUTRON_APP', true);
 require_once __DIR__ . '/lib/bootstrap.php';
 require_once __DIR__ . '/lib/content.php';
 require_once __DIR__ . '/lib/form.php';
+require_once __DIR__ . '/lib/messages.php';
 
 // Recibe los formularios con data-neutron-form (lo envía assets/form.js) y los manda por correo.
 // Protecciones: honeypot "website", reCAPTCHA invisible (si está configurado) y límite por IP.
@@ -61,17 +62,24 @@ if (neutron_recaptcha_enabled()) {
     }
 }
 
+// Se guarda antes de enviarlo: si el correo falla, el mensaje está igualmente en el panel (Mensajes)
+$page = (string)(parse_url((string)($_SERVER['HTTP_REFERER'] ?? ''), PHP_URL_PATH) ?? '');
+$stored = neutron_message_store($fields, neutron_lang(), $page);
+
 // Destinatario: mail.to de config.local.php, o el campo editable de content.json ("email")
 $to = (string)neutron_config()['mail']['to'];
 if ($to === '') {
     $to = (string)(neutron_load_content()[$def['recipient']] ?? '');
 }
 if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
-    neutron_log('error', 'Formulario sin destinatario válido (mail.to o content.json → {key})', ['key' => $def['recipient']]);
-    contact_reply(false, $msg['not_configured'], 500);
+    neutron_log('error', 'Formulario sin destinatario válido (mail.to o content.json → {key})' . ($stored !== null ? ': el mensaje está solo en el panel' : ''), ['key' => $def['recipient']]);
+    if ($stored === null) contact_reply(false, $msg['not_configured'], 500);
+    neutron_message_update($stored, ['mailed' => false]);
+    contact_reply(true);
 }
 
 $oneLine = fn(string $s) => trim(str_replace(["\r", "\n"], ' ', $s));
+
 
 $body = "Nuevo mensaje desde el formulario de " . ($_SERVER['HTTP_HOST'] ?? 'la web') . "\n\n";
 $replyTo = '';
@@ -92,9 +100,12 @@ $headers = [
 ];
 if ($replyTo !== '') $headers['Reply-To'] = $oneLine($replyTo);
 
-if (!@mail($to, '=?UTF-8?B?' . base64_encode($oneLine($subject)) . '?=', $body, $headers)) {
-    neutron_log('error', 'Formulario: mail() ha fallado al enviar a {to}', ['to' => $to]);
-    contact_reply(false, str_replace('{to}', $to, $msg['send_failed']), 500);
+$mailed = @mail($to, '=?UTF-8?B?' . base64_encode($oneLine($subject)) . '?=', $body, $headers);
+if ($stored !== null) neutron_message_update($stored, ['mailed' => $mailed]);
+if (!$mailed) {
+    neutron_log('error', 'Formulario: mail() ha fallado al enviar a {to}' . ($stored !== null ? ' (el mensaje está en el panel)' : ''), ['to' => $to]);
+    // Guardado en el panel: para el visitante el mensaje ha llegado
+    if ($stored === null) contact_reply(false, str_replace('{to}', $to, $msg['send_failed']), 500);
 }
-neutron_log('info', 'Formulario enviado a {to}', ['to' => $to, 'fields' => count($fields)]);
+neutron_log('info', 'Formulario recibido' . ($mailed ? ' y enviado a {to}' : ''), ['to' => $to, 'fields' => count($fields), 'message' => $stored]);
 contact_reply(true);

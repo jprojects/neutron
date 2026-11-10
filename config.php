@@ -39,6 +39,7 @@ function neutron_config_defaults(): array {
         'contact' => [
             'max_per_window' => 5,      // mensajes por IP…
             'window' => 3600,           // …en estos segundos
+            'keep_days' => 365,         // días que se guardan los mensajes en el panel (0 = no se guardan)
         ],
 
         // API remota para Cosmo. Desactivada mientras el token tenga menos de 32 caracteres.
