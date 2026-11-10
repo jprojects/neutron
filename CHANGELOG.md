@@ -2,6 +2,14 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.15.0 — 2026-11-10
+
+- **SEO y GEO en el panel** con Pulsar: se elige la página y se analiza; sale la nota, la puntuación por categoría y lo
+  que se puede mejorar con la solución. El título y la descripción tienen **Corregir**, que lleva a su campo. Límite de
+  análisis al día (`pulsar.daily_limit`, 3 por defecto), último informe de cada página e historial en `data/seo/`.
+  Configuración nueva `pulsar` (`url`, `token`, `daily_limit`): sin ella la sección no sale.
+- Herramientas: `new-site.py` configura Pulsar desde `~/.config/neutron/pulsar.json` y `check.py` avisa si falta.
+
 ## 1.14.0 — 2026-11-10
 
 - **Campañas de AFI en el panel**: acciones remotas `announcements` y `announcements-set` para que Cosmo (0.5.0+) envíe

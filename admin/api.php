@@ -5,6 +5,8 @@
 //   GET admin/api.php?a=home                inicio: datos de la web, últimos cambios y avisos de AFI
 //   GET admin/api.php?a=content[&lang=es]   lo editable (lib/schema.php) con los valores de ese idioma
 //   POST admin/api.php?a=notice-click&id=…   clic en el botón de un aviso de AFI (estadística para Cosmo)
+//   GET admin/api.php?a=seo                 análisis con Pulsar: páginas, últimos informes, historial y los que quedan hoy
+//   POST admin/api.php?a=seo-run            {"type": "seo"|"geo", "page": ""|slug}: analiza con Pulsar (lib/seo.php)
 define('NEUTRON_APP', true);
 
 require_once __DIR__ . '/../lib/bootstrap.php';
@@ -13,6 +15,7 @@ require_once __DIR__ . '/../lib/content.php';
 require_once __DIR__ . '/../lib/schema.php';
 require_once __DIR__ . '/../lib/posts.php';
 require_once __DIR__ . '/../lib/announcements.php';
+require_once __DIR__ . '/../lib/seo.php';
 
 neutron_block_if_maintenance(true);
 neutron_start_session();
@@ -92,6 +95,31 @@ if ($action === 'notice-click' && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST')
     neutron_require_csrf();
     neutron_announcements_count((string)($_GET['id'] ?? ''), 'clicks');
     echo json_encode(['ok' => true]);
+    exit;
+}
+
+if ($action === 'seo') {
+    $cfg = neutron_seo_config();
+    echo json_encode([
+        'ok' => true,
+        'enabled' => $cfg !== null,
+        'limit' => $cfg['limit'] ?? 0,
+        'remaining' => neutron_seo_remaining(),
+        'pages' => array_values(neutron_seo_pages()),
+        'reports' => neutron_seo_reports(),
+        'history' => array_slice(neutron_seo_read('history.json'), 0, 20),
+    ]);
+    exit;
+}
+
+if ($action === 'seo-run' && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    neutron_require_csrf();
+    // Un análisis tarda: se suelta la sesión para que el panel siga respondiendo mientras tanto
+    session_write_close();
+    $body = json_decode((string)file_get_contents('php://input'), true);
+    $result = neutron_seo_run((string)($body['type'] ?? ''), (string)($body['page'] ?? ''));
+    if (!$result['ok']) http_response_code(422);
+    echo json_encode($result);
     exit;
 }
 

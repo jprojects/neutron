@@ -5,6 +5,7 @@ define('NEUTRON_APP', true);
 
 require_once __DIR__ . '/../lib/bootstrap.php';
 require_once __DIR__ . '/../lib/auth.php';
+require_once __DIR__ . '/../lib/seo.php';
 
 neutron_block_if_maintenance();
 neutron_start_session();
@@ -18,6 +19,8 @@ $config = [
     'loggedIn' => neutron_is_logged_in(),
     'csrf' => $_SESSION['csrf'],
     'languages' => $langs,
+    // Sección SEO (Pulsar): solo si está configurado
+    'seo' => neutron_is_logged_in() && neutron_seo_config() !== null,
 ];
 $version = rawurlencode(trim((string)@file_get_contents(NEUTRON_ROOT . '/VERSION')));
 ?>

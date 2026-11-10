@@ -99,7 +99,7 @@
 
   function renderNav() {
     nav.innerHTML = '';
-    [['home', 'Inicio'], ['content', 'Contenido']].forEach(function (item) {
+    [['home', 'Inicio'], ['content', 'Contenido']].concat(cfg.seo ? [['seo', 'SEO']] : []).forEach(function (item) {
       nav.appendChild(h('button', { type: 'button', class: 'np-nav-item' + (state.view === item[0] ? ' is-active' : ''), text: item[1],
         onclick: function () { go(item[0]); } }));
     });
@@ -111,7 +111,7 @@
     state.dirty = false;
     state.view = view;
     renderNav();
-    if (view === 'home') loadHome(); else loadContent();
+    if (view === 'home') loadHome(); else if (view === 'seo') loadSeo(); else loadContent();
   }
 
   function confirmLeave() {
@@ -185,6 +185,7 @@
       state.pages = pages;
       if (!keepPage || !pages.some(function (p) { return p.slug === state.page; })) state.page = pages.length > 1 ? pages[1].slug : pages[0] && pages[0].slug;
       renderContent();
+      if (state.focusLabel) focusField(state.focusLabel);
     }).catch(failed);
   }
 
@@ -241,6 +242,20 @@
       s.fields.forEach(function (f) { card.appendChild(fieldRow(f)); });
       main.appendChild(card);
     });
+  }
+
+  // Lleva al campo con esa etiqueta (p. ej. «Descripción para Google») y lo resalta
+  function focusField(label) {
+    state.focusLabel = null;
+    var row = Array.prototype.filter.call(main.querySelectorAll('.np-field'), function (r) {
+      var l = r.querySelector('.np-label span');
+      return l && l.textContent === label;
+    })[0];
+    if (!row) return;
+    row.classList.add('np-highlight');
+    row.scrollIntoView({ block: 'center' });
+    var input = row.querySelector('input, textarea');
+    if (input) input.focus();
   }
 
   // Un campo de primer nivel: su valor se guarda en state.values[key] cuando cambia
@@ -350,6 +365,105 @@
     state.dirty = Object.keys(state.values).length > 0;
     state.saveBtn.disabled = !state.dirty;
     state.statusEl.textContent = state.dirty ? 'Cambios sin guardar' : '';
+  }
+
+
+  // ------------------------------------------------------------------ SEO y GEO (Pulsar, lib/seo.php)
+  var FIX_LABELS = { title: 'Título de la pestaña', description: 'Descripción para Google' };
+  var seo = { page: '', type: 'seo', data: null, running: false };
+
+  function loadSeo() {
+    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    api('seo').then(function (d) { seo.data = d; renderSeo(); }).catch(failed);
+  }
+
+  function scoreClass(n) { return n >= 80 ? 'np-good' : n >= 50 ? 'np-fair' : 'np-bad'; }
+
+  function renderSeo(message) {
+    var d = seo.data;
+    main.innerHTML = '';
+    main.appendChild(h('header', { class: 'np-head' }, [h('h1', { text: 'SEO y GEO' }),
+      h('span', { class: 'np-muted', text: 'Te quedan ' + d.remaining + ' de ' + d.limit + ' análisis hoy' })]));
+    main.appendChild(h('p', { class: 'np-muted', text: 'SEO: cómo ve la página Google. GEO: cómo la entienden los asistentes de IA (ChatGPT, Gemini…). El análisis lo hace Pulsar, de AFI, y puede tardar hasta un minuto.' }));
+
+    var pageSelect = h('select', { class: 'np-select', 'aria-label': 'Página', onchange: function () { seo.page = pageSelect.value; renderSeo(); } },
+      d.pages.map(function (p) { return h('option', { value: p.page, selected: p.page === seo.page, text: p.title }); }));
+    var run = function (type) {
+      return h('button', { type: 'button', class: 'np-button' + (type === 'geo' ? ' np-secondary' : ''), disabled: seo.running || d.remaining < 1,
+        text: seo.running === type ? 'Analizando…' : 'Analizar ' + type.toUpperCase(), onclick: function () { runSeo(type); } });
+    };
+    main.appendChild(h('div', { class: 'np-tools np-seo-tools' }, [pageSelect, run('seo'), run('geo')]));
+    if (message) main.appendChild(h('p', { class: message.error ? 'np-error' : 'np-hint', text: message.text }));
+
+    var key = seo.page === '' ? 'home' : seo.page;
+    var tabs = h('div', { class: 'np-tabs' }, ['seo', 'geo'].map(function (t) {
+      var r = d.reports[t] && d.reports[t][key];
+      return h('button', { type: 'button', class: 'np-tab' + (seo.type === t ? ' is-active' : ''), onclick: function () { seo.type = t; renderSeo(); } },
+        [t.toUpperCase(), r ? h('span', { class: 'np-score-mini ' + scoreClass(r.score), text: String(r.score) }) : null]);
+    }));
+    main.appendChild(tabs);
+    var report = d.reports[seo.type] && d.reports[seo.type][key];
+    main.appendChild(report ? seoReport(report) : h('section', { class: 'np-card' }, [h('p', { class: 'np-muted',
+      text: 'Esta página aún no tiene ningún análisis ' + seo.type.toUpperCase() + '. Pulsa «Analizar ' + seo.type.toUpperCase() + '».' })]));
+
+    if (d.history && d.history.length) {
+      var titles = {};
+      d.pages.forEach(function (p) { titles[p.page] = p.title; });
+      main.appendChild(h('section', { class: 'np-card' }, [h('h2', { text: 'Análisis anteriores' }), h('ul', { class: 'np-recent' }, d.history.map(function (x) {
+        return h('li', {}, [h('span', { class: 'np-score-mini ' + scoreClass(x.score), text: String(x.score) }),
+          h('span', { text: (titles[x.page] || x.page) + ' · ' + x.type.toUpperCase() }), h('span', { class: 'np-muted', text: ago(Date.parse(x.at) / 1000) })]);
+      }))]));
+    }
+  }
+
+  function seoReport(r) {
+    var card = h('section', { class: 'np-card' });
+    card.appendChild(h('div', { class: 'np-seo-head' }, [
+      h('div', { class: 'np-score ' + scoreClass(r.score) }, [h('strong', { text: String(r.score) }), h('span', { text: '/100' })]),
+      h('div', {}, [
+        h('p', { text: r.passed + ' de ' + r.total + ' comprobaciones correctas' }),
+        h('p', { class: 'np-muted np-small', text: 'Analizado ' + ago(Date.parse(r.created_at) / 1000) + ' · ' + r.url })
+      ])
+    ]));
+    if (r.error) card.appendChild(h('p', { class: 'np-error', text: r.error }));
+    var cats = h('div', { class: 'np-cats' });
+    Object.keys(r.categories || {}).forEach(function (k) {
+      var c = r.categories[k];
+      cats.appendChild(h('div', { class: 'np-cat' }, [h('span', { text: c.label }),
+        h('span', { class: 'np-bar' }, [h('span', { class: scoreClass(c.score), style: 'width:' + Math.max(2, c.score) + '%' })]),
+        h('strong', { text: String(c.score) })]));
+    });
+    card.appendChild(cats);
+    var list = h('div', { class: 'np-issues' });
+    (r.issues || []).forEach(function (i) {
+      var fix = i.fix && FIX_LABELS[i.fix] ? h('button', { type: 'button', class: 'np-button np-small-button', text: 'Corregir', onclick: function () {
+        state.page = seo.page;
+        state.focusLabel = FIX_LABELS[i.fix];
+        state.view = 'content';
+        renderNav();
+        loadContent(null, true);
+      } }) : null;
+      list.appendChild(h('div', { class: 'np-issue' }, [
+        h('span', { class: 'np-tag ' + (i.status === 'fail' ? 'np-tag-bad' : 'np-tag-warn'), text: i.status === 'fail' ? 'A corregir' : 'Mejorable' }),
+        h('div', {}, [h('strong', { text: i.title }), i.detail ? h('p', { text: i.detail }) : null,
+          i.solution ? h('p', { class: 'np-muted', text: i.solution }) : null]),
+        fix
+      ]));
+    });
+    card.appendChild(h('h2', { class: 'np-issues-title', text: r.issues && r.issues.length ? 'Qué se puede mejorar' : 'Todo correcto' }));
+    card.appendChild(list);
+    return card;
+  }
+
+  function runSeo(type) {
+    seo.running = type;
+    renderSeo({ text: 'Analizando la página con Pulsar… puede tardar hasta un minuto. No cierres esta ventana.' });
+    post('api.php?a=seo-run', { type: type, page: seo.page }).then(function (d) {
+      seo.running = false;
+      if (!d.ok) { renderSeo({ error: true, text: d.error || 'No se ha podido hacer el análisis' }); return; }
+      seo.type = type;
+      loadSeo();
+    }).catch(function () { seo.running = false; renderSeo({ error: true, text: 'Error de red. Inténtalo de nuevo.' }); });
   }
 
   // ------------------------------------------------------------------ guardar (admin/save.php)

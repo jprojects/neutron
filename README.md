@@ -398,6 +398,12 @@ El cliente entra en `/admin/` con la misma contraseña que el editor (la sesión
   editor), enlaces editables, la descripción para Google (`data-edit-content`) y listas con sus sublistas (añadir,
   quitar y mover). En otro idioma, lo que aún no está traducido sale marcado y con el texto del idioma principal.
   «Ver en la web» abre esa página en modo edición, en la sección (si tiene `id`).
+- **SEO** (si está configurado `pulsar`): análisis **SEO** (Google) y **GEO** (asistentes de IA) de cualquier página con
+  la API de Pulsar: nota, puntuación por categoría y lo que se puede mejorar, con la solución (los textos son de Pulsar,
+  en catalán). Los problemas del título y de la descripción tienen **Corregir**, que abre ese campo en *Contenido*. Se
+  guarda el último informe de cada página y tipo y el historial en `data/seo/` (`lib/seo.php`). Límite de análisis al
+  día para toda la web (`pulsar.daily_limit`, SEO y GEO juntos); solo cuentan los que Pulsar llega a hacer, y no puede
+  haber dos a la vez. En una web de varios idiomas se analiza la página en el idioma principal.
 - **Editar en la web**: la edición sobre la propia página (`?admin`), que tiene un botón **Panel** para volver.
 
 No hay que preparar nada en cada web: `lib/schema.php` saca los campos de las plantillas (sin DOMDocument). Las
@@ -407,7 +413,7 @@ bloque que contiene `<section>` (un `<main>`) se recorre por dentro. El nombre d
 descripción) va en «Datos de la página». Una clave que sale en varios sitios (el teléfono en la cabecera y en el pie)
 se edita una sola vez, en el primero. El botón de añadir de una lista usa su `data-edit-add`.
 
-El panel lee con `admin/api.php` (`?a=home`, `?a=content&lang=…`) y guarda con `admin/save.php`, igual que el editor:
+El panel lee con `admin/api.php` (`?a=home`, `?a=content&lang=…`, `?a=seo`; analiza con `POST ?a=seo-run`) y guarda con `admin/save.php`, igual que el editor:
 solo lo cambiado y con los mismos avisos si otra ventana ha cambiado lo mismo.
 
 ## Configuración
@@ -424,6 +430,16 @@ return [
     'log' => ['level' => 'info', 'keep_days' => 30],
 ];
 ```
+
+**Pulsar** (SEO del panel): en `config.local.php`, la dirección de Pulsar y un token que Pulsar acepte (sus
+`api_tokens`, en el `config.local.php` de Pulsar; puede ser el mismo para todas las webs):
+
+```php
+'pulsar' => ['url' => 'https://pulsar.example.com', 'token' => '…', 'daily_limit' => 3],
+```
+
+`tools/new-site.py` lo pone solo si existe `~/.config/neutron/pulsar.json` (`{"url": "…", "token": "…"}`), y
+`tools/check.py` avisa si falta.
 
 ## Log
 

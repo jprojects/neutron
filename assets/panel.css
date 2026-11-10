@@ -127,3 +127,35 @@ textarea.np-input { resize: vertical; min-height: 64px; }
   .np-sticky .np-tools .np-select { flex: 1 1 0; min-width: 0; padding: 8px; }
   .np-sticky .np-actions { width: 100%; justify-content: space-between; }
 }
+
+/* SEO y GEO */
+.np-seo-tools { margin: 4px 0 18px; }
+.np-tabs { display: flex; gap: 4px; margin-bottom: -1px; }
+.np-tab { display: inline-flex; align-items: center; gap: 8px; padding: 8px 16px; border: 1px solid var(--np-line); border-bottom: 0;
+  border-radius: 8px 8px 0 0; background: #eceef2; cursor: pointer; font-weight: 600; }
+.np-tab.is-active { background: var(--np-surface); }
+.np-tabs + .np-card { border-top-left-radius: 0; }
+.np-good { --np-c: #15803d; } .np-fair { --np-c: #b45309; } .np-bad { --np-c: #b91c1c; }
+.np-score-mini { display: inline-block; min-width: 30px; text-align: center; padding: 1px 6px; border-radius: 999px; font-size: 12px; font-weight: 700;
+  color: #fff; background: var(--np-c, #6b7280); }
+.np-seo-head { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; }
+.np-seo-head p { margin: 0; }
+.np-score { width: 92px; height: 92px; border-radius: 50%; border: 7px solid var(--np-c); display: grid; place-content: center; text-align: center; flex: none; }
+.np-score strong { font-size: 30px; line-height: 1; color: var(--np-c); }
+.np-score span { font-size: 12px; color: var(--np-muted); }
+.np-cats { display: grid; gap: 8px; margin-bottom: 22px; }
+.np-cat { display: grid; grid-template-columns: minmax(120px, 220px) 1fr 34px; align-items: center; gap: 12px; font-size: 14px; }
+.np-cat strong { text-align: right; }
+.np-bar { height: 8px; background: #e5e7eb; border-radius: 999px; overflow: hidden; }
+.np-bar span { display: block; height: 100%; background: var(--np-c); border-radius: 999px; }
+.np-issues-title { margin-bottom: 8px; }
+.np-issue { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; padding: 12px 0; border-top: 1px solid var(--np-line); }
+.np-issue p { margin: 4px 0 0; font-size: 14px; }
+.np-tag-bad { background: #fee2e2; color: #b91c1c; }
+.np-small-button { padding: 5px 10px; font-size: 13px; }
+.np-highlight { outline: 3px solid #fde68a; outline-offset: 6px; border-radius: 6px; }
+@media (max-width: 800px) {
+  .np-issue { grid-template-columns: 1fr; }
+  .np-cat { grid-template-columns: 1fr 34px; }
+  .np-cat .np-bar { grid-column: 1 / -1; grid-row: 2; }
+}

@@ -73,6 +73,8 @@ else:
 report('✓' if cfg.get('admin_password_hash') else '✗', 'contraseña del editor' + ('' if cfg.get('admin_password_hash') else ': falta admin_password_hash'))
 token = (cfg.get('remote') or {}).get('token', '')
 report('✓' if len(token) >= 32 else '!', 'token de Cosmo' + ('' if len(token) >= 32 else ': sin token (no se podrá gestionar desde Cosmo)'))
+pul = cfg.get('pulsar') or {}
+report('✓' if pul.get('url') and pul.get('token') else '!', 'SEO del panel (Pulsar)' + ('' if pul.get('url') and pul.get('token') else ': sin pulsar.url y pulsar.token, el panel no tendrá la sección SEO'))
 cred = REPO / 'credencials.local.md'
 if cred.exists() and (web.name in cred.read_text() or str(web).replace(str(Path.home()), '~') in cred.read_text()):
     report('✓', 'contraseña apuntada en credencials.local.md')

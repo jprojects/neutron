@@ -50,6 +50,13 @@ function neutron_config_defaults(): array {
             'self_test' => true,        // tras actualizar, se pide el estado a sí misma y deshace si falla
         ],
 
+        // Análisis SEO y GEO del panel (/admin/) con Pulsar (api.php). Sin url o sin token, no sale en el panel.
+        'pulsar' => [
+            'url' => '',                // p. ej. https://pulsar.aficat.com
+            'token' => '',              // uno de los api_tokens de Pulsar (config.local.php de Pulsar)
+            'daily_limit' => 3,         // análisis al día (SEO y GEO juntos) para toda la web
+        ],
+
         'log' => [
             'level' => 'info',          // debug | info | notice | warning | error
             'keep_days' => 30,

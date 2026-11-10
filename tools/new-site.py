@@ -5,7 +5,8 @@
 #
 # - ~/Projects/neutron-<cliente> con el núcleo de la última etiqueta (git archive), como cualquier instalación
 # - site/ con la estructura básica: carpetas, languages.json (si hay más de un idioma) y cookies.json en cada idioma
-# - config.local.php con una contraseña aleatoria (su hash), el nombre y un token para Cosmo
+# - config.local.php con una contraseña aleatoria (su hash), el nombre, un token para Cosmo y Pulsar (SEO del panel) si
+#   hay ~/.config/neutron/pulsar.json ({"url": "https://…", "token": "…"})
 # - la contraseña, apuntada en credencials.local.md de este repo (en el .gitignore)
 # - con --migrar, después tools/migrate.py sobre la web antigua
 # No sobrescribe nada: si la carpeta ya existe, se detiene.
@@ -71,6 +72,14 @@ pw = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range
 hash_ = subprocess.run(['php', '-r', 'echo password_hash($argv[1], PASSWORD_DEFAULT);', pw], capture_output=True, text=True, check=True).stdout
 token = secrets.token_hex(32)
 php = lambda s: "'" + s.replace('\\', '\\\\').replace("'", "\\'") + "'"
+# Pulsar (SEO del panel): url y token comunes a todas las webs en ~/.config/neutron/pulsar.json, fuera de cualquier repo
+pulsar_file = Path.home() / '.config' / 'neutron' / 'pulsar.json'
+pulsar = json.loads(pulsar_file.read_text()) if pulsar_file.exists() else {}
+pulsar_php = (f"""
+    'pulsar' => [
+        'url' => {php(str(pulsar.get('url', '')))},
+        'token' => {php(str(pulsar.get('token', '')))},
+    ],""" if pulsar.get('url') and pulsar.get('token') else '')
 (dest / 'config.local.php').write_text(f"""<?php
 if (!defined('NEUTRON_APP')) {{ http_response_code(403); exit; }}
 
@@ -84,7 +93,7 @@ return [
     ],
     'remote' => [
         'token' => {php(token)},
-    ],
+    ],{pulsar_php}
 ];
 """)
 os.chmod(dest / 'config.local.php', 0o640)
