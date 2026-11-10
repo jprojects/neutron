@@ -112,6 +112,15 @@ for word, what in [('legal|aviso|avis', 'aviso legal'), ('privac', 'política de
 pend = sorted({m.group(0) for f in htmls + jsons if f.exists() for m in PENDING.finditer(f.read_text(errors='replace'))})
 if pend: report('✗', f'textos pendientes: {", ".join(pend[:6])}')
 else: report('✓', 'sin textos pendientes ([PENDENT]…)')
+# Textos de ejemplo de los bloques (blocks/*/content.*.json) que se han quedado en la web
+examples = set()
+for f in (REPO / 'blocks').glob('*/content*.json'):
+    try: data = json.loads(f.read_text())
+    except Exception: continue
+    for v in (data.values() if isinstance(data, dict) else []):
+        if isinstance(v, str) and len(v) >= 25 and not v.startswith(('site/', 'http')): examples.add(v)
+left = sorted({v for f in jsons if f.exists() for v in examples if v in f.read_text(errors='replace')})
+if left: report('✗', f'textos de ejemplo de los bloques sin cambiar: {"; ".join(t[:50] for t in left[:4])}')
 
 # Imágenes: las que faltan y las que pesan demasiado
 refs = set(re.findall(r'site/(?:assets|uploads)/[A-Za-z0-9_./%-]+\.(?:jpe?g|png|webp|gif|svg|avif|ico)', src_all + ''.join(f.read_text(errors='replace') for f in jsons)))
@@ -215,6 +224,25 @@ try:
         if h1 != 1: problems['h1'].append(f'{u} ({h1})')
         if 'rel="icon"' not in body or 'rel="apple-touch-icon"' not in body: problems['icon'].append(u)
         if not re.search(r'<html[^>]+lang="[a-z]{2}', body): problems['lang'].append(u)
+    descs = {}
+    for u, body in pages.items():
+        d = re.search(r'<meta[^>]+name="description"[^>]*content="([^"]*)"', body)
+        if d and d.group(1).strip(): descs.setdefault(html.unescape(d.group(1).strip()), []).append(u)
+    # Lo que pone el núcleo para buscadores, redes e IA (lib/meta.php)
+    home = next((b for u, b in pages.items() if u.rstrip('/').count('/') <= 1 and not u.endswith('.html')), '')
+    ogi = re.search(r'<meta property="og:image" content="([^"]*)"', home)
+    logo = re.search(r'<header\b.*?<img\b[^>]*\bsrc="([^"]+)"', home, re.S)
+    if not ogi: report('!', 'la portada no tiene imagen para compartir (og:image): poner site/og.jpg (1200×630)')
+    elif logo and ogi.group(1).endswith(logo.group(1)): report('!', 'al compartir la portada sale el logo: poner site/og.jpg (1200×630) o una imagen en la portada')
+    if 'application/ld+json' not in home: report('!', 'la portada no lleva datos estructurados (JSON-LD)')
+    legal_data = json.loads((site / 'legal.json').read_text()) if (site / 'legal.json').exists() else {}
+    if not any(legal_data.get(k) for k in ('phone', 'email', 'address')):
+        report('!', 'sin teléfono, correo ni dirección en site/legal.json: los datos estructurados y llms.txt saldrán sin contacto (tools/legal.py)')
+    for path in ('/robots.txt', '/llms.txt'):
+        st, _, body = get(B + path)
+        if st != 200 or not body.strip(): report('✗', f'{path} no responde')
+    dup = [us for us in descs.values() if len(us) > 1]
+    if dup: report('!', f'{sum(len(us) for us in dup)} páginas comparten descripción (Google las ve como repetidas): {", ".join(dup[0][:5])}')
     for k, msg, lvl in [('title', 'sin <title>', '✗'), ('desc', 'sin descripción (o de menos de 30 letras)', '!'), ('h1', 'sin un <h1> o con varios', '!'),
                         ('icon', 'sin los <link> del favicon', '✗'), ('lang', 'sin <html lang>', '✗')]:
         if problems[k]: report(lvl, f'{len(problems[k])} páginas {msg}: {", ".join(problems[k][:5])}')

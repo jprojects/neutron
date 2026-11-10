@@ -26,6 +26,7 @@ require_once __DIR__ . '/../lib/messages.php';
 require_once __DIR__ . '/../lib/history.php';
 require_once __DIR__ . '/../lib/stats.php';
 require_once __DIR__ . '/../lib/menu.php';
+require_once __DIR__ . '/../lib/meta.php';
 
 neutron_block_if_maintenance(true);
 neutron_start_session();
@@ -36,18 +37,6 @@ neutron_require_login();
 $langs = neutron_languages();
 $action = (string)($_GET['a'] ?? '');
 
-// Nombre de la web: config (Cosmo), o el <title> de la portada sin lo de delante del separador, o el dominio
-function neutron_panel_site_name(): string {
-    $name = trim((string)(neutron_config()['name'] ?? ''));
-    if ($name !== '') return $name;
-    $html = (string)@file_get_contents(NEUTRON_SITE . '/template.html', false, null, 0, 8192);
-    if (preg_match('~<title[^>]*>(.*?)</title>~is', $html, $m)) {
-        $parts = preg_split('/\s+[·|–—-]\s+/u', trim(html_entity_decode(strip_tags($m[1]), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
-        $title = trim((string)end($parts));
-        if ($title !== '') return $title;
-    }
-    return (string)($_SERVER['HTTP_HOST'] ?? 'Web');
-}
 
 if ($action === 'content') {
     $lang = null;
@@ -91,7 +80,7 @@ if ($action === 'home') {
     $_SESSION['neutron_notices_seen'] = $seen;
     echo json_encode([
         'ok' => true,
-        'name' => neutron_panel_site_name(),
+        'name' => neutron_site_name(),
         'version' => trim((string)@file_get_contents(NEUTRON_ROOT . '/VERSION')),
         'languages' => $langs,
         'pages' => count(neutron_site_pages()),

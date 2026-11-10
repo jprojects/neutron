@@ -71,6 +71,12 @@ if ($page === '' && $route === 'sitemap.xml' && neutron_lang() === null) {
     neutron_sitemap();
     exit;
 }
+// Para buscadores y asistentes de IA (lib/meta.php): /robots.txt y /llms.txt (o los de site/, si los hay)
+if ($page === '' && in_array($route, ['robots.txt', 'llms.txt'], true) && neutron_lang() === null) {
+    require_once __DIR__ . '/lib/meta.php';
+    $route === 'robots.txt' ? neutron_robots() : neutron_llms();
+    exit;
+}
 if ($page === '' && preg_match('~^([a-z0-9][a-z0-9-]*)(?:/([a-z0-9][a-z0-9.-]*)?)?$~', $route, $m) && neutron_collection_has_page($m[1])) {
     $rest = $m[2] ?? '';
     // Varios idiomas: /noticies/… sin idioma va al principal; si no existe, puede ser una URL antigua (redirects.json)
@@ -213,6 +219,25 @@ if (isset($_GET['admin'])) {
         preg_match_all('~data-posts="([a-z0-9-]+)"~', $template, $lists);
         $options['admin_bootstrap']['collections'] = array_values(array_unique(array_filter($lists[1], 'neutron_collection_has_page')));
     }
+}
+// Canónica, Open Graph y datos estructurados (lib/meta.php); no en las 404 ni en el editor
+if ($page !== '404' && !$editing) {
+    require_once __DIR__ . '/lib/meta.php';
+    $siteUrl = neutron_site_url() . '/' . neutron_lang_prefix();
+    $pageNo = max(1, (int)($_GET['p'] ?? 1));
+    $crumbs = [[neutron_site_name(), $siteUrl]];
+    if ($collection !== null) $crumbs[] = [neutron_meta_page_title(NEUTRON_SITE . '/pages/' . $collection . '.html', $lang, neutron_collection_schema($collection)['label']), $siteUrl . $collection . '/'];
+    elseif ($page !== '') $crumbs[] = [neutron_meta_page_title($file, $lang, $page), $siteUrl . $self];
+    if ($post !== null) $crumbs[] = [(string)$post['title'], $siteUrl . $self];
+    $options['meta'] = neutron_meta_context([
+        'url' => $siteUrl . $self . ($pageNo > 1 && $post === null ? '?p=' . $pageNo : ''),
+        'home' => $page === '',
+        'lang' => $lang ?? (preg_match('~<html[^>]*\blang="([A-Za-z-]+)"~', $template, $hm) ? $hm[1] : ''),
+        'crumbs' => $crumbs,
+        'post' => $post,
+        'collection' => $collection,
+        'content' => $content,
+    ]);
 }
 // Buscador: solo si la página (o un parcial suyo) tiene un formulario con data-search
 if (str_contains($template, 'data-search') || (str_contains($template, 'data-include') && str_contains(neutron_include_partials($template), 'data-search'))) {

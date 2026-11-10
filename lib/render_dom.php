@@ -67,6 +67,11 @@ function neutron_render_dom(string $html, array $content, array $options = []): 
         neutron_dom_apply_lang($dom, $xpath, $options['lang']);
     }
 
+    // Canónica, Open Graph y JSON-LD (lib/meta.php): lo que la plantilla no trae ya
+    if (!empty($options['meta'])) {
+        neutron_dom_apply_meta($dom, $xpath, $options['meta']);
+    }
+
     // Imágenes adaptadas a la pantalla (lib/images.php): srcset con sus versiones; en el editor no (al cambiar una foto
     // se tiene que ver la nueva)
     if (empty($options['editing'])) {
@@ -462,5 +467,44 @@ function neutron_dom_apply_menu(DOMDocument $dom, DOMXPath $xpath, array $items)
             $nav->insertBefore($a, $entries[0][0]);
         }
         foreach ($entries as $e) $nav->removeChild($e[0]);
+    }
+}
+
+// Lo que hay en la página para lib/meta.php y, en el <head>, lo que falta (igual en render_fallback.php)
+function neutron_dom_apply_meta(DOMDocument $dom, DOMXPath $xpath, array $meta): void {
+    $head = $dom->getElementsByTagName('head')->item(0);
+    if (!$head) return;
+    $have = [];
+    foreach ($xpath->query('//head/link[@rel="canonical"]') as $n) $have['link rel canonical'] = true;
+    foreach ($xpath->query('//head/meta[@property]') as $n) $have['meta property ' . $n->getAttribute('property')] = true;
+    foreach ($xpath->query('//head/meta[@name]') as $n) $have['meta name ' . $n->getAttribute('name')] = true;
+    if ($xpath->query('//script[@type="application/ld+json"]')->length) $have['jsonld'] = true;
+    $title = $xpath->query('//head/title')->item(0);
+    $desc = $xpath->query('//head/meta[@name="description"]')->item(0);
+    $first = function (string $q) use ($xpath): string {
+        foreach ($xpath->query($q) as $img) {
+            if (neutron_meta_image_ok($img->getAttribute('src'))) return $img->getAttribute('src');
+        }
+        return '';
+    };
+    $found = [
+        'title' => $title ? $title->textContent : '',
+        'description' => $desc ? $desc->getAttribute('content') : '',
+        'image' => $first('(//main)[1]//img[@src]') ?: $first('//body//img[@src][not(ancestor::footer)][not(ancestor::header[not(preceding::header) and not(ancestor::header)])]'),
+        'logo' => $first('(//header)[1]//img[@src]'),
+        'have' => $have,
+    ];
+    $r = neutron_meta_head($meta, $found);
+    foreach ($r['tags'] as [$tag, $key, $name, $value]) {
+        $el = $dom->createElement($tag);
+        $el->setAttribute($key, $name);
+        $el->setAttribute($tag === 'link' ? 'href' : 'content', $value);
+        $head->appendChild($el);
+    }
+    if ($r['jsonld'] !== null) {
+        $script = $dom->createElement('script');
+        $script->setAttribute('type', 'application/ld+json');
+        $script->appendChild($dom->createTextNode($r['jsonld']));
+        $head->appendChild($script);
     }
 }

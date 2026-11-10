@@ -355,6 +355,30 @@ Con `site/languages.json` la web tiene varios idiomas, cada uno con su carpeta e
   guarda va al idioma de la página. Un texto o una lista que aún se ven en el idioma principal y se guardan sin
   cambiarlos no se copian a la traducción (siguen los del principal). En una entrada sin traducir, el editor lo avisa.
 
+### Buscadores, redes sociales e IA (SEO y GEO)
+
+El núcleo lo pone en todas las páginas sin preparar nada (`lib/meta.php`, en los dos motores); lo que la plantilla ya
+traiga (una `canonical`, un `og:` o un JSON-LD propios) se respeta y no se duplica:
+
+- **URL canónica** (absoluta, en su idioma; en un listado, con `?p=`), **Open Graph** (`og:title`, `og:description`,
+  `og:url`, `og:image`, `og:site_name`, `og:locale`, `og:type`) y `twitter:card`. Salen del `<title>` y de la
+  descripción de la página.
+- **Imagen para compartir**: `site/og.jpg` (o `.png`, `.webp`; 1200×630) si existe, para toda la web; si no, la de la
+  ficha, la primera de `<main>` (o de la página, fuera de la cabecera y del pie) o el logo de la cabecera.
+- **Datos estructurados** (JSON-LD de schema.org): en la portada, el titular (`LocalBusiness` si `site/legal.json`
+  tiene dirección; si no, `Organization`) con nombre, logo, teléfono, correo, dirección y las redes (`social_*`), y el
+  sitio (`WebSite`); en las demás páginas, la ruta (`BreadcrumbList`); en las fichas, el elemento (`Article` si tiene
+  fecha, o el `"schema"` de su `_collection.json`: `Product`, `Event`, `Recipe`…). Los datos de ejemplo de
+  `legal.json` no salen. El tipo de negocio, el horario, la ubicación…, en `site/business.json` (va tal cual):
+  `{"type": "HairSalon", "openingHours": ["Mo-Fr 09:00-19:00"], "priceRange": "€€", "geo": {"latitude": 41.9, "longitude": 2.25}}`.
+- **`/robots.txt`**: deja pasar a todos, menos al panel, y dice dónde está el sitemap. Con `site/robots.txt`, ese.
+- **`/llms.txt`** (para los asistentes de IA, [llmstxt.org](https://llmstxt.org)): el nombre y la descripción de la
+  web, el contacto (de `legal.json`), las páginas con su descripción, los elementos de cada colección (con su enlace o
+  el de la descarga), los otros idiomas y, aparte, las páginas legales. En el idioma principal. Con `site/llms.txt`, ese.
+
+Una web instalada en una subcarpeta (`projectes.aficat.com/web/`) tiene `robots.txt` y `sitemap.xml` en la subcarpeta;
+los buscadores y Pulsar los buscan en la raíz del dominio, así que hasta el dominio definitivo salen como que faltan.
+
 ### Redirecciones de la web anterior
 
 `site/redirects.json` convierte las URLs viejas en redirecciones 301 (para no perder el posicionamiento). Rutas

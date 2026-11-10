@@ -85,6 +85,8 @@ function neutron_collection_schema(string $name): array {
                 'label' => (string)($data['label'] ?? ''),
                 'item' => (string)($data['item'] ?? ''),
                 'help' => (string)($data['help'] ?? ''),
+                // Tipo de schema.org de cada elemento en su ficha (lib/meta.php): Article, Product, Event, Recipe…
+                'schema' => preg_match('/^[A-Za-z]{2,40}$/', (string)($data['schema'] ?? '')) ? (string)$data['schema'] : '',
             ];
         }
     }

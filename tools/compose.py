@@ -255,7 +255,6 @@ for p in pages:
     for l in langs:
         label = p['nav'].get(l) if isinstance(p.get('nav'), dict) else p.get('nav')
         put(l, f"{p['slug']}_seo", (site_name if p['file'] == 'template' else f'{label} · {site_name}') if label else site_name)
-        put(l, f"{p['slug']}_desc", (b['content'].get(l) or {}).get('@tagline', '') if (b := load_block('footer')) else '')
 bodies = {}
 for p in pages:
     counts = {}
@@ -265,6 +264,29 @@ for p in pages:
         counts[name] = counts.get(name, 0) + 1
         parts.append(render_block(spec, p, counts[name]))
     bodies[p['file']] = '\n\n'.join(parts)
+
+# Descripción para buscadores de cada página: la de la receta («desc», texto o {idioma: texto}) o, si no, el primer
+# párrafo de la página con algo de texto (en cada idioma, el de su clave); nunca un texto de ejemplo de los bloques.
+def short(t, n=158):
+    t = re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', ' ', str(t or '')))).strip()
+    return t if len(t) <= n else t[:n - 1].rsplit(' ', 1)[0].rstrip(',;:') + '…'
+def first_text_key(body):
+    for m in re.finditer(r'<(?:p|div)\b[^>]*\bdata-edit(?:-html)?="([^"]+)"', body):
+        if re.search(r'consent|cookie|empty|accept|_prev$|_next$', m.group(1)): continue   # avisos, no contenido
+        if len(short(content[main].get(m.group(1), ''), 1000)) >= 40: return m.group(1)
+    return None
+examples = {v for b in ['footer'] if (blk := load_block(b)) for t in blk['content'].values() for v in (t or {}).values() if isinstance(v, str)}
+for p in pages:
+    key = first_text_key(bodies[p['file']])
+    for l in langs:
+        d = p.get('desc')
+        d = d.get(l, d.get(main, '')) if isinstance(d, dict) else d
+        if not d and key: d = content[l].get(key) or content[main].get(key, '')
+        if not d:                                                    # el nombre de la página y el lema de la web
+            tag = content[l].get('tagline') or content[main].get('tagline', '')
+            label = p['nav'].get(l, p['nav'].get(main)) if isinstance(p.get('nav'), dict) else p.get('nav')
+            d = f'{label}. {tag}' if tag and label and p['file'] != 'template' and tag not in examples else tag
+        put(l, f"{p['slug']}_desc", '' if d in examples else short(d))
 footer_html = render_block(recipe.get('footer', 'footer'), {'slug': 'site'}, 1).replace('{{#legal_links}}', legal_html())
 
 for p in pages:

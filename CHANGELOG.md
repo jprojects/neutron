@@ -2,6 +2,17 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.23.0 — 2026-11-10
+
+- **SEO y GEO en el núcleo** (`lib/meta.php`), en todas las páginas y en los dos motores, sin tocar las plantillas: URL
+  canónica, Open Graph y Twitter (con la imagen para compartir: `site/og.jpg`, la de la página o el logo), y datos
+  estructurados JSON-LD (el titular de la web en la portada, con `site/legal.json` y `site/business.json`; la ruta en
+  las demás páginas; el elemento en las fichas, `"schema"` en `_collection.json`).
+- **`/robots.txt`** y **`/llms.txt`** generados (o los de `site/`, si los hay).
+- Herramientas: `compose.py` saca la descripción de cada página de su primer párrafo (antes ponía el texto de ejemplo del
+  pie en todas); `check.py` avisa de textos de ejemplo de los bloques que se han quedado, descripciones repetidas, la
+  imagen para compartir, los datos de contacto de `legal.json` y si `robots.txt` y `llms.txt` responden.
+
 ## 1.22.1 — 2026-11-10
 
 - Menú editable: también menús en lista (`<ul data-menu>` con `<li><a>`), y los enlaces destacados se reconocen por

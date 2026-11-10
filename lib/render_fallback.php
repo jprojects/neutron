@@ -74,6 +74,11 @@ function neutron_render_fallback(string $html, array $content, array $options = 
         neutron_fallback_apply_lang($root, $options['lang']);
     }
 
+    // Canónica, Open Graph y JSON-LD, igual que en render_dom.php
+    if (!empty($options['meta'])) {
+        neutron_fallback_apply_meta($root, $options['meta']);
+    }
+
     // Imágenes adaptadas a la pantalla, igual que en render_dom.php
     if (empty($options['editing'])) {
         foreach (neutron_find_all($root, fn($n) => $n->tag === 'img' && isset($n->attrs['src']) && !isset($n->attrs['srcset'])) as $img) {
@@ -659,4 +664,64 @@ function neutron_fallback_apply_menu(object $root, array $items): void {
         }
         $nav->children = $out;
     }
+}
+
+// Como neutron_dom_apply_meta()
+function neutron_fallback_apply_meta(object $root, array $meta): void {
+    $head = neutron_find_first($root, fn($n) => ($n->tag ?? null) === 'head');
+    if (!$head) return;
+    $have = [];
+    $title = $desc = null;
+    foreach ($head->children as $c) {
+        if (($c->type ?? '') !== 'element') continue;
+        if ($c->tag === 'link' && ($c->attrs['rel'] ?? '') === 'canonical') $have['link rel canonical'] = true;
+        if ($c->tag === 'meta' && isset($c->attrs['property'])) $have['meta property ' . $c->attrs['property']] = true;
+        if ($c->tag === 'meta' && isset($c->attrs['name'])) $have['meta name ' . $c->attrs['name']] = true;
+        if ($c->tag === 'title' && $title === null) $title = $c;
+        if ($c->tag === 'meta' && ($c->attrs['name'] ?? '') === 'description' && $desc === null) $desc = $c;
+    }
+    if (neutron_find_first($root, fn($n) => ($n->tag ?? null) === 'script' && ($n->attrs['type'] ?? '') === 'application/ld+json')) $have['jsonld'] = true;
+    $first = function (string $container) use ($root): string {
+        $box = neutron_find_first($root, fn($n) => ($n->tag ?? null) === $container);
+        if (!$box) return '';
+        $img = neutron_find_first($box, fn($n) => ($n->tag ?? null) === 'img' && isset($n->attrs['src']) && neutron_meta_image_ok((string)$n->attrs['src']));
+        return $img ? (string)$img->attrs['src'] : '';
+    };
+    $found = [
+        'title' => $title ? neutron_text_content($title) : '',
+        'description' => $desc ? (string)($desc->attrs['content'] ?? '') : '',
+        'image' => $first('main') ?: neutron_fallback_meta_body_image($root),
+        'logo' => $first('header'),
+        'have' => $have,
+    ];
+    $r = neutron_meta_head($meta, $found);
+    foreach ($r['tags'] as [$tag, $key, $name, $value]) {
+        $head->children[] = (object)['type' => 'element', 'tag' => $tag, 'attrs' => [$key => $name, $tag === 'link' ? 'href' : 'content' => $value], 'children' => []];
+    }
+    if ($r['jsonld'] !== null) {
+        $head->children[] = (object)['type' => 'element', 'tag' => 'script', 'attrs' => ['type' => 'application/ld+json'],
+            'children' => [(object)['type' => 'rawtext', 'text' => $r['jsonld']]]];
+    }
+}
+
+// El texto de un elemento (como textContent en DOM)
+function neutron_text_content(object $node): string {
+    $out = '';
+    foreach ($node->children ?? [] as $c) {
+        $t = $c->type ?? '';
+        if ($t === 'text' || $t === 'rawtext') $out .= $c->text;
+        elseif ($t === 'element') $out .= neutron_text_content($c);
+    }
+    return $out;
+}
+
+// Sin <main>: la primera imagen de la página que no esté en la cabecera de la web (el primer <header>) ni en un pie
+function neutron_fallback_meta_body_image(object $root): string {
+    $skip = [];
+    $header = neutron_find_first($root, fn($n) => ($n->tag ?? null) === 'header');
+    $boxes = array_merge($header ? [$header] : [], neutron_find_all($root, fn($n) => ($n->tag ?? null) === 'footer'));
+    foreach ($boxes as $box) foreach (neutron_find_all($box, fn($n) => ($n->tag ?? null) === 'img') as $img) $skip[spl_object_id($img)] = true;
+    $body = neutron_find_first($root, fn($n) => ($n->tag ?? null) === 'body') ?? $root;
+    $img = neutron_find_first($body, fn($n) => ($n->tag ?? null) === 'img' && isset($n->attrs['src']) && !isset($skip[spl_object_id($n)]) && neutron_meta_image_ok((string)$n->attrs['src']));
+    return $img ? (string)$img->attrs['src'] : '';
 }
