@@ -89,6 +89,8 @@ actualízalo con cada función nueva.
 ## Versiones y publicación
 
 - Semver en `VERSION`, con su entrada en `CHANGELOG.md` (una función nueva sube la versión MENOR).
+- Antes de publicar: `python3 tools/regresion.py` (núcleo anterior frente al nuevo en todas las webs locales y los dos
+  motores) tiene que dar 0 diferencias.
 - Publicar: commit, `git tag -a vX.Y.Z -m "Neutron X.Y.Z"` y push de la rama y de las etiquetas (Cosmo instala
   desde la etiqueta). Repositorio: `github.com/jprojects/neutron` (por confirmar).
 
