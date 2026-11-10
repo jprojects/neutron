@@ -115,11 +115,12 @@ else: report('✓', 'sin textos pendientes ([PENDENT]…)')
 # Textos de ejemplo de los bloques (blocks/*/content.*.json) que se han quedado en la web
 examples = set()
 for f in (REPO / 'blocks').glob('*/content*.json'):
+    if f.parent.name == 'form': continue                         # textos del formulario: valen para cualquier web
     try: data = json.loads(f.read_text())
     except Exception: continue
     for k, v in (data.items() if isinstance(data, dict) else []):
         if re.search(r'consent|cookie|accept|empty|_prev$|_next$|_all$|sent|error|required', k): continue   # avisos que valen tal cual
-        if isinstance(v, str) and len(v) >= 25 and not v.startswith(('site/', 'http')): examples.add(v)
+        if isinstance(v, str) and len(v) >= 25 and not v.startswith(('site/', 'http')) and 'cookie' not in v.lower(): examples.add(v)
 left = sorted({v for f in jsons if f.exists() for v in examples if v in f.read_text(errors='replace')})
 if left: report('✗', f'textos de ejemplo de los bloques sin cambiar: {"; ".join(t[:50] for t in left[:4])}')
 
