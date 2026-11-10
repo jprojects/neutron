@@ -497,6 +497,22 @@ se edita una sola vez, en el primero. El botón de añadir de una lista usa su `
 El panel lee con `admin/api.php` (`?a=home`, `?a=content&lang=…`, `?a=seo`, `?a=messages`, `?a=history`…; ver la cabecera del fichero) y guarda con `admin/save.php`, igual que el editor:
 solo lo cambiado y con los mismos avisos si otra ventana ha cambiado lo mismo.
 
+## Velocidad: caché de páginas e imágenes para el móvil
+
+**Caché de páginas** (`lib/cache.php`, config `cache`): la primera visita a una página la monta y la guarda en
+`data/cache/`; las siguientes la sirven tal cual (cabecera `X-Neutron-Cache: HIT`). No hay que vaciarla: cada página
+guarda la «huella» del sitio (fechas de plantillas, parciales, contenidos, elementos de colección, carpetas,
+`config.local.php` y `VERSION`) y, si algo ha cambiado (desde el panel, el editor, por FTP o al actualizar), se vuelve a
+montar. Además caduca a los `cache.ttl` segundos (3600), por lo que cambia solo (el número de descargas). Solo para
+visitantes: no con `?admin` ni con la sesión del editor, ni con más parámetros que `?p=`; solo respuestas 200. Las
+copias de seguridad no la incluyen. `'cache' => ['enabled' => false]` la apaga.
+
+**Imágenes para el móvil** (`lib/images.php`): de cada imagen de `site/uploads/` y `site/assets/img/` más ancha de 640 px
+se guardan versiones de 640, 1024 y 1600 px al lado («foto.w640.webp»), y los dos motores ponen en sus `<img>` un
+`srcset` con las que haya (y `sizes="100vw"` si la plantilla no dice otro): el navegador se baja la que necesita. En el
+editor no, para que al cambiar una foto se vea la nueva. Se hacen al subir una imagen, en la migración de cada
+actualización desde Cosmo (unos segundos cada vez) y con `php bin/images.php`. Sin GD no se hace nada.
+
 ## Configuración
 
 `config.php` tiene los valores por defecto comentados; `config.local.php` devuelve solo lo que cambia:

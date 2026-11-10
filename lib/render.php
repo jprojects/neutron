@@ -4,6 +4,7 @@ if (!defined('NEUTRON_APP')) { http_response_code(403); exit; }
 require_once __DIR__ . '/render_dom.php';
 require_once __DIR__ . '/render_fallback.php';
 require_once __DIR__ . '/sanitize.php';
+require_once __DIR__ . '/images.php';
 
 // Niveles de listas dentro de listas (data-edit-collection dentro de un data-edit-item)
 const NEUTRON_MAX_NESTING = 3;

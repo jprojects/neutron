@@ -8,7 +8,7 @@ require_once __DIR__ . '/htaccess.php';
 // sirve para detectar cambios hechos a mano y para borrar los que una versión nueva ya no trae.
 
 // Carpetas que nunca se recorren
-const NEUTRON_SKIP_DIRS = ['.git', 'node_modules', 'data/backups', 'data/remote', 'data/logs'];
+const NEUTRON_SKIP_DIRS = ['.git', 'node_modules', 'data/backups', 'data/remote', 'data/logs', 'data/cache'];
 
 /** @return list<string> patrones de core.json de la carpeta $root */
 function neutron_core_patterns(string $root): array {

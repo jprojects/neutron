@@ -2,6 +2,13 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.20.0 — 2026-11-10
+
+- **Caché de páginas** para los visitantes (`data/cache/`): se renueva sola cuando cambia cualquier cosa del sitio (por
+  el panel, el editor, FTP o una actualización) y caduca a la hora. Config `cache` (`enabled`, `ttl`).
+- **Imágenes para el móvil**: versiones de 640, 1024 y 1600 px de las imágenes grandes y `srcset` en las páginas (en los
+  dos motores). Se hacen al subir, al migrar después de cada actualización y con `php bin/images.php`.
+
 ## 1.19.0 — 2026-11-10
 
 - La limpieza del texto con formato codifica los espacios de los enlaces (`%20`): los dos motores dan el mismo HTML con

@@ -141,6 +141,10 @@ if ($langs !== null && neutron_lang() === null) {
 }
 $lang = neutron_lang();
 
+// Caché de páginas para los visitantes (lib/cache.php): si la página ya está montada y el sitio no ha cambiado, tal cual
+require_once __DIR__ . '/lib/cache.php';
+neutron_cache_serve();
+
 $content = neutron_load_content();
 $template = file_get_contents($file);
 
@@ -209,4 +213,6 @@ if ($cookies !== null) {
 }
 
 header('Content-Type: text/html; charset=utf-8');
-echo neutron_render($template, $content, $options);
+$html = neutron_render($template, $content, $options);
+neutron_cache_store($html);
+echo $html;

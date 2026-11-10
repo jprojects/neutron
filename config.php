@@ -51,6 +51,12 @@ function neutron_config_defaults(): array {
             'self_test' => true,        // tras actualizar, se pide el estado a sí misma y deshace si falla
         ],
 
+        // Caché de páginas para los visitantes (data/cache/): se vuelve a montar sola cuando cambia el sitio (lib/cache.php)
+        'cache' => [
+            'enabled' => true,
+            'ttl' => 3600,              // segundos como mucho (lo que cambia solo: el número de descargas)
+        ],
+
         // Documentos de las colecciones (campos de tipo "file"): tamaño máximo. El hosting también limita
         // (upload_max_filesize y post_max_size de PHP): lo más pequeño manda.
         'uploads' => [

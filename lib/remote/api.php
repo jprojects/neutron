@@ -284,6 +284,13 @@ function neutron_remote_migrate(): void {
         // Desde la 1.0.0/1.1.0 la actualización copió el .htaccess entero: recuperar las líneas propias
         $recovered = neutron_htaccess_recover();
         if ($recovered !== null) $steps[] = $recovered;
+        // Desde la 1.20: versiones de las imágenes para el móvil (lib/images.php), unos segundos cada vez; la caché se
+        // vacía para que las páginas las usen
+        require_once __DIR__ . '/../images.php';
+        require_once __DIR__ . '/../cache.php';
+        $img = neutron_images_generate_all(20);
+        if ($img['made']) $steps[] = "versiones de {$img['images']} imágenes para el móvil" . ($img['pending'] ? ' (faltan: se harán en la próxima migración o con php bin/images.php)' : '');
+        if (neutron_cache_clear()) $steps[] = 'caché de páginas vaciada';
         $keep = ($_POST['keep_maintenance'] ?? '') === '1';
         if (!$keep) neutron_set_maintenance(false);
         neutron_json(['ok' => true, 'steps' => $steps, 'version' => neutron_version(), 'maintenance' => $keep]);

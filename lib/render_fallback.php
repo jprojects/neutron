@@ -70,6 +70,16 @@ function neutron_render_fallback(string $html, array $content, array $options = 
         neutron_fallback_apply_lang($root, $options['lang']);
     }
 
+    // Imágenes adaptadas a la pantalla, igual que en render_dom.php
+    if (empty($options['editing'])) {
+        foreach (neutron_find_all($root, fn($n) => $n->tag === 'img' && isset($n->attrs['src']) && !isset($n->attrs['srcset'])) as $img) {
+            $set = neutron_image_srcset((string)$img->attrs['src']);
+            if ($set === '') continue;
+            $img->attrs['srcset'] = $set;
+            $img->attrs['sizes'] ??= '100vw';
+        }
+    }
+
     if (!empty($options['base'])) {
         $head = neutron_find_first($root, fn($n) => $n->tag === 'head');
         if ($head) {

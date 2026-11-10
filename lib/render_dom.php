@@ -63,6 +63,17 @@ function neutron_render_dom(string $html, array $content, array $options = []): 
         neutron_dom_apply_lang($dom, $xpath, $options['lang']);
     }
 
+    // Imágenes adaptadas a la pantalla (lib/images.php): srcset con sus versiones; en el editor no (al cambiar una foto
+    // se tiene que ver la nueva)
+    if (empty($options['editing'])) {
+        foreach (iterator_to_array($xpath->query('//img[@src and not(@srcset)]')) as $img) {
+            $set = neutron_image_srcset($img->getAttribute('src'));
+            if ($set === '') continue;
+            $img->setAttribute('srcset', $set);
+            if (!$img->hasAttribute('sizes')) $img->setAttribute('sizes', '100vw');
+        }
+    }
+
     if (!empty($options['base'])) {
         $head = $dom->getElementsByTagName('head')->item(0);
         if ($head) {

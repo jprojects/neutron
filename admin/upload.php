@@ -78,6 +78,10 @@ if ($optimized !== null) {
     $name = basename($optimized);
 }
 
+// Versiones para el móvil (srcset): lib/images.php
+require_once __DIR__ . '/../lib/images.php';
+neutron_image_make_variants($dest);
+
 neutron_log('info', 'Imagen subida: {name}', ['name' => $name, 'bytes' => filesize($dest), 'original' => $file['size']]);
 echo json_encode(['ok' => true, 'url' => 'site/uploads/' . $name]);
 
