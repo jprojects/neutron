@@ -60,6 +60,7 @@
       '<label class="neutron-pages" hidden title="También: Ctrl/Cmd + clic en un enlace de la página">Página <select></select></label>' +
       '<label class="neutron-langs" hidden>Idioma <select></select></label>' +
       '<button type="button" data-action="save">Guardar cambios</button>' +
+      '<button type="button" data-action="panel" title="Inicio, todo el contenido en formularios y más">Panel</button>' +
       '<button type="button" data-action="exit">Salir</button>' +
       '<button type="button" data-action="logout">Cerrar sesión</button>' +
       '<span class="neutron-status"></span>';
@@ -175,6 +176,7 @@
       var action = e.target.getAttribute('data-action');
       if (action === 'save') doSave();
       if (action === 'exit') exitAdminMode();
+      if (action === 'panel' && (!dirty || confirm('Hay cambios sin guardar. ¿Ir al panel sin guardarlos?'))) { dirty = false; location.href = 'admin/'; }
       if (action === 'logout') doLogout();
     });
 

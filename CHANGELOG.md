@@ -2,6 +2,16 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.13.0 — 2026-11-10
+
+- **Panel de la web** en `/admin/`, con la contraseña del editor: inicio (datos de la web, últimos cambios y avisos de
+  AFI desde `data/announcements.json`) y todo el contenido en formularios por página y sección, en cada idioma (textos,
+  texto con formato, imágenes, enlaces, descripción para Google y listas con sublistas). Funciona con cualquier web ya
+  hecha: los campos salen de las plantillas (`lib/schema.php`). Guarda con `admin/save.php`, con los avisos de
+  conflicto de la 1.12. La barra del editor tiene un botón **Panel**.
+- `router.php` (servidor de desarrollo) sirve el `index.php` de una carpeta (`/admin/`) como el `DirectoryIndex` de
+  Apache.
+
 ## 1.12.0 — 2026-11-10
 
 - El editor solo manda lo que se ha cambiado (campos, imágenes y listas), no toda la página. Si otra ventana (otra pestaña

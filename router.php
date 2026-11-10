@@ -23,6 +23,14 @@ if (preg_match('~^([a-z0-9][a-z0-9-]*)\.html$~', $rel, $m) && !is_file(__DIR__ .
 
 // Ficheros que existen (y /index.php/…): el servidor los sirve tal cual. El resto, a index.php
 // (redirecciones de site/redirects.json o 404), igual que la última regla de .htaccess.
+// Carpeta con index.php (el panel, /admin/): como DirectoryIndex; sin la barra final, se añade (como mod_dir)
+if ($rel !== '' && is_dir(__DIR__ . '/' . rtrim($rel, '/')) && is_file(__DIR__ . '/' . rtrim($rel, '/') . '/index.php')) {
+    if (!str_ends_with($rel, '/')) {
+        header('Location: /' . $rel . '/' . (($q = parse_url($_SERVER['REQUEST_URI'], PHP_URL_QUERY)) ? '?' . $q : ''), true, 301);
+        return true;
+    }
+    return false;
+}
 if ($rel === '' || is_file(__DIR__ . '/' . $rel) || preg_match('~^index\.php(/|$)~', $rel)) {
     return false;
 }

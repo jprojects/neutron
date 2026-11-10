@@ -382,6 +382,31 @@ se suben sin tocar (pueden ser animados). Si llega una imagen grande sin pasar p
 `admin/upload.php` hace lo mismo con GD, si hay memoria; si no, la guarda tal cual. El lado máximo es
 `NEUTRON_UPLOAD_MAX_SIDE` en `admin/upload.php` y `MAX_SIDE` en `assets/editor.js`.
 
+## Panel (`/admin/`)
+
+El cliente entra en `/admin/` con la misma contraseña que el editor (la sesión es la misma) y ve:
+
+- **Inicio**: nombre de la web, páginas, entradas del blog e idiomas, los **últimos cambios** (de `data/edits.json`,
+  con la página y la sección de cada campo) y los **avisos de AFI** que haya en `data/announcements.json`
+  (`{"items": [{"title", "text", "url", "button", "until": "AAAA-MM-DD"}]}`; los caducados no salen).
+- **Contenido**: todo lo editable de la web en formularios, por página y sección, en cada idioma. «Común a todas las
+  páginas» son los parciales (`site/partials/`: cabecera, pie…). Textos (una línea o área de texto según la longitud),
+  texto con formato (`data-edit-html`, con barra), imágenes (se optimizan en el navegador antes de subirlas, como en el
+  editor), enlaces editables, la descripción para Google (`data-edit-content`) y listas con sus sublistas (añadir,
+  quitar y mover). En otro idioma, lo que aún no está traducido sale marcado y con el texto del idioma principal.
+  «Ver en la web» abre esa página en modo edición, en la sección (si tiene `id`).
+- **Editar en la web**: la edición sobre la propia página (`?admin`), que tiene un botón **Panel** para volver.
+
+No hay que preparar nada en cada web: `lib/schema.php` saca los campos de las plantillas (sin DOMDocument). Las
+secciones son los `<section>`, `<header>`, `<footer>`, `<nav>`, `<aside>`, `<article>` y `<form>` con campos; un
+bloque que contiene `<section>` (un `<main>`) se recorre por dentro. El nombre de cada sección es su primer título
+(h1–h3), si no su `id`, si no el principio de su primer texto. Lo que está fuera de cualquier sección (el `<title>`, la
+descripción) va en «Datos de la página». Una clave que sale en varios sitios (el teléfono en la cabecera y en el pie)
+se edita una sola vez, en el primero. El botón de añadir de una lista usa su `data-edit-add`.
+
+El panel lee con `admin/api.php` (`?a=home`, `?a=content&lang=…`) y guarda con `admin/save.php`, igual que el editor:
+solo lo cambiado y con los mismos avisos si otra ventana ha cambiado lo mismo.
+
 ## Configuración
 
 `config.php` tiene los valores por defecto comentados; `config.local.php` devuelve solo lo que cambia:
