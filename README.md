@@ -366,6 +366,14 @@ En las webs de varios idiomas, otro selector **Idioma** abre la misma página en
 La sesión solo arranca con `?admin`: los visitantes no reciben la cookie `neutron_admin_sid`.
 5 intentos fallidos por IP bloquean 15 minutos. Imágenes JPG, PNG, GIF o WebP de hasta 5 MB (SVG no, por XSS).
 
+**Guardar solo lo que cambia, sin pisar otra ventana**: el editor recuerda lo que había al abrir la página y al guardar
+manda solo los campos, imágenes y listas que se han cambiado, con la hora en que se abrió la página (`base`).
+`admin/save.php` apunta en `data/edits.json` cuándo se guardó cada campo (por idioma; `_` = `content.json`). Si un campo
+que se manda lo ha guardado otra ventana después de `base` (la misma página en otra pestaña, otra persona) con otro
+valor, no lo guarda y responde 409 con la lista (`conflict`); el editor pregunta si **guardar lo suyo** (`force`) o
+**recargar la página**. Lectura, comprobación y escritura van bajo un bloqueo (`data/save.lock`). Un guardado sin `base`
+(un editor anterior a la 1.12 abierto durante la actualización) se guarda como antes.
+
 **Imágenes optimizadas al subirlas**: el editor reduce la imagen en el navegador a 2000 px de lado como mucho y la pasa
 a WebP (calidad 82; JPG, o PNG si tiene transparencia, en los navegadores que no saben hacer WebP), con la orientación
 de la foto ya aplicada y sin los datos EXIF (ubicación incluida). Una foto del móvil de 3–8 MB queda en unos 200–500 KB,

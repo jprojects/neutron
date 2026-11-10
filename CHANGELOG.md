@@ -2,6 +2,14 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.12.0 — 2026-11-10
+
+- El editor solo manda lo que se ha cambiado (campos, imágenes y listas), no toda la página. Si otra ventana (otra pestaña
+  o otra persona) ha guardado el mismo campo después de abrir la página, avisa y pregunta si guardar lo suyo o recargar,
+  en vez de pisarlo sin decir nada. Hora del último guardado de cada campo en `data/edits.json`; los guardados se hacen
+  bajo un bloqueo. Compatible con un editor de antes abierto durante la actualización.
+- Guardar sin cambios ya no escribe nada («Sin cambios»). El log apunta qué campos se han guardado.
+
 ## 1.11.0 — 2026-11-06
 
 - `data-edit-html="clave"`: texto con formato por idioma (títulos, listas, enlaces, tablas), limpio con la lista blanca

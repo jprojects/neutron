@@ -47,3 +47,27 @@ function neutron_save_content(array $data, ?string $path = null): bool {
     fclose($fp);
     return $ok;
 }
+
+// Cuándo se guardó cada campo por última vez (data/edits.json: {ámbito: {clave: segundos}}), para que dos ventanas del
+// editor (la página y el panel, o dos personas) no se pisen: lo que se cambió después de abrir la página es un conflicto.
+// Ámbito: el idioma del fichero de textos, o "_" para content.json (web de un idioma, o las imágenes comunes).
+function neutron_edits_path(): string {
+    return NEUTRON_DATA . '/edits.json';
+}
+
+function neutron_edit_times(): array {
+    $data = is_file(neutron_edits_path()) ? json_decode((string)file_get_contents(neutron_edits_path()), true) : null;
+    return is_array($data) ? $data : [];
+}
+
+function neutron_record_edits(array $times, array $keysByScope, float $now): void {
+    foreach ($keysByScope as $scope => $keys) {
+        foreach ($keys as $key) $times[$scope][$key] = $now;
+    }
+    require_once NEUTRON_ROOT . '/lib/remote/state.php';
+    try {
+        neutron_write_json(neutron_edits_path(), $times);
+    } catch (RuntimeException $e) {
+        neutron_log('warning', 'No se pudo apuntar la hora de los cambios: {error}', ['error' => $e->getMessage()]);
+    }
+}

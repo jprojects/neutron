@@ -166,6 +166,11 @@
       bar.insertBefore(b, statusEl);
     });
 
+    // Lo que había al abrir la página (o en el último guardado): al guardar solo se manda lo que ha cambiado, con la
+    // hora de apertura (base), y el servidor avisa si otra ventana ha cambiado lo mismo mientras tanto.
+    var saved = collectPayload();
+    var base = cfg.base || null;
+
     bar.addEventListener('click', function (e) {
       var action = e.target.getAttribute('data-action');
       if (action === 'save') doSave();
@@ -392,11 +397,13 @@
       form.querySelector('label span').textContent = opts.label;
       form.querySelector('.neutron-hint').textContent = opts.hint || '';
       submit.textContent = opts.button || 'Aceptar';
+      var cancelBtn = form.querySelector('[data-dialog="cancel"]');
+      if (opts.cancel) cancelBtn.textContent = opts.cancel;
+      if (opts.noInput) form.querySelector('label').remove();
       input.value = opts.value || '';
       if (opts.placeholder) input.placeholder = opts.placeholder;
       document.body.appendChild(overlay);
-      input.focus();
-      input.select();
+      if (opts.noInput) submit.focus(); else { input.focus(); input.select(); }
 
       function close() {
         document.removeEventListener('keydown', onKey);
@@ -405,7 +412,7 @@
       function onKey(e) { if (e.key === 'Escape') close(); }
       document.addEventListener('keydown', onKey);
       overlay.addEventListener('mousedown', function (e) { if (e.target === overlay) close(); });
-      form.querySelector('[data-dialog="cancel"]').addEventListener('click', close);
+      cancelBtn.addEventListener('click', function () { close(); if (opts.onCancel) opts.onCancel(); });
 
       form.addEventListener('submit', function (e) {
         e.preventDefault();
@@ -726,17 +733,59 @@
       });
     }
 
+    // Solo lo que ha cambiado respecto a «saved»
+    function changedPayload(now) {
+      var out = { fields: {}, images: {}, collections: {}, lang: now.lang, base: base };
+      var count = 0;
+      ['fields', 'images', 'collections'].forEach(function (group) {
+        Object.keys(now[group]).forEach(function (key) {
+          if (JSON.stringify(now[group][key]) === JSON.stringify(saved[group][key])) return;
+          out[group][key] = now[group][key];
+          count++;
+        });
+      });
+      return count ? out : null;
+    }
+
+    // Texto con el que reconocer un campo en el aviso de conflicto
+    function describeKey(key) {
+      var el = document.querySelector('[data-edit="' + key + '"], [data-edit-html="' + key + '"], [data-edit-href="' + key + '"], [data-edit-collection="' + key + '"]');
+      if (el && el.hasAttribute('data-edit-href')) return 'Enlace ' + key.replace(/^social_/, '');
+      if (!el) el = document.querySelector('[data-edit-img="' + key + '"]');
+      if (el && el.tagName.toLowerCase() === 'img') return 'Imagen ' + (el.getAttribute('alt') || key);
+      var text = el ? (el.textContent || '').replace(/\s+/g, ' ').trim() : '';
+      return text ? '«' + (text.length > 50 ? text.slice(0, 50) + '…' : text) + '»' : key;
+    }
+
     // Guarda los textos de la página y, en la página de una entrada, la entrada. then: al acabar bien.
-    function doSave(then) {
+    // force: guardar aunque otra ventana haya cambiado lo mismo (tras preguntarlo).
+    function doSave(then, force) {
       statusEl.textContent = 'Guardando...';
-      var requests = [fetch('admin/save.php', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': cfg.csrf },
-        body: JSON.stringify(collectPayload())
-      }).then(function (r) { return r.json(); })];
+      var now = collectPayload();
+      var payload = changedPayload(now);
+      var requests = [];
+      if (payload) {
+        if (force) payload.force = true;
+        requests.push(fetch('admin/save.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': cfg.csrf },
+          body: JSON.stringify(payload)
+        }).then(function (r) { return r.json(); }).then(function (data) {
+          if (data.ok) { saved = now; base = data.base || base; }
+          return data;
+        }));
+      }
       if (post) requests.push(postRequest({ action: 'save', fields: collectPost() }));
+      if (!requests.length) {
+        dirty = false;
+        statusEl.textContent = 'Sin cambios';
+        if (typeof then === 'function') then();
+        return;
+      }
       Promise.all(requests)
         .then(function (results) {
+          var conflict = results.filter(function (d) { return d.conflict; })[0];
+          if (conflict) return askConflict(conflict.conflict, then);
           var failed = results.filter(function (d) { return !d.ok; })[0];
           if (!failed) dirty = false;
           statusEl.textContent = failed ? 'Error: ' + (failed.error || '') : 'Guardado ✓';
@@ -745,6 +794,20 @@
         .catch(function () {
           statusEl.textContent = 'Error de red al guardar';
         });
+    }
+
+    // Otra ventana (el panel u otra persona) ha guardado algo de lo mismo después de abrir esta página
+    function askConflict(keys, then) {
+      statusEl.textContent = 'Sin guardar: hay cambios de otra ventana';
+      openDialog({
+        title: 'Cambios en otra ventana',
+        noInput: true,
+        hint: 'Desde que abriste esta página se ha guardado otra versión de: ' + keys.map(describeKey).join(', ') +
+          '. Si guardas, se sustituye por lo que tienes aquí. Si recargas, verás la otra versión y perderás los cambios que no hayas guardado.',
+        button: 'Guardar lo mío',
+        cancel: 'Recargar la página',
+        onCancel: function () { dirty = false; location.reload(); }
+      }, function () { doSave(then, true); });
     }
 
     function exitAdminMode() {

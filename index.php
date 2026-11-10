@@ -180,6 +180,8 @@ if (isset($_GET['admin'])) {
     $options['admin_bootstrap'] = [
         'loggedIn' => neutron_is_logged_in(),
         'csrf' => $_SESSION['csrf'],
+        // Hora en que se abre la página: al guardar, lo que otra ventana haya cambiado después es un conflicto
+        'base' => microtime(true),
     ];
     if (neutron_is_logged_in()) {
         // Selector de páginas (y de idiomas) de la barra del editor; rutas relativas a la instalación
