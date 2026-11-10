@@ -10,6 +10,7 @@ require_once __DIR__ . '/../recaptcha.php';
 require_once __DIR__ . '/../content.php';
 require_once __DIR__ . '/../routing.php';
 require_once __DIR__ . '/../posts.php';
+require_once __DIR__ . '/../announcements.php';
 
 // API para el panel central de instalaciones (Cosmo): index.php?r=remote&a=acción (y ?r=status).
 // Mismas acciones y respuestas que la de Quasar, así Cosmo gestiona las dos igual.
@@ -32,6 +33,8 @@ const NEUTRON_REMOTE_ACTIONS = [
     'update' => ['POST', 'neutron_remote_update'],
     'migrate' => ['POST', 'neutron_remote_migrate'],
     'maintenance' => ['POST', 'neutron_remote_maintenance'],
+    'announcements' => ['GET', 'neutron_remote_announcements'],
+    'announcements-set' => ['POST', 'neutron_remote_announcements_set'],
 ];
 
 function neutron_remote_handle(string $action): void {
@@ -290,6 +293,23 @@ function neutron_remote_maintenance(): void {
     neutron_set_maintenance($on, is_string($_POST['reason'] ?? null) ? mb_substr($_POST['reason'], 0, 200) : '');
     neutron_log('notice', 'Mantenimiento {state}', ['state' => $on ? 'activado' : 'desactivado']);
     neutron_json(['ok' => true, 'maintenance' => neutron_maintenance()]);
+}
+
+// Avisos de AFI del panel (lib/announcements.php): los guardados y sus vistas y clics
+function neutron_remote_announcements(): void {
+    neutron_json(['ok' => true, 'items' => neutron_announcements_all(), 'stats' => neutron_announcements_stats() ?: new stdClass()]);
+}
+
+// items = JSON con la lista entera de avisos de esta web (sustituye la anterior; [] los quita todos)
+function neutron_remote_announcements_set(): void {
+    $items = json_decode((string)($_POST['items'] ?? ''), true);
+    if (!is_array($items)) {
+        neutron_remote_fail('items debe ser una lista JSON', 422);
+        return;
+    }
+    $saved = neutron_announcements_save($items);
+    neutron_log('notice', 'Avisos de AFI actualizados desde Cosmo: {count}', ['count' => count($saved)]);
+    neutron_json(['ok' => true, 'items' => $saved, 'stats' => neutron_announcements_stats() ?: new stdClass()]);
 }
 
 // ------------------------------------------------------------------ utilidades

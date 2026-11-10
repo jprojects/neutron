@@ -2,6 +2,12 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.14.0 — 2026-11-10
+
+- **Campañas de AFI en el panel**: acciones remotas `announcements` y `announcements-set` para que Cosmo (0.5.0+) envíe
+  los avisos del inicio del panel (`/admin/`). Cada aviso cuenta sus vistas (una por sesión) y los clics del botón,
+  que Cosmo recoge. Los enlaces solo pueden ser http(s).
+
 ## 1.13.0 — 2026-11-10
 
 - **Panel de la web** en `/admin/`, con la contraseña del editor: inicio (datos de la web, últimos cambios y avisos de

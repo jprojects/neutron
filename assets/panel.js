@@ -133,7 +133,9 @@
       (home.notices || []).forEach(function (n) {
         main.appendChild(h('section', { class: 'np-notice' }, [
           h('span', { class: 'np-eyebrow', text: 'AFI' }), h('h2', { text: n.title }), n.text ? h('p', { text: n.text }) : null,
-          n.url ? h('a', { class: 'np-button', href: n.url, target: '_blank', rel: 'noopener', text: n.button || 'Más información' }) : null
+          n.url ? h('a', { class: 'np-button', href: n.url, target: '_blank', rel: 'noopener', text: n.button || 'Más información', onclick: function () {
+            fetch('api.php?a=notice-click&id=' + encodeURIComponent(n.id), { method: 'POST', keepalive: true, credentials: 'same-origin', headers: { 'X-CSRF-Token': cfg.csrf } });
+          } }) : null
         ]));
       });
       var langs = home.languages ? Object.keys(home.languages.languages).length : 1;

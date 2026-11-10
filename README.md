@@ -387,8 +387,11 @@ se suben sin tocar (pueden ser animados). Si llega una imagen grande sin pasar p
 El cliente entra en `/admin/` con la misma contraseña que el editor (la sesión es la misma) y ve:
 
 - **Inicio**: nombre de la web, páginas, entradas del blog e idiomas, los **últimos cambios** (de `data/edits.json`,
-  con la página y la sección de cada campo) y los **avisos de AFI** que haya en `data/announcements.json`
-  (`{"items": [{"title", "text", "url", "button", "until": "AAAA-MM-DD"}]}`; los caducados no salen).
+  con la página y la sección de cada campo) y los **avisos de AFI**: las campañas que envía Cosmo (*Campañas*) con la
+  acción remota `announcements-set`. Se guardan en `data/announcements.json`
+  (`{"items": [{"id", "title", "text", "url", "button", "until": "AAAA-MM-DD"}]}`; los caducados no salen, el enlace
+  solo puede ser http(s) y sin enlace no hay botón). Cada aviso cuenta sus vistas (una por sesión del panel) y los
+  clics del botón en `data/announcements-stats.json`, que Cosmo lee al enviar (`lib/announcements.php`).
 - **Contenido**: todo lo editable de la web en formularios, por página y sección, en cada idioma. «Común a todas las
   páginas» son los parciales (`site/partials/`: cabecera, pie…). Textos (una línea o área de texto según la longitud),
   texto con formato (`data-edit-html`, con barra), imágenes (se optimizan en el navegador antes de subirlas, como en el
@@ -459,6 +462,8 @@ sesión ni envían cookies. Úsala solo por HTTPS.
 | `update` (`package`, `sha256`, `version`, `backup`, `force`) | POST | Instala un paquete de versión |
 | `migrate` | POST | Prepara las carpetas de datos y quita el mantenimiento (no hay BD) |
 | `maintenance` (`on=1\|0`) | POST | Modo mantenimiento: la web, el formulario y el editor responden 503 |
+| `announcements` | GET | Avisos de AFI del panel (`items`) y sus vistas y clics (`stats`: `{id: {views, clicks}}`) |
+| `announcements-set` (`items` = JSON) | POST | Sustituye los avisos por la lista enviada (`[]` los quita); responde como `announcements` |
 
 ```bash
 curl -H "X-Quasar-Token: el-token" "https://cliente.example.com/index.php?r=remote&a=status"

@@ -4,6 +4,7 @@
 //
 //   GET admin/api.php?a=home                inicio: datos de la web, últimos cambios y avisos de AFI
 //   GET admin/api.php?a=content[&lang=es]   lo editable (lib/schema.php) con los valores de ese idioma
+//   POST admin/api.php?a=notice-click&id=…   clic en el botón de un aviso de AFI (estadística para Cosmo)
 define('NEUTRON_APP', true);
 
 require_once __DIR__ . '/../lib/bootstrap.php';
@@ -11,6 +12,7 @@ require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/content.php';
 require_once __DIR__ . '/../lib/schema.php';
 require_once __DIR__ . '/../lib/posts.php';
+require_once __DIR__ . '/../lib/announcements.php';
 
 neutron_block_if_maintenance(true);
 neutron_start_session();
@@ -64,16 +66,15 @@ if ($action === 'home') {
     usort($recent, fn($a, $b) => $b['time'] <=> $a['time']);
     $posts = 0;
     foreach (neutron_collections() as $c) $posts += count(neutron_posts_list($c, true));
-    // Avisos de AFI (los deja Cosmo por la API remota): solo los vigentes
-    $notices = [];
-    $file = NEUTRON_DATA . '/announcements.json';
-    $data = is_file($file) ? json_decode((string)file_get_contents($file), true) : null;
-    foreach ((array)($data['items'] ?? []) as $n) {
-        if (!is_array($n) || empty($n['title'])) continue;
-        if (!empty($n['until']) && strtotime((string)$n['until']) < time()) continue;
-        $notices[] = ['title' => (string)$n['title'], 'text' => (string)($n['text'] ?? ''),
-            'url' => (string)($n['url'] ?? ''), 'button' => (string)($n['button'] ?? '')];
+    // Avisos de AFI (los envía Cosmo, lib/announcements.php): los vigentes; una vista por sesión
+    $notices = neutron_announcements_active();
+    $seen = (array)($_SESSION['neutron_notices_seen'] ?? []);
+    foreach ($notices as $n) {
+        if (in_array($n['id'], $seen, true)) continue;
+        neutron_announcements_count($n['id'], 'views');
+        $seen[] = $n['id'];
     }
+    $_SESSION['neutron_notices_seen'] = $seen;
     echo json_encode([
         'ok' => true,
         'name' => neutron_panel_site_name(),
@@ -84,6 +85,13 @@ if ($action === 'home') {
         'recent' => array_slice($recent, 0, 8),
         'notices' => $notices,
     ]);
+    exit;
+}
+
+if ($action === 'notice-click' && ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    neutron_require_csrf();
+    neutron_announcements_count((string)($_GET['id'] ?? ''), 'clicks');
+    echo json_encode(['ok' => true]);
     exit;
 }
 
