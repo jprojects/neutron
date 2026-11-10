@@ -404,6 +404,11 @@ El cliente entra en `/admin/` con la misma contraseña que el editor (la sesión
   guarda el último informe de cada página y tipo y el historial en `data/seo/` (`lib/seo.php`). Límite de análisis al
   día para toda la web (`pulsar.daily_limit`, SEO y GEO juntos); solo cuentan los que Pulsar llega a hacer, y no puede
   haber dos a la vez. En una web de varios idiomas se analiza la página en el idioma principal.
+- **IA** (si está activada `ai`): botón **✨ IA** en cada texto de *Contenido* para **mejorarlo**, **corregir la
+  ortografía** o **traducirlo a los otros idiomas** de la web, y en el título y la descripción para Google, **escribirlos a
+  partir del texto de la página**. La IA solo propone: la propuesta sale debajo del campo, se puede retocar y se usa o se
+  descarta (las traducciones se guardan en cada idioma al pulsar «Guardar las traducciones»). `lib/ai.php` y
+  `admin/ai.php`; ver «IA» en Configuración.
 - **Editar en la web**: la edición sobre la propia página (`?admin`), que tiene un botón **Panel** para volver.
 
 No hay que preparar nada en cada web: `lib/schema.php` saca los campos de las plantillas (sin DOMDocument). Las
@@ -440,6 +445,22 @@ return [
 
 `tools/new-site.py` lo pone solo si existe `~/.config/neutron/pulsar.json` (`{"url": "…", "token": "…"}`), y
 `tools/check.py` avisa si falta.
+
+**IA** (textos del panel): API de Anthropic, con las mismas claves que la IA de Quasar para que Cosmo muestre el gasto
+del mes, el límite y los avisos igual. Una clave por cliente (un espacio de trabajo en la consola de Anthropic, con su
+propio límite de gasto) sirve para controlar y facturar el consumo de cada web:
+
+```php
+'ai' => ['enabled' => true, 'api_key' => 'sk-ant-…', 'monthly_limit_eur' => 10],
+// opcional: 'model' (claude-opus-5-5 por defecto; claude-haiku-5-5 es mucho más barato), 'effort' (low), 'eur_per_usd',
+// 'prices' (dólares por millón de tokens de cada modelo), 'base_url' (un proxy), 'timeout'
+```
+
+Cada consulta va a `/v1/messages` con la respuesta en JSON con esquema fijo (`output_config.format`) y
+`fallbacks: "default"` (si un filtro de seguridad la rechaza, la repite el modelo que recomienda Anthropic). El consumo
+del mes (consultas, errores, tokens y coste en dólares) está en `data/ai/usage.json`; al llegar a `monthly_limit_eur`
+la IA se para hasta el mes siguiente. El estado remoto (`status` → `ai`) da `month_cost_eur`, `monthly_limit_eur`,
+`limit_state` (`ok`, `warn` desde `warn_at`, `blocked`), `queries`, `errors` y tokens.
 
 ## Log
 

@@ -2,6 +2,13 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.16.0 — 2026-11-10
+
+- **IA en el panel**: botón ✨ IA en cada texto para mejorarlo, corregir la ortografía o traducirlo a los otros idiomas,
+  y para escribir el título y la descripción para Google a partir de la página. La IA solo propone; el cliente usa,
+  retoca o descarta. Configuración nueva `ai` (mismas claves que Quasar: clave de Anthropic por cliente, modelo, límite
+  mensual en euros). El consumo del mes va en `data/ai/usage.json` y en el estado remoto, para Cosmo.
+
 ## 1.15.0 — 2026-11-10
 
 - **SEO y GEO en el panel** con Pulsar: se elige la página y se analiza; sale la nota, la puntuación por categoría y lo

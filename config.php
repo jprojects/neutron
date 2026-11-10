@@ -57,6 +57,27 @@ function neutron_config_defaults(): array {
             'daily_limit' => 3,         // análisis al día (SEO y GEO juntos) para toda la web
         ],
 
+        // IA en el editor y el panel (mejorar, corregir y traducir textos, escribir la descripción para Google), con la
+        // API de Anthropic. Mismas claves que la IA de Quasar, así Cosmo muestra el gasto igual. Una clave por cliente
+        // (un espacio de trabajo en la consola de Anthropic, con su límite de gasto) para controlar y facturar el consumo.
+        'ai' => [
+            'enabled' => false,
+            'api_key' => '',
+            'model' => 'claude-opus-5-5',
+            'base_url' => '',           // URL de la API si se pasa por un proxy o pasarela (vacío: la de Anthropic)
+            'effort' => 'low',          // low | medium | high: cuánto razona el modelo (más = más lento y caro)
+            'timeout' => 60,            // segundos
+            'monthly_limit_eur' => 0,   // gasto máximo al mes en euros (0 = sin límite); al llegar, la IA se para
+            'warn_at' => 0.8,           // a partir de esta fracción del límite, Cosmo avisa
+            'eur_per_usd' => 0.92,      // cambio para pasar a euros los precios en dólares; revísalo
+            // Dólares por millón de tokens (precios de Anthropic; compruébalos en su web al cambiar de modelo)
+            'prices' => [
+                'claude-haiku-5-5' => ['input' => 0.10, 'output' => 0.50],
+                'claude-sonnet-5-5' => ['input' => 2.00, 'output' => 10.00],
+                'claude-opus-5-5' => ['input' => 4.00, 'output' => 20.00],
+            ],
+        ],
+
         'log' => [
             'level' => 'info',          // debug | info | notice | warning | error
             'keep_days' => 30,

@@ -239,7 +239,7 @@
         ? h('a', { class: 'np-link np-small', href: siteHref(page.href) + '?admin' + (s.id ? '#' + s.id : ''), target: '_blank', rel: 'noopener', text: 'Ver en la web ↗' })
         : null;
       var card = h('section', { class: 'np-card' }, [h('div', { class: 'np-card-head' }, [h('h2', { text: s.title }), link])]);
-      s.fields.forEach(function (f) { card.appendChild(fieldRow(f)); });
+      s.fields.forEach(function (f) { card.appendChild(fieldRow(f, s, page)); });
       main.appendChild(card);
     });
   }
@@ -259,7 +259,7 @@
   }
 
   // Un campo de primer nivel: su valor se guarda en state.values[key] cuando cambia
-  function fieldRow(f) {
+  function fieldRow(f, section, page) {
     var initial = clone(valueOf(f));
     state.original[f.key] = initial;
     var set = function (v) {
@@ -269,7 +269,103 @@
     };
     var label = h('div', { class: 'np-label' }, [h('span', { text: f.label }),
       untranslated(f) ? h('span', { class: 'np-tag np-tag-warn', text: 'Sin traducir' }) : null]);
-    return h('div', { class: 'np-field' }, [label, control(f, initial, set)]);
+    var ctrl = control(f, initial, set);
+    var row = h('div', { class: 'np-field' }, [label, ctrl]);
+    if (cfg.ai && f.type === 'text' && /^(INPUT|TEXTAREA)$/.test(ctrl.tagName)) label.appendChild(aiButton(f, ctrl, row, section, page));
+    return row;
+  }
+
+  // ------------------------------------------------------------------ IA (admin/ai.php): propone y el cliente decide
+  function aiButton(f, input, row, section, page) {
+    var langs = cfg.languages ? Object.keys(cfg.languages.languages) : [];
+    var actions = [];
+    if (f.label === 'Descripción para Google') actions.push(['seo_description', 'Escribir con IA a partir de la página']);
+    if (f.label === 'Título de la pestaña') actions.push(['seo_title', 'Escribir con IA a partir de la página']);
+    actions.push(['improve', 'Mejorar el texto'], ['fix', 'Corregir ortografía']);
+    if (langs.length > 1) actions.push(['translate', 'Traducir a los otros idiomas']);
+    var menu = h('div', { class: 'np-ai-menu', hidden: true }, actions.map(function (a) {
+      return h('button', { type: 'button', text: a[1], onclick: function () { menu.hidden = true; askAi(a[0], f, input, row, section, page); } });
+    }));
+    document.addEventListener('click', function (e) { if (!menu.contains(e.target) && !btn.contains(e.target)) menu.hidden = true; });
+    var btn = h('button', { type: 'button', class: 'np-ai', title: 'Ayuda de la IA', text: '✨ IA', onclick: function () { menu.hidden = !menu.hidden; } });
+    return h('span', { class: 'np-ai-wrap' }, [btn, menu]);
+  }
+
+  function pageText(page) {
+    var out = [];
+    page.sections.forEach(function (s) {
+      s.fields.forEach(function (f) {
+        if (f.type !== 'text' || f.label === 'Título de la pestaña' || f.label === 'Descripción para Google') return;
+        var v = valueOf(f);
+        if (typeof v === 'string' && v.trim()) out.push(v.trim());
+      });
+    });
+    return out.join('\n');
+  }
+
+  function askAi(action, f, input, row, section, page) {
+    var old = row.querySelector('.np-ai-box');
+    if (old) old.remove();
+    var box = h('div', { class: 'np-ai-box' }, [h('p', { class: 'np-muted', text: 'La IA está escribiendo una propuesta…' })]);
+    row.appendChild(box);
+    var langs = cfg.languages ? Object.keys(cfg.languages.languages) : [];
+    var kind = f.label === 'Descripción para Google' ? 'description' : f.label === 'Título de la pestaña' ? 'tab'
+      : f.label === 'Título' || f.label === 'Subtítulo' ? 'title' : f.label === 'Botón o enlace' ? 'button' : 'text';
+    var body = { action: action, text: input.value, lang: state.lang || (cfg.languages && cfg.languages.default) || document.documentElement.lang,
+      kind: kind, context: [document.querySelector('.np-site').textContent, page.title, section.title].join(' · ') };
+    if (action === 'translate') body.to = langs.filter(function (l) { return l !== body.lang; });
+    if (action === 'seo_description' || action === 'seo_title') body.page = pageText(page);
+    post('ai.php', body).then(function (d) {
+      box.innerHTML = '';
+      if (!d.ok) { box.appendChild(h('p', { class: 'np-error', text: d.error || 'La IA no ha podido responder' })); return; }
+      if (action === 'translate') return showTranslations(box, f, d.translations);
+      box.appendChild(h('div', { class: 'np-ai-head', text: 'Propuesta de la IA' }));
+      var proposal = h('textarea', { class: 'np-input', rows: Math.min(8, Math.max(2, Math.ceil(d.text.length / 80))) });
+      proposal.value = d.text;
+      box.appendChild(proposal);
+      if (kind === 'description' || kind === 'tab') box.appendChild(h('p', { class: 'np-muted np-small', text: d.text.length + ' caracteres' }));
+      box.appendChild(h('div', { class: 'np-ai-actions' }, [
+        h('button', { type: 'button', class: 'np-button np-small-button', text: 'Usar', onclick: function () {
+          input.value = proposal.value;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+          box.remove();
+          input.focus();
+        } }),
+        h('button', { type: 'button', class: 'np-button np-secondary np-small-button', text: 'Descartar', onclick: function () { box.remove(); } })
+      ]));
+    }).catch(function () { box.innerHTML = ''; box.appendChild(h('p', { class: 'np-error', text: 'Error de red' })); });
+  }
+
+  // Traducciones: se guardan en cada idioma (cada uno es su fichero de textos), sin tocar el que se está editando
+  function showTranslations(box, f, translations) {
+    var names = cfg.languages.languages;
+    var inputs = {};
+    box.appendChild(h('div', { class: 'np-ai-head', text: 'Traducciones propuestas' }));
+    Object.keys(translations).forEach(function (l) {
+      var t = h('textarea', { class: 'np-input', rows: Math.min(6, Math.max(1, Math.ceil(translations[l].length / 80))) });
+      t.value = translations[l];
+      inputs[l] = t;
+      box.appendChild(h('label', { class: 'np-ai-lang' }, [h('span', { text: names[l] || l }), t]));
+    });
+    var status = h('span', { class: 'np-muted np-small' });
+    box.appendChild(h('div', { class: 'np-ai-actions' }, [
+      h('button', { type: 'button', class: 'np-button np-small-button', text: 'Guardar las traducciones', onclick: function (e) {
+        e.target.disabled = true;
+        status.textContent = 'Guardando…';
+        var langs = Object.keys(inputs);
+        Promise.all(langs.map(function (l) {
+          var payload = { lang: l, fields: {}, images: {}, collections: {} };
+          payload.fields[f.key] = inputs[l].value;
+          return post('save.php', payload);
+        })).then(function (rs) {
+          var bad = rs.filter(function (r) { return !r.ok; });
+          status.textContent = bad.length ? 'Error: ' + (bad[0].error || '') : 'Guardado en ' + langs.map(function (l) { return l.toUpperCase(); }).join(', ') + ' ✓';
+          if (bad.length) e.target.disabled = false;
+        }).catch(function () { status.textContent = 'Error de red'; e.target.disabled = false; });
+      } }),
+      h('button', { type: 'button', class: 'np-button np-secondary np-small-button', text: 'Cerrar', onclick: function () { box.remove(); } }),
+      status
+    ]));
   }
 
   // El control según el tipo; onChange recibe el valor nuevo
