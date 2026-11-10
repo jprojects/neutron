@@ -514,9 +514,10 @@ salen de ahí (en los dos motores, antes de marcar la página actual y de poner 
            {"href": "https://botiga.example.com", "label": {"ca": "Botiga"}, "button": true, "hidden": false}]}
 ```
 
-- Cada enlace se hace copiando el primer enlace del elemento (clases y atributos, sin su `data-edit`); los marcados como
-  **botón**, el primero con la clase `btn` (si no hay, como los demás). Van donde estaba el primer enlace; lo demás que
-  haya dentro (el selector de idioma) se queda igual.
+- Las entradas del menú son los hijos directos del elemento: un `<a>`, o un `<li>` con su `<a>` (`data-menu` en el
+  `<ul>`). Cada enlace se hace copiando la primera entrada (clases y atributos, sin su `data-edit`); los marcados como
+  **botón**, la primera cuyo enlace tiene en la clase `btn`, `button` o `cta` (`nav-cta`, `btn--primary`…; si no hay,
+  como los demás). Van donde estaba la primera; lo demás que haya dentro (el selector de idioma) se queda igual.
 - Los internos se escriben sin idioma (`la-festa.html`, `noticies/`); los externos (`https://…`) se abren en otra
   pestaña. Solo `http(s)`, `mailto:`, `tel:` y páginas de la web. El texto, en el idioma que se ve, o en el principal.
 - **Sin submenús**: si el menú tiene un desplegable (un `<div>` con más enlaces dentro), no se le pone `data-menu`.

@@ -73,6 +73,11 @@ function neutron_menu_label(array $item): string {
     return $item['label'][$lang ?? ''] ?? $item['label'][$default ?? ''] ?? (string)reset($item['label']);
 }
 
+/** ¿Es un enlace destacado (botón)? Por su clase: btn, button o cta (también nav-cta, btn--primary…) */
+function neutron_menu_is_button(string $class): bool {
+    return (bool)preg_match('/(^|[\s_-])(btn|button|cta)([\s_-]|$)/i', $class);
+}
+
 function neutron_menu_external(string $href): bool {
     return (bool)preg_match('~^https?://~i', $href);
 }
@@ -95,13 +100,21 @@ function neutron_menu_from_template(): ?array {
             $langs ? neutron_read_content(neutron_content_path($l)) : []);
     }
     $items = [];
-    foreach ($nav->children as $a) {
-        if (($a->type ?? '') !== 'element' || $a->tag !== 'a') continue;
-        $text = trim(implode('', array_map(fn($c) => $c->text ?? '', $a->children ?? [])));
+    foreach ($nav->children as $c) {
+        if (($c->type ?? '') !== 'element') continue;
+        $a = $c->tag === 'a' ? $c : ($c->tag === 'li' ? neutron_find_first($c, fn($n) => ($n->tag ?? '') === 'a' && isset($n->attrs['href'])) : null);
+        if (!$a || !isset($a->attrs['href'])) continue;
+        $text = trim(preg_replace('/\s+/u', ' ', neutron_menu_text($a)));
         $key = $a->attrs['data-edit'] ?? null;
         $label = [];
         foreach ($codes as $l) $label[$l] = $key !== null && isset($files[$l][$key]) && is_string($files[$l][$key]) ? $files[$l][$key] : $text;
-        $items[] = ['href' => (string)($a->attrs['href'] ?? ''), 'label' => $label, 'button' => (bool)preg_match('/\bbtn\b/', (string)($a->attrs['class'] ?? '')), 'hidden' => false];
+        $items[] = ['href' => (string)($a->attrs['href'] ?? ''), 'label' => $label, 'button' => neutron_menu_is_button((string)($a->attrs['class'] ?? '')), 'hidden' => false];
     }
     return $items;
+}
+
+function neutron_menu_text(object $node): string {
+    $out = '';
+    foreach ($node->children ?? [] as $c) $out .= ($c->type ?? '') === 'text' ? $c->text : (($c->type ?? '') === 'element' && $c->tag !== 'svg' ? neutron_menu_text($c) : '');
+    return $out;
 }

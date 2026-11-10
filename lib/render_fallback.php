@@ -623,27 +623,35 @@ function neutron_parse_attrs(string $attrsRaw): array {
 // Como neutron_dom_apply_menu()
 function neutron_fallback_apply_menu(object $root, array $items): void {
     foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-menu'])) as $nav) {
-        $links = array_values(array_filter($nav->children ?? [], fn($c) => ($c->type ?? '') === 'element' && $c->tag === 'a'));
-        if (!$links) continue;
-        $mold = $btn = null;
-        foreach ($links as $a) {
-            if (preg_match('/\bbtn\b/', (string)($a->attrs['class'] ?? ''))) $btn ??= $a; else $mold ??= $a;
+        $entries = [];
+        foreach ($nav->children ?? [] as $c) {
+            if (($c->type ?? '') !== 'element') continue;
+            if ($c->tag === 'a' && isset($c->attrs['href'])) $entries[] = [$c, $c];
+            elseif ($c->tag === 'li' && ($a = neutron_find_first($c, fn($n) => ($n->tag ?? '') === 'a' && isset($n->attrs['href'])))) $entries[] = [$c, $a];
         }
-        $mold ??= $links[0];
+        if (!$entries) continue;
+        $mold = $btn = null;
+        foreach ($entries as $e) {
+            if (neutron_menu_is_button((string)($e[1]->attrs['class'] ?? ''))) $btn ??= $e; else $mold ??= $e;
+        }
+        $mold ??= $entries[0];
         $new = [];
         foreach ($items as $it) {
             if ($it['hidden']) continue;
-            $m = $it['button'] && $btn ? $btn : $mold;
-            $attrs = $m->attrs;
+            [$node, $link] = $it['button'] && $btn ? $btn : $mold;
+            $attrs = $link->attrs;
             unset($attrs['data-edit'], $attrs['aria-current']);
             $attrs['href'] = $it['href'];
             if (neutron_menu_external($it['href'])) { $attrs['target'] = '_blank'; $attrs['rel'] = 'noopener'; }
-            $new[] = (object)['type' => 'element', 'tag' => 'a', 'attrs' => $attrs, 'children' => [(object)['type' => 'text', 'text' => neutron_menu_label($it)]]];
+            $a = (object)['type' => 'element', 'tag' => 'a', 'attrs' => $attrs, 'children' => [(object)['type' => 'text', 'text' => neutron_menu_label($it)]]];
+            if ($node !== $link) $a = (object)['type' => 'element', 'tag' => $node->tag, 'attrs' => $node->attrs, 'children' => [$a]];
+            $new[] = $a;
         }
+        $old = array_map(fn($e) => $e[0], $entries);
         $out = [];
         $placed = false;
         foreach ($nav->children as $c) {
-            if (($c->type ?? '') === 'element' && $c->tag === 'a') {
+            if (in_array($c, $old, true)) {
                 if (!$placed) { array_push($out, ...$new); $placed = true; }
                 continue;
             }

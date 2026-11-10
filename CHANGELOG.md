@@ -2,6 +2,11 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.22.1 — 2026-11-10
+
+- Menú editable: también menús en lista (`<ul data-menu>` con `<li><a>`), y los enlaces destacados se reconocen por
+  `btn`, `button` o `cta` en la clase (`nav-cta`…). El texto de un enlace con icono ya no lleva el del SVG.
+
 ## 1.22.0 — 2026-11-10
 
 - **Menú editable** desde el panel: si la plantilla marca su menú con `data-menu`, *Panel → Menú* permite añadir, quitar,

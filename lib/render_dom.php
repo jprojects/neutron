@@ -431,30 +431,36 @@ function neutron_dom_set_html(DOMElement $node, string $html): void {
     }
 }
 
-// Los enlaces (hijos <a>) de cada data-menu, sustituidos por los del menú: el primero como molde y, para los botones, el
-// primero con la clase «btn». Van donde estaba el primero; lo demás del elemento (el selector de idioma…) se queda.
+// Los enlaces de cada data-menu, sustituidos por los del menú (lib/menu.php). Cada entrada es un hijo directo: un <a>, o
+// un <li> con su <a> (menús en <ul>). El molde es la primera entrada y, para los botones, la primera cuyo enlace es un
+// botón (neutron_menu_is_button). Van donde estaba la primera; lo demás del elemento (el selector de idioma…) se queda.
 function neutron_dom_apply_menu(DOMDocument $dom, DOMXPath $xpath, array $items): void {
     foreach (iterator_to_array($xpath->query('//*[@data-menu]')) as $nav) {
-        $links = [];
+        $entries = [];                                           // [hijo directo, su enlace]
         foreach ($nav->childNodes as $c) {
-            if ($c instanceof DOMElement && strtolower($c->tagName) === 'a') $links[] = $c;
+            if (!$c instanceof DOMElement) continue;
+            $tag = strtolower($c->tagName);
+            if ($tag === 'a' && $c->hasAttribute('href')) $entries[] = [$c, $c];
+            elseif ($tag === 'li' && ($a = $xpath->query('.//a[@href]', $c)->item(0))) $entries[] = [$c, $a];
         }
-        if (!$links) continue;
+        if (!$entries) continue;
         $mold = $btn = null;
-        foreach ($links as $a) {
-            if (preg_match('/\bbtn\b/', $a->getAttribute('class'))) $btn ??= $a; else $mold ??= $a;
+        foreach ($entries as $e) {
+            if (neutron_menu_is_button($e[1]->getAttribute('class'))) $btn ??= $e; else $mold ??= $e;
         }
-        $mold ??= $links[0];
+        $mold ??= $entries[0];
         foreach ($items as $it) {
             if ($it['hidden']) continue;
-            $a = ($it['button'] && $btn ? $btn : $mold)->cloneNode(false);
+            [$node, $link] = $it['button'] && $btn ? $btn : $mold;
+            $a = $link->cloneNode(false);
             $a->removeAttribute('data-edit');
             $a->removeAttribute('aria-current');
             $a->setAttribute('href', $it['href']);
             if (neutron_menu_external($it['href'])) { $a->setAttribute('target', '_blank'); $a->setAttribute('rel', 'noopener'); }
             $a->appendChild($dom->createTextNode(neutron_menu_label($it)));
-            $nav->insertBefore($a, $links[0]);
+            if ($node !== $link) { $li = $node->cloneNode(false); $li->appendChild($a); $a = $li; }
+            $nav->insertBefore($a, $entries[0][0]);
         }
-        foreach ($links as $a) $nav->removeChild($a);
+        foreach ($entries as $e) $nav->removeChild($e[0]);
     }
 }
