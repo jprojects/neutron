@@ -50,6 +50,9 @@ ap.add_argument('install', help='carpeta de la instalación (tools/new-site.py)'
 ap.add_argument('--max', type=int, default=150, help='páginas como mucho (por defecto 150)')
 ap.add_argument('--render', action='store_true', help='descargar con Chromium (webs que montan el contenido con JavaScript)')
 ap.add_argument('--sin-imagenes', action='store_true', help='no descargar las imágenes')
+# Sin idioma preferido: cada URL se descarga en el suyo (con «ca» primero, un Joomla con filtro de idioma da el catalán
+# también en la portada del castellano y se pierde ese idioma)
+ap.add_argument('--idioma-navegador', default='', help='Accept-Language que se envía (por defecto, ninguno)')
 a = ap.parse_args()
 
 root = urllib.parse.urlsplit(a.url if '://' in a.url else 'https://' + a.url)
@@ -63,7 +66,7 @@ log = lambda *x: print(*x, flush=True)
 
 # ---------------------------------------------------------------- descarga
 def fetch(url, binary=False, timeout=30):
-    req = urllib.request.Request(url, headers={'User-Agent': UA, 'Accept-Language': 'ca,es;q=0.8,en;q=0.5'})
+    req = urllib.request.Request(url, headers={'User-Agent': UA, **({'Accept-Language': a.idioma_navegador} if a.idioma_navegador else {})})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             data = r.read()
