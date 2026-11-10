@@ -8,6 +8,10 @@ function neutron_render_dom(string $html, array $content, array $options = []): 
     libxml_clear_errors();
     $xpath = new DOMXPath($dom);
 
+    // Menú editable (lib/menu.php): los enlaces de cada data-menu, de site/menu.json (si lo hay)
+    $menu = neutron_menu_items();
+    if ($menu !== null) neutron_dom_apply_menu($dom, $xpath, $menu);
+
     // Listas de primer nivel (las que no están dentro de otra); las anidadas las rellena su elemento
     foreach (iterator_to_array($xpath->query('//*[@data-edit-collection]')) as $container) {
         if (neutron_dom_owner_item($container) !== null) continue;
@@ -424,5 +428,33 @@ function neutron_dom_set_html(DOMElement $node, string $html): void {
     $wrap = $tmp->getElementsByTagName('div')->item(0);
     foreach (iterator_to_array($wrap->childNodes) as $child) {
         $node->appendChild($node->ownerDocument->importNode($child, true));
+    }
+}
+
+// Los enlaces (hijos <a>) de cada data-menu, sustituidos por los del menú: el primero como molde y, para los botones, el
+// primero con la clase «btn». Van donde estaba el primero; lo demás del elemento (el selector de idioma…) se queda.
+function neutron_dom_apply_menu(DOMDocument $dom, DOMXPath $xpath, array $items): void {
+    foreach (iterator_to_array($xpath->query('//*[@data-menu]')) as $nav) {
+        $links = [];
+        foreach ($nav->childNodes as $c) {
+            if ($c instanceof DOMElement && strtolower($c->tagName) === 'a') $links[] = $c;
+        }
+        if (!$links) continue;
+        $mold = $btn = null;
+        foreach ($links as $a) {
+            if (preg_match('/\bbtn\b/', $a->getAttribute('class'))) $btn ??= $a; else $mold ??= $a;
+        }
+        $mold ??= $links[0];
+        foreach ($items as $it) {
+            if ($it['hidden']) continue;
+            $a = ($it['button'] && $btn ? $btn : $mold)->cloneNode(false);
+            $a->removeAttribute('data-edit');
+            $a->removeAttribute('aria-current');
+            $a->setAttribute('href', $it['href']);
+            if (neutron_menu_external($it['href'])) { $a->setAttribute('target', '_blank'); $a->setAttribute('rel', 'noopener'); }
+            $a->appendChild($dom->createTextNode(neutron_menu_label($it)));
+            $nav->insertBefore($a, $links[0]);
+        }
+        foreach ($links as $a) $nav->removeChild($a);
     }
 }

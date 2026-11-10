@@ -57,6 +57,17 @@ function neutron_config_defaults(): array {
             'ttl' => 3600,              // segundos como mucho (lo que cambia solo: el número de descargas)
         ],
 
+        // Idioma del panel y de la barra del editor: 'es' o 'ca'; null = el idioma principal de la web, si es uno de
+        // los dos (si no, castellano). Traducciones en assets/i18n/ (lib/panel_lang.php)
+        'panel' => [
+            'lang' => null,
+        ],
+
+        // Visitas en el inicio del panel, sin cookies (data/stats/; lib/stats.php)
+        'stats' => [
+            'enabled' => true,
+        ],
+
         // Documentos de las colecciones (campos de tipo "file"): tamaño máximo. El hosting también limita
         // (upload_max_filesize y post_max_size de PHP): lo más pequeño manda.
         'uploads' => [

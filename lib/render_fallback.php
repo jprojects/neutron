@@ -8,6 +8,10 @@ if (!defined('NEUTRON_APP')) { http_response_code(403); exit; }
 function neutron_render_fallback(string $html, array $content, array $options = []): string {
     $root = neutron_parse_html($html);
 
+    // Menú editable, igual que en render_dom.php
+    $menu = neutron_menu_items();
+    if ($menu !== null) neutron_fallback_apply_menu($root, $menu);
+
     // Listas de primer nivel; las anidadas las rellena su elemento (igual que en render_dom.php)
     foreach (neutron_fallback_own($root, fn($n) => isset($n->attrs['data-edit-collection'])) as $container) {
         $key = $container->attrs['data-edit-collection'];
@@ -614,4 +618,37 @@ function neutron_parse_attrs(string $attrsRaw): array {
         }
     }
     return $attrs;
+}
+
+// Como neutron_dom_apply_menu()
+function neutron_fallback_apply_menu(object $root, array $items): void {
+    foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-menu'])) as $nav) {
+        $links = array_values(array_filter($nav->children ?? [], fn($c) => ($c->type ?? '') === 'element' && $c->tag === 'a'));
+        if (!$links) continue;
+        $mold = $btn = null;
+        foreach ($links as $a) {
+            if (preg_match('/\bbtn\b/', (string)($a->attrs['class'] ?? ''))) $btn ??= $a; else $mold ??= $a;
+        }
+        $mold ??= $links[0];
+        $new = [];
+        foreach ($items as $it) {
+            if ($it['hidden']) continue;
+            $m = $it['button'] && $btn ? $btn : $mold;
+            $attrs = $m->attrs;
+            unset($attrs['data-edit'], $attrs['aria-current']);
+            $attrs['href'] = $it['href'];
+            if (neutron_menu_external($it['href'])) { $attrs['target'] = '_blank'; $attrs['rel'] = 'noopener'; }
+            $new[] = (object)['type' => 'element', 'tag' => 'a', 'attrs' => $attrs, 'children' => [(object)['type' => 'text', 'text' => neutron_menu_label($it)]]];
+        }
+        $out = [];
+        $placed = false;
+        foreach ($nav->children as $c) {
+            if (($c->type ?? '') === 'element' && $c->tag === 'a') {
+                if (!$placed) { array_push($out, ...$new); $placed = true; }
+                continue;
+            }
+            $out[] = $c;
+        }
+        $nav->children = $out;
+    }
 }

@@ -2,6 +2,19 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.22.0 — 2026-11-10
+
+- **Menú editable** desde el panel: si la plantilla marca su menú con `data-menu`, *Panel → Menú* permite añadir, quitar,
+  ordenar, ocultar y destacar enlaces (internos o a otras webs), con el texto en cada idioma. Se guarda en
+  `site/menu.json` y lo pintan los dos motores; sin ese fichero, el menú es el de la plantilla. Los bloques `header` y
+  `footer` llevan `data-menu`.
+- **Copias de las colecciones**: guardar o borrar un elemento (o las categorías) deja copia en *Copias*, con lo que ha
+  cambiado y la opción de volver a como estaba (también si se había borrado).
+- **Visitas** en el inicio del panel, sin cookies: páginas vistas y visitantes de los últimos 30 días y las páginas más
+  vistas (`data/stats/`, config `stats`). El inicio cuenta los elementos de cada colección.
+- **Panel y barra del editor en catalán** cuando la web es en catalán (o con `panel.lang`): traducciones en
+  `assets/i18n/ca.json`.
+
 ## 1.21.0 — 2026-11-10
 
 - **Fichas de cualquier colección**: la descripción y la imagen para buscadores y redes salen de sus campos aunque no se

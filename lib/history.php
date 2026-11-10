@@ -8,6 +8,10 @@ if (!defined('NEUTRON_APP')) { http_response_code(403); exit; }
 //   data/history/<AAAAMMDD-HHMMSS>-<aleatorio>/meta.json   {"id", "at", "source", "lang", "keys": [...]}
 //   data/history/<id>/content.json, content.<idioma>.json   los ficheros tal como estaban
 //
+// Elementos de las colecciones (noticias, documentos, álbumes…) y sus categorías: data/history/<id>/item/<colección>/<fichero>
+// con meta.json {"kind": "item", "collection", "file", "title", "action": "save"|"delete"|"categories"} (lib/posts.php la
+// hace antes de guardar o borrar). Volver a esa versión repone el fichero (también si se había borrado).
+//
 // Se guardan las últimas NEUTRON_HISTORY_KEEP versiones. Son las copias del día a día; las completas de la web
 // (núcleo, site/ y configuración) las hace Cosmo (API remota, data/backups).
 
@@ -81,6 +85,7 @@ function neutron_history_meta(string $id): ?array {
 function neutron_history_detail(string $id): ?array {
     $meta = neutron_history_meta($id);
     if ($meta === null) return null;
+    if (($meta['kind'] ?? '') === 'item') return $meta + ['changes' => neutron_history_item_changes($meta), 'deleted' => !is_file(NEUTRON_SITE . '/' . $meta['collection'] . '/' . $meta['file'])];
     $dir = neutron_history_dir() . '/' . $id;
     $old = $cur = [];
     foreach (neutron_history_files() as $name) {
@@ -106,6 +111,15 @@ function neutron_history_detail(string $id): ?array {
 function neutron_history_restore(string $id): bool {
     $meta = neutron_history_meta($id);
     if ($meta === null) return false;
+    if (($meta['kind'] ?? '') === 'item') {
+        $src = neutron_history_dir() . '/' . $id . '/item/' . $meta['collection'] . '/' . $meta['file'];
+        $dest = NEUTRON_SITE . '/' . $meta['collection'] . '/' . $meta['file'];
+        if (!is_file($src) || !is_dir(dirname($dest))) return false;
+        neutron_history_snapshot_item($meta['collection'], $meta['file'], 'restore', (string)$meta['title']);
+        if (!@copy($src, $dest)) return false;
+        neutron_log('notice', 'Elemento restaurado a la copia {id}: {c}/{f}', ['id' => $id, 'c' => $meta['collection'], 'f' => $meta['file']]);
+        return true;
+    }
     $dir = neutron_history_dir() . '/' . $id;
     $files = array_map('basename', glob($dir . '/content*.json') ?: []);
     if (!$files) return false;
@@ -131,4 +145,65 @@ function neutron_history_prune(): void {
         foreach (glob($dir . '/*') ?: [] as $f) @unlink($f);
         @rmdir($dir);
     }
+}
+
+// Quién guarda (para la lista de copias): «editor» (la página) o «panel»; lo ponen admin/post.php y admin/items.php
+function neutron_history_source(?string $set = null): string {
+    static $source = 'panel';
+    if ($set !== null) $source = $set;
+    return $source;
+}
+
+// No hacer copias (ordenar con las flechas cambia todos los elementos y llenaría la lista)
+function neutron_history_paused(?bool $set = null): bool {
+    static $paused = false;
+    if ($set !== null) $paused = $set;
+    return $paused;
+}
+
+/** Copia de un fichero de una colección antes de cambiarlo o borrarlo ($file: «mi-entrada.json» o «_categories.json») */
+function neutron_history_snapshot_item(string $collection, string $file, string $action, string $title): ?string {
+    if (neutron_history_paused()) return null;
+    $src = NEUTRON_SITE . '/' . $collection . '/' . $file;
+    if (!is_file($src) || !preg_match('/^[a-z0-9_][a-z0-9_-]*\.json$/', $file)) return null;
+    $id = date('Ymd-His') . '-' . bin2hex(random_bytes(3));
+    $dir = neutron_history_dir() . '/' . $id . '/item/' . $collection;
+    if (!@mkdir($dir, 0775, true) && !is_dir($dir)) return null;
+    @copy($src, $dir . '/' . $file);
+    try {
+        neutron_write_json(neutron_history_dir() . '/' . $id . '/meta.json', ['id' => $id, 'at' => date(DATE_ATOM), 'source' => neutron_history_source(),
+            'lang' => null, 'keys' => [], 'kind' => 'item', 'collection' => $collection, 'file' => $file, 'title' => $title, 'action' => $action]);
+    } catch (RuntimeException $e) {
+        return null;
+    }
+    neutron_history_prune();
+    return $id;
+}
+
+/** Lo que tenía el elemento en esa copia frente a lo que tiene ahora: [{key, lang, before, now}] por campo */
+function neutron_history_item_changes(array $meta): array {
+    $old = json_decode((string)@file_get_contents(neutron_history_dir() . '/' . $meta['id'] . '/item/' . $meta['collection'] . '/' . $meta['file']), true);
+    $cur = json_decode((string)@file_get_contents(NEUTRON_SITE . '/' . $meta['collection'] . '/' . $meta['file']), true);
+    $old = is_array($old) ? $old : []; $cur = is_array($cur) ? $cur : [];
+    if ($meta['file'] === '_categories.json') {
+        $fmt = fn($list) => implode("\n", array_map(fn($c) => (string)($c['title'] ?? $c['id'] ?? ''), $list));
+        return [['key' => 'categories', 'lang' => null, 'before' => $fmt($old), 'now' => $cur ? $fmt($cur) : null]];
+    }
+    $flat = function (array $d): array {
+        $out = [];
+        foreach ($d as $k => $v) {
+            if (in_array($k, ['created', 'updated', 'order'], true)) continue;
+            if ($k === 'i18n' && is_array($v)) { foreach ($v as $l => $t) foreach ((array)$t as $f => $x) $out["$f|$l"] = $x; continue; }
+            $out["$k|"] = $v;
+        }
+        return $out;
+    };
+    $a = $flat($old); $b = $cur ? $flat($cur) : [];
+    $changes = [];
+    foreach (array_unique(array_merge(array_keys($a), array_keys($b))) as $k) {
+        if (($a[$k] ?? null) == ($b[$k] ?? null) && $cur) continue;
+        [$f, $l] = explode('|', $k, 2);
+        $changes[] = ['key' => $f, 'lang' => $l !== '' ? $l : null, 'before' => $a[$k] ?? null, 'now' => $cur ? ($b[$k] ?? null) : null];
+    }
+    return $changes;
 }

@@ -129,6 +129,8 @@ function neutron_collection_categories_save(string $name, array $categories): bo
         $clean[] = $row;
     }
     $json = json_encode($clean, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    require_once __DIR__ . '/history.php';
+    neutron_history_snapshot_item($name, '_categories.json', 'categories', neutron_collection_schema($name)['label']);
     return $json !== false && file_put_contents(NEUTRON_SITE . '/' . $name . '/_categories.json', $json, LOCK_EX) !== false;
 }
 
@@ -228,6 +230,10 @@ function neutron_post_save(array $post, bool $withTexts = true, ?string $textLan
     $schema = neutron_collection_schema($post['collection']);
     $old = is_file($file) ? json_decode((string)file_get_contents($file), true) : [];
     $data = is_array($old) ? $old : [];
+    if (is_file($file)) {                                      // copia de cómo estaba (panel → Copias)
+        require_once __DIR__ . '/history.php';
+        neutron_history_snapshot_item($post['collection'], $post['slug'] . '.json', 'save', (string)($data['title'] ?? $post['slug']));
+    }
     $lang = $textLang ?? neutron_lang();
     $translating = $lang !== null && $lang !== neutron_languages()['default'];
     $fields = $schema['fields'];
@@ -264,6 +270,9 @@ function neutron_post_save(array $post, bool $withTexts = true, ?string $textLan
 function neutron_post_delete(string $collection, string $slug): bool {
     $file = neutron_post_file($collection, $slug);
     if ($file === null || !is_file($file)) return false;
+    require_once __DIR__ . '/history.php';
+    $data = json_decode((string)file_get_contents($file), true);
+    neutron_history_snapshot_item($collection, $slug . '.json', 'delete', (string)($data['title'] ?? $slug));
     return rename($file, neutron_data_dir('deleted') . '/' . $collection . '-' . $slug . '-' . date('Ymd-His') . '.json');
 }
 

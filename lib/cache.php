@@ -73,6 +73,8 @@ function neutron_cache_serve(): void {
     header('X-Neutron-Cache: HIT');
     fpassthru($fp);
     fclose($fp);
+    require_once __DIR__ . '/stats.php';
+    neutron_stats_hit();                                       // también cuenta como visita
     exit;
 }
 

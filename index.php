@@ -29,6 +29,7 @@ require_once __DIR__ . '/lib/form.php';
 require_once __DIR__ . '/lib/cookies.php';
 require_once __DIR__ . '/lib/posts.php';
 require_once __DIR__ . '/lib/feeds.php';
+require_once __DIR__ . '/lib/panel_lang.php';
 
 // La sesión solo hace falta en el editor: así los visitantes no reciben la cookie de sesión
 if (isset($_GET['admin']) || isset($_COOKIE['neutron_admin_sid'])) {
@@ -192,6 +193,9 @@ if (isset($_GET['admin'])) {
         'csrf' => $_SESSION['csrf'],
         // Hora en que se abre la página: al guardar, lo que otra ventana haya cambiado después es un conflicto
         'base' => microtime(true),
+        // Idioma de la barra del editor (lib/panel_lang.php) y sus traducciones
+        'ui' => neutron_panel_lang(),
+        'i18n' => neutron_panel_strings(),
     ];
     if (neutron_is_logged_in()) {
         // Selector de páginas (y de idiomas) de la barra del editor; rutas relativas a la instalación
@@ -227,3 +231,8 @@ header('Content-Type: text/html; charset=utf-8');
 $html = neutron_render($template, $content, $options);
 neutron_cache_store($html);
 echo $html;
+// Visitas (lib/stats.php): las páginas vistas por personas, sin cookies
+if (http_response_code() === 200) {
+    require_once __DIR__ . '/lib/stats.php';
+    neutron_stats_hit();
+}

@@ -4,6 +4,36 @@
 
   var cfg = JSON.parse(cfgEl.textContent || '{}');
 
+  // Idioma de la barra (lib/panel_lang.php): los textos están en castellano y cfg.i18n los traduce, como en panel.js
+  var DICT = cfg.i18n || {}, PATTERNS = null;
+  function tr(s) {
+    if (typeof s !== 'string' || !s || !cfg.ui || cfg.ui === 'es') return s;
+    if (Object.prototype.hasOwnProperty.call(DICT, s)) return DICT[s];
+    if (PATTERNS === null) {
+      PATTERNS = Object.keys(DICT).filter(function (k) { return k.indexOf('{}') >= 0; })
+        .sort(function (a, b) { return b.replace(/\{\}/g, '').length - a.replace(/\{\}/g, '').length; })
+        .map(function (k) {
+          return [new RegExp('^' + k.split('{}').map(function (x) { return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('([\\s\\S]+?)') + '$'), DICT[k]];
+        });
+    }
+    for (var i = 0; i < PATTERNS.length; i++) {
+      var m = s.match(PATTERNS[i][0]);
+      if (m) { var n = 0; return PATTERNS[i][1].replace(/\{\}/g, function () { return tr(m[++n]); }); }
+    }
+    return s;
+  }
+  // Los textos y los title/placeholder de un trozo de HTML de la propia barra (nunca contenido de la web)
+  function uiHtml(html) {
+    if (!cfg.ui || cfg.ui === 'es') return html;
+    return html.replace(/>([^<>]+)</g, function (m, x) {
+      var k = x.trim();
+      return k ? '>' + x.replace(k, tr(k)) + '<' : m;
+    }).replace(/\b(title|placeholder)="([^"]*)"/g, function (m, a, v) { return a + '="' + tr(v) + '"'; });
+  }
+  function alert(m) { window.alert(tr(m)); }
+  function confirm(m) { return window.confirm(tr(m)); }
+  function prompt(m, v) { return window.prompt(tr(m), v); }
+
   if (!cfg.loggedIn) {
     showLoginModal(cfg.csrf);
     return;
@@ -14,13 +44,13 @@
   function showLoginModal(csrf) {
     var overlay = document.createElement('div');
     overlay.className = 'neutron-overlay';
-    overlay.innerHTML =
+    overlay.innerHTML = uiHtml(
       '<form class="neutron-login-box">' +
         '<h2>Acceso administrador</h2>' +
         '<input type="password" name="password" placeholder="Contraseña" autofocus required>' +
         '<button type="submit">Entrar</button>' +
         '<p class="neutron-error" hidden></p>' +
-      '</form>';
+      '</form>');
     document.body.appendChild(overlay);
 
     var form = overlay.querySelector('form');
@@ -39,12 +69,12 @@
           if (data.ok) {
             location.reload();
           } else {
-            errorEl.textContent = data.error || 'Error de acceso';
+            errorEl.textContent = tr(data.error || 'Error de acceso');
             errorEl.hidden = false;
           }
         })
         .catch(function () {
-          errorEl.textContent = 'Error de red';
+          errorEl.textContent = tr('Error de red');
           errorEl.hidden = false;
         });
     });
@@ -55,7 +85,7 @@
 
     var bar = document.createElement('div');
     bar.className = 'neutron-bar';
-    bar.innerHTML =
+    bar.innerHTML = uiHtml(
       '<span>Modo edición</span>' +
       '<label class="neutron-pages" hidden title="También: Ctrl/Cmd + clic en un enlace de la página">Página <select></select></label>' +
       '<label class="neutron-langs" hidden>Idioma <select></select></label>' +
@@ -63,7 +93,7 @@
       '<button type="button" data-action="panel" title="Inicio, todo el contenido en formularios y más">Panel</button>' +
       '<button type="button" data-action="exit">Salir</button>' +
       '<button type="button" data-action="logout">Cerrar sesión</button>' +
-      '<span class="neutron-status"></span>';
+      '<span class="neutron-status"></span>');
     document.body.appendChild(bar);
 
     var statusEl = bar.querySelector('.neutron-status');
@@ -162,7 +192,7 @@
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'neutron-new-post';
-      b.textContent = '+ Nueva entrada';
+      b.textContent = tr('+ Nueva entrada');
       b.addEventListener('click', function () { createPost(collection); });
       bar.insertBefore(b, statusEl);
     });
@@ -182,7 +212,7 @@
 
     function markDirty() {
       dirty = true;
-      statusEl.textContent = 'Cambios sin guardar';
+      statusEl.textContent = tr('Cambios sin guardar');
     }
 
     // Abre url en modo edición (con ?admin); pregunta antes si hay cambios sin guardar.
@@ -230,9 +260,9 @@
     function addItemControls(item, container) {
       var box = document.createElement('span');
       box.className = 'neutron-item-controls';
-      box.innerHTML =
+      box.innerHTML = uiHtml(
         '<button type="button" class="neutron-move-item" title="Subir">↑</button>' +
-        '<button type="button" class="neutron-remove-item" title="Quitar">✕</button>';
+        '<button type="button" class="neutron-remove-item" title="Quitar">✕</button>');
       box.querySelector('.neutron-move-item').addEventListener('click', function () {
         var items = ownItems(container);
         var i = items.indexOf(item);
@@ -253,7 +283,7 @@
       var addBtn = document.createElement('button');
       addBtn.type = 'button';
       addBtn.className = 'neutron-add-item';
-      addBtn.textContent = '+ ' + (container.getAttribute('data-edit-add') || 'Agregar elemento');
+      addBtn.textContent = '+ ' + (container.getAttribute('data-edit-add') || tr('Agregar elemento'));
       addBtn.addEventListener('click', function () {
         var items = ownItems(container);
         var last = items[items.length - 1];
@@ -302,17 +332,17 @@
 
       var box = document.createElement('span');
       box.className = 'neutron-post-tools';
-      box.innerHTML =
+      box.innerHTML = uiHtml(
         '<label>Fecha <input type="date"></label>' +
         '<button type="button" data-post-action="status"></button>' +
-        '<button type="button" class="neutron-danger" data-post-action="delete">Borrar entrada</button>';
+        '<button type="button" class="neutron-danger" data-post-action="delete">Borrar entrada</button>');
       bar.insertBefore(box, statusEl);
       var date = box.querySelector('input');
       date.value = post.date || '';
       date.addEventListener('change', markDirty);
       showStatus();
       if (post.translated === false) {
-        statusEl.textContent = 'Sin traducir: se ve el texto del idioma principal. Lo que guardes aquí será la traducción.';
+        statusEl.textContent = tr('Sin traducir: se ve el texto del idioma principal. Lo que guardes aquí será la traducción.');
       }
       box.addEventListener('click', function (e) {
         var action = e.target.getAttribute('data-post-action');
@@ -323,8 +353,8 @@
 
     function showStatus() {
       var b = bar.querySelector('[data-post-action="status"]');
-      b.textContent = post.status === 'published' ? 'Pasar a borrador' : 'Publicar';
-      b.title = post.status === 'published' ? 'Ahora está publicada' : 'Ahora es un borrador: solo la ves tú';
+      b.textContent = tr(post.status === 'published' ? 'Pasar a borrador' : 'Publicar');
+      b.title = tr(post.status === 'published' ? 'Ahora está publicada' : 'Ahora es un borrador: solo la ves tú');
       document.body.classList.toggle('neutron-post-draft', post.status !== 'published');
     }
 
@@ -354,13 +384,13 @@
 
     function setStatus(status) {
       var go = function () {
-        statusEl.textContent = 'Guardando...';
+        statusEl.textContent = tr('Guardando...');
         postRequest({ action: 'status', status: status }).then(function (data) {
-          if (!data.ok) { statusEl.textContent = 'Error: ' + (data.error || ''); return; }
+          if (!data.ok) { statusEl.textContent = tr('Error: ' + (data.error || '')); return; }
           post.status = data.status;
           showStatus();
-          statusEl.textContent = data.status === 'published' ? 'Publicada ✓' : 'Ahora es un borrador';
-        }).catch(function () { statusEl.textContent = 'Error de red'; });
+          statusEl.textContent = tr(data.status === 'published' ? 'Publicada ✓' : 'Ahora es un borrador');
+        }).catch(function () { statusEl.textContent = tr('Error de red'); });
       };
       // Publicar guarda antes los cambios pendientes
       if (dirty) doSave(go); else go();
@@ -369,10 +399,10 @@
     function deletePost() {
       if (!confirm('¿Borrar esta entrada? Dejará de verse en la web.')) return;
       postRequest({ action: 'delete' }).then(function (data) {
-        if (!data.ok) { statusEl.textContent = 'Error: ' + (data.error || ''); return; }
+        if (!data.ok) { statusEl.textContent = tr('Error: ' + (data.error || '')); return; }
         dirty = false;
         goEditing(new URL(data.url, document.baseURI));
-      }).catch(function () { statusEl.textContent = 'Error de red'; });
+      }).catch(function () { statusEl.textContent = tr('Error de red'); });
     }
 
     // Ventana del editor con un campo de texto. onSubmit(valor, fallo): llamar a fallo('mensaje') la deja abierta con el
@@ -380,7 +410,7 @@
     function openDialog(opts, onSubmit) {
       var overlay = document.createElement('div');
       overlay.className = 'neutron-overlay';
-      overlay.innerHTML =
+      overlay.innerHTML = uiHtml(
         '<form class="neutron-login-box neutron-dialog" novalidate>' +
           '<h2></h2>' +
           '<label><span></span><input type="text" name="value" maxlength="' + (opts.maxLength || 500) + '"></label>' +
@@ -390,20 +420,20 @@
             '<button type="button" class="neutron-secondary" data-dialog="cancel">Cancelar</button>' +
             '<button type="submit"></button>' +
           '</div>' +
-        '</form>';
+        '</form>');
       var form = overlay.querySelector('form');
       var input = form.querySelector('input');
       var errorEl = form.querySelector('.neutron-error');
       var submit = form.querySelector('[type="submit"]');
-      form.querySelector('h2').textContent = opts.title;
-      form.querySelector('label span').textContent = opts.label;
-      form.querySelector('.neutron-hint').textContent = opts.hint || '';
-      submit.textContent = opts.button || 'Aceptar';
+      form.querySelector('h2').textContent = tr(opts.title);
+      form.querySelector('label span').textContent = tr(opts.label);
+      form.querySelector('.neutron-hint').textContent = tr(opts.hint || '');
+      submit.textContent = tr(opts.button || 'Aceptar');
       var cancelBtn = form.querySelector('[data-dialog="cancel"]');
-      if (opts.cancel) cancelBtn.textContent = opts.cancel;
+      if (opts.cancel) cancelBtn.textContent = tr(opts.cancel);
       if (opts.noInput) form.querySelector('label').remove();
       input.value = opts.value || '';
-      if (opts.placeholder) input.placeholder = opts.placeholder;
+      if (opts.placeholder) input.placeholder = tr(opts.placeholder);
       document.body.appendChild(overlay);
       if (opts.noInput) submit.focus(); else { input.focus(); input.select(); }
 
@@ -425,7 +455,7 @@
         var finished = false;
         onSubmit(value, function fail(message) {
           finished = true;
-          errorEl.textContent = message;
+          errorEl.textContent = tr(message);
           errorEl.hidden = false;
           submit.disabled = false;
           input.focus();
@@ -460,7 +490,7 @@
         b.type = 'button';
         b.className = 'neutron-href-btn';
         b.textContent = '🔗';
-        b.title = 'Cambiar la dirección del enlace';
+        b.title = tr('Cambiar la dirección del enlace');
         b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); editHref(a); });
         a.insertAdjacentElement('afterend', b);
       } else {
@@ -476,8 +506,8 @@
     function markHref(a) {
       var empty = (a.getAttribute('data-edit-href-value') || '') === '';
       a.classList.toggle('neutron-href-empty', empty);
-      a.title = empty ? 'Sin enlace: no se ve en la web. Haz clic para ponerle una dirección.'
-        : 'Enlace: ' + a.getAttribute('data-edit-href-value') + ' (clic para cambiarlo)';
+      a.title = tr(empty ? 'Sin enlace: no se ve en la web. Haz clic para ponerle una dirección.'
+        : 'Enlace: ' + a.getAttribute('data-edit-href-value') + ' (clic para cambiarlo)');
     }
 
     function editHref(a) {
@@ -524,8 +554,8 @@
         var b = document.createElement('button');
         b.type = 'button';
         b.setAttribute('data-rich', t[0]);
-        b.innerHTML = t[1];
-        b.title = t[2];
+        b.innerHTML = uiHtml('>' + t[1] + '<').slice(1, -1);
+        b.title = tr(t[2]);
         tools.appendChild(b);
       });
       el.parentNode.insertBefore(tools, el);
@@ -665,14 +695,14 @@
     }
 
     function upload(file, done) {
-      statusEl.textContent = 'Preparando imagen...';
+      statusEl.textContent = tr('Preparando imagen...');
       optimizeImage(file).then(function (ready) { send(ready, done); });
     }
 
     function send(file, done) {
       var fd = new FormData();
       fd.append('image', file);
-      statusEl.textContent = 'Subiendo imagen...';
+      statusEl.textContent = tr('Subiendo imagen...');
       fetch('admin/upload.php', {
         method: 'POST',
         headers: { 'X-CSRF-Token': cfg.csrf },
@@ -682,13 +712,13 @@
         .then(function (data) {
           if (data.ok) {
             done(data.url);
-            statusEl.textContent = 'Imagen lista (recuerda guardar)';
+            statusEl.textContent = tr('Imagen lista (recuerda guardar)');
           } else {
-            statusEl.textContent = 'Error: ' + (data.error || 'no se pudo subir');
+            statusEl.textContent = tr('Error: ' + (data.error || 'no se pudo subir'));
           }
         })
         .catch(function () {
-          statusEl.textContent = 'Error de red al subir';
+          statusEl.textContent = tr('Error de red al subir');
         });
     }
 
@@ -762,7 +792,7 @@
     // Guarda los textos de la página y, en la página de una entrada, la entrada. then: al acabar bien.
     // force: guardar aunque otra ventana haya cambiado lo mismo (tras preguntarlo).
     function doSave(then, force) {
-      statusEl.textContent = 'Guardando...';
+      statusEl.textContent = tr('Guardando...');
       var now = collectPayload();
       var payload = changedPayload(now);
       var requests = [];
@@ -780,7 +810,7 @@
       if (post) requests.push(postRequest({ action: 'save', fields: collectPost() }));
       if (!requests.length) {
         dirty = false;
-        statusEl.textContent = 'Sin cambios';
+        statusEl.textContent = tr('Sin cambios');
         if (typeof then === 'function') then();
         return;
       }
@@ -790,17 +820,17 @@
           if (conflict) return askConflict(conflict.conflict, then);
           var failed = results.filter(function (d) { return !d.ok; })[0];
           if (!failed) dirty = false;
-          statusEl.textContent = failed ? 'Error: ' + (failed.error || '') : 'Guardado ✓';
+          statusEl.textContent = tr(failed ? 'Error: ' + (failed.error || '') : 'Guardado ✓');
           if (!failed && typeof then === 'function') then();
         })
         .catch(function () {
-          statusEl.textContent = 'Error de red al guardar';
+          statusEl.textContent = tr('Error de red al guardar');
         });
     }
 
     // Otra ventana (el panel u otra persona) ha guardado algo de lo mismo después de abrir esta página
     function askConflict(keys, then) {
-      statusEl.textContent = 'Sin guardar: hay cambios de otra ventana';
+      statusEl.textContent = tr('Sin guardar: hay cambios de otra ventana');
       openDialog({
         title: 'Cambios en otra ventana',
         noInput: true,

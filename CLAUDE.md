@@ -47,6 +47,8 @@ actualízalo con cada función nueva.
   `site/assets/custom.css`), `tools/legal.py <carpeta> --nif …` (las legales con Pulsar; los datos fiscales, de Asteroid), y al terminar
   `tools/check.py <carpeta> --guia` hasta que no quede ningún ✗. Si una herramienta falla o se queda corta con una web,
   se mejora la herramienta (en vez de hacerlo a mano), para la próxima.
+- Menú: el `<nav>` principal con `data-menu` (enlaces como hijos directos, sin submenús) para que el cliente lo edite
+  desde el panel (README → «Menú editable»).
 - Webs de varias páginas: cabecera, menú y pie en `site/partials/` con `data-include`; claves de cada página con
   prefijo; resaltar el menú con `[aria-current="page"]`; `site/redirects.json` con todas las URLs de la web anterior.
 - **Blog**: colección en `site/blog/` (`_item.html` + JSON por entrada) y listado en `site/pages/blog.html`; enlaces

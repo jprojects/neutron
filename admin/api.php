@@ -11,6 +11,8 @@
 //   POST admin/api.php?a=message-delete&id= · POST ?a=message-unread&id=
 //   GET admin/api.php?a=history             copias del contenido (lib/history.php) · GET ?a=history-detail&id=
 //   POST admin/api.php?a=history-restore&id= vuelve a esa versión
+//   GET admin/api.php?a=menu                el menú editable (lib/menu.php): enlaces y páginas a las que puede ir
+//   POST admin/api.php?a=menu-save          {"items": [{href, label: {idioma: texto}, button, hidden}]} · {"reset": true}
 define('NEUTRON_APP', true);
 
 require_once __DIR__ . '/../lib/bootstrap.php';
@@ -22,6 +24,8 @@ require_once __DIR__ . '/../lib/announcements.php';
 require_once __DIR__ . '/../lib/seo.php';
 require_once __DIR__ . '/../lib/messages.php';
 require_once __DIR__ . '/../lib/history.php';
+require_once __DIR__ . '/../lib/stats.php';
+require_once __DIR__ . '/../lib/menu.php';
 
 neutron_block_if_maintenance(true);
 neutron_start_session();
@@ -73,8 +77,9 @@ if ($action === 'home') {
         foreach ($keys as $key => $t) $recent[] = ['key' => $key, 'lang' => $scope === '_' ? null : $scope, 'time' => $t];
     }
     usort($recent, fn($a, $b) => $b['time'] <=> $a['time']);
-    $posts = 0;
-    foreach (neutron_collections() as $c) $posts += count(neutron_posts_list($c, true));
+    $cols = [];
+    foreach (neutron_collections() as $c) $cols[] = ['label' => neutron_collection_schema($c)['label'], 'count' => count(neutron_posts_list($c, true))];
+    usort($cols, fn($a, $b) => $b['count'] <=> $a['count']);
     // Avisos de AFI (los envía Cosmo, lib/announcements.php): los vigentes; una vista por sesión
     $notices = neutron_announcements_active();
     $seen = (array)($_SESSION['neutron_notices_seen'] ?? []);
@@ -90,10 +95,11 @@ if ($action === 'home') {
         'version' => trim((string)@file_get_contents(NEUTRON_ROOT . '/VERSION')),
         'languages' => $langs,
         'pages' => count(neutron_site_pages()),
-        'posts' => $posts,
+        'collections' => $cols,
         'recent' => array_slice($recent, 0, 8),
         'notices' => $notices,
         'unread' => neutron_messages_unread(),
+        'stats' => neutron_stats_enabled() ? neutron_stats_summary(30) : null,
     ]);
     exit;
 }
@@ -169,6 +175,26 @@ if ($action === 'history-restore' && $post) {
     $ok = neutron_history_restore($id);
     if (!$ok) http_response_code(422);
     echo json_encode(['ok' => $ok, 'error' => $ok ? null : 'No se ha podido volver a esa versión']);
+    exit;
+}
+
+if ($action === 'menu') {
+    $items = neutron_menu_items();
+    echo json_encode(['ok' => true, 'available' => neutron_menu_available(), 'custom' => $items !== null,
+        'items' => $items ?? neutron_menu_from_template() ?? [], 'targets' => neutron_menu_targets()]);
+    exit;
+}
+if ($action === 'menu-save' && $post) {
+    neutron_require_csrf();
+    $in = json_decode((string)file_get_contents('php://input'), true) ?: [];
+    if (!empty($in['reset'])) {                                  // volver al menú de la plantilla
+        $ok = !is_file(neutron_menu_file()) || @unlink(neutron_menu_file());
+    } else {
+        $ok = is_array($in['items'] ?? null) && neutron_menu_save($in['items']);
+    }
+    if ($ok) neutron_log('info', 'Menú guardado desde el panel');
+    else http_response_code(422);
+    echo json_encode(['ok' => $ok, 'error' => $ok ? null : 'No se ha podido guardar el menú']);
     exit;
 }
 

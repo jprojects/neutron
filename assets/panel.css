@@ -232,3 +232,15 @@ textarea.np-input { resize: vertical; min-height: 64px; }
 .np-file-icon { width: 48px; height: 56px; border-radius: 6px; background: #fee2e2; color: #b91c1c; display: grid; place-items: center; font-weight: 700; font-size: 12px; }
 .np-video { display: grid; gap: 8px; }
 .np-video-thumb { width: 240px; border-radius: 6px; }
+.np-thumbs { display: flex; flex-wrap: wrap; gap: 4px; }
+.np-thumb-mini { width: 56px; height: 42px; object-fit: cover; border-radius: 4px; }
+/* Visitas */
+.np-visits { display: flex; gap: 36px; margin-bottom: 14px; }
+.np-visits div { display: grid; }
+.np-visits strong { font-size: 28px; line-height: 1.1; }
+.np-visits span { color: var(--np-muted); font-size: 13px; }
+.np-chart { display: flex; align-items: flex-end; gap: 3px; height: 80px; margin-bottom: 14px; padding-bottom: 1px; border-bottom: 1px solid var(--np-line); }
+.np-bar-day { flex: 1; min-width: 3px; background: var(--np-primary); border-radius: 3px 3px 0 0; opacity: .85; }
+.np-bar-day.is-weekend { opacity: .5; }
+.np-top-pages li .np-muted { font-variant-numeric: tabular-nums; }
+.np-item.is-hidden { opacity: .6; }

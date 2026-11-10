@@ -147,6 +147,8 @@ if ($action === 'categories') {
 }
 
 if ($action === 'order') {
+    require_once __DIR__ . '/../lib/history.php';
+    neutron_history_paused(true);                              // ordenar no deja copias
     $n = 0;
     foreach ((array)($in['slugs'] ?? []) as $slug) {
         $post = neutron_post_load($collection, (string)$slug);

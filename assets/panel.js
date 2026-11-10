@@ -11,16 +11,41 @@
   // Estado del contenido abierto
   var state = { view: 'home', lang: null, data: null, values: {}, original: {}, page: null, dirty: false, base: null };
 
+  // ------------------------------------------------------------------ idioma (lib/panel_lang.php)
+  // Los textos están en castellano; cfg.i18n los traduce (claves con {} para las partes que cambian). Pasan por t() los
+  // textos y títulos de h(), los avisos (alert, confirm, prompt) y los estados.
+  var DICT = cfg.i18n || {}, PATTERNS = null, LOCALE = cfg.ui === 'ca' ? 'ca-ES' : LOCALE;
+  function t(s) {
+    if (typeof s !== 'string' || !s || cfg.ui === 'es' || !cfg.ui) return s;
+    if (Object.prototype.hasOwnProperty.call(DICT, s)) return DICT[s];
+    if (PATTERNS === null) {
+      PATTERNS = Object.keys(DICT).filter(function (k) { return k.indexOf('{}') >= 0; })
+        .sort(function (a, b) { return b.replace(/\{\}/g, '').length - a.replace(/\{\}/g, '').length; })
+        .map(function (k) {
+          return [new RegExp('^' + k.split('{}').map(function (x) { return x.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }).join('([\\s\\S]+?)') + '$'), DICT[k]];
+        });
+    }
+    for (var i = 0; i < PATTERNS.length; i++) {
+      var m = s.match(PATTERNS[i][0]);
+      if (m) { var n = 0; return PATTERNS[i][1].replace(/\{\}/g, function () { return t(m[++n]); }); }
+    }
+    return s;
+  }
+  function alert(m) { window.alert(t(m)); }
+  function confirm(m) { return window.confirm(t(m)); }
+  function prompt(m, v) { return window.prompt(t(m), v); }
+
   // ------------------------------------------------------------------ utilidades
   function h(tag, attrs, children) {
     var el = document.createElement(tag);
     Object.keys(attrs || {}).forEach(function (k) {
-      if (k === 'text') el.textContent = attrs[k];
+      if (k === 'text') el.textContent = t(attrs[k]);
+      else if ((k === 'title' || k === 'placeholder' || k === 'aria-label') && typeof attrs[k] === 'string') el.setAttribute(k, t(attrs[k]));
       else if (k === 'html') el.innerHTML = attrs[k];
       else if (k.slice(0, 2) === 'on') el.addEventListener(k.slice(2), attrs[k]);
       else if (attrs[k] !== null && attrs[k] !== undefined && attrs[k] !== false) el.setAttribute(k, attrs[k] === true ? '' : attrs[k]);
     });
-    (children || []).forEach(function (c) { if (c) el.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    (children || []).forEach(function (c) { if (c) el.appendChild(typeof c === 'string' ? document.createTextNode(t(c)) : c); });
     return el;
   }
   function api(action, params) {
@@ -64,8 +89,8 @@
       e.preventDefault();
       post('login.php', { password: input.value }).then(function (d) {
         if (d.ok) location.reload();
-        else { error.textContent = d.error || 'Error de acceso'; error.hidden = false; }
-      }).catch(function () { error.textContent = 'Error de red'; error.hidden = false; });
+        else { error.textContent = t(d.error || 'Error de acceso'); error.hidden = false; }
+      }).catch(function () { error.textContent = t('Error de red'); error.hidden = false; });
     } }, [h('h1', { text: 'Panel de la web' }), input, h('button', { type: 'submit', text: 'Entrar' }), error]);
     app.innerHTML = '';
     app.appendChild(form);
@@ -100,7 +125,7 @@
   function renderNav() {
     nav.innerHTML = '';
     var cols = (cfg.collections || []).map(function (c) { return ['col:' + c.name, c.label]; });
-    [['home', 'Inicio'], ['content', 'Contenido']].concat(cols, [['messages', 'Mensajes'], ['history', 'Copias']], cfg.seo ? [['seo', 'SEO']] : []).forEach(function (item) {
+    [['home', 'Inicio'], ['content', 'Contenido']].concat(cols, cfg.menu ? [['menu', 'Menú']] : [], [['messages', 'Mensajes'], ['history', 'Copias']], cfg.seo ? [['seo', 'SEO']] : []).forEach(function (item) {
       nav.appendChild(h('button', { type: 'button', class: 'np-nav-item' + (state.view === item[0] ? ' is-active' : ''), onclick: function () { go(item[0]); } },
         [item[1], item[0] === 'messages' && state.unread ? h('span', { class: 'np-badge', text: String(state.unread) }) : null]));
     });
@@ -114,7 +139,7 @@
     renderNav();
     if (view.indexOf('col:') === 0) loadCollection(view.slice(4));
     else if (view === 'home') loadHome(); else if (view === 'seo') loadSeo(); else if (view === 'messages') loadMessages();
-    else if (view === 'history') loadHistory(); else loadContent();
+    else if (view === 'history') loadHistory(); else if (view === 'menu') loadMenu(); else loadContent();
   }
 
   function confirmLeave() {
@@ -124,11 +149,11 @@
 
   // ------------------------------------------------------------------ inicio
   function loadHome() {
-    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    main.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
     Promise.all([api('home'), api('content')]).then(function (r) {
       var home = r[0], content = r[1];
       document.querySelector('.np-site').textContent = home.name;
-      document.title = 'Panel · ' + home.name;
+      document.title = t('Panel') + ' · ' + home.name;
       var where = keyIndex(content.schema);
       state.unread = home.unread || 0;
       renderNav();
@@ -150,9 +175,9 @@
       var langs = home.languages ? Object.keys(home.languages.languages).length : 1;
       main.appendChild(h('div', { class: 'np-stats' }, [
         stat(home.pages, home.pages === 1 ? 'página' : 'páginas'),
-        home.posts ? stat(home.posts, home.posts === 1 ? 'entrada del blog' : 'entradas del blog') : null,
-        stat(langs, langs === 1 ? 'idioma' : 'idiomas')
-      ]));
+      ].concat((home.collections || []).slice(0, 3).map(function (c) { return stat(c.count, c.label); }),
+        [langs > 1 ? stat(langs, 'idiomas') : null])));
+      if (home.stats) main.appendChild(statsCard(home.stats));
       var list = h('ul', { class: 'np-recent' });
       (home.recent || []).forEach(function (c) {
         var w = where[c.key];
@@ -167,6 +192,28 @@
       main.appendChild(h('p', { class: 'np-version', text: 'Neutron ' + home.version }));
     }).catch(failed);
   }
+  // Visitas de los últimos 30 días (lib/stats.php): totales, una barra por día y las páginas más vistas
+  function statsCard(st) {
+    var days = Object.keys(st.days), max = Math.max.apply(null, days.map(function (d) { return st.days[d].views; }).concat([1]));
+    var chart = h('div', { class: 'np-chart', role: 'img', 'aria-label': 'Visitas por día' }, days.map(function (d) {
+      var v = st.days[d], day = new Date(d + 'T12:00');
+      return h('span', { class: 'np-bar-day' + (day.getDay() === 0 || day.getDay() === 6 ? ' is-weekend' : ''), style: 'height:' + Math.max(2, Math.round(v.views * 100 / max)) + '%',
+        title: day.toLocaleDateString(LOCALE, { weekday: 'short', day: 'numeric', month: 'short' }) + ': ' + v.views + ' páginas vistas, ' + v.visitors + ' visitantes' });
+    }));
+    var pages = Object.keys(st.pages);
+    return h('section', { class: 'np-card' }, [
+      h('div', { class: 'np-card-head' }, [h('h2', { text: 'Visitas' }), h('span', { class: 'np-muted np-small', text: 'Últimos 30 días · sin cookies' })]),
+      h('div', { class: 'np-visits' }, [
+        h('div', {}, [h('strong', { text: st.visitors.toLocaleString(LOCALE) }), h('span', { text: 'visitantes' })]),
+        h('div', {}, [h('strong', { text: st.views.toLocaleString(LOCALE) }), h('span', { text: 'páginas vistas' })])
+      ]),
+      chart,
+      pages.length ? h('ul', { class: 'np-recent np-top-pages' }, pages.map(function (p) {
+        return h('li', {}, [h('span', { text: p === '/' || p === '' ? 'Portada' : decodeURIComponent(p) }), h('span', { class: 'np-muted', text: String(st.pages[p]) })]);
+      })) : h('p', { class: 'np-muted np-small', text: 'Todavía no hay visitas contadas.' })
+    ]);
+  }
+
   function stat(n, label) { return h('div', { class: 'np-stat' }, [h('strong', { text: String(n) }), h('span', { text: label })]); }
   // Clave → página y sección (para «Últimos cambios»)
   function keyIndex(schema) {
@@ -178,11 +225,11 @@
     schema.pages.forEach(function (p) { add(p.title, p.sections); });
     return out;
   }
-  function failed() { main.innerHTML = '<p class="np-error">No se han podido cargar los datos. Recarga la página.</p>'; }
+  function failed() { main.innerHTML = '<p class="np-error">' + t('No se han podido cargar los datos. Recarga la página.') + '</p>'; }
 
   // ------------------------------------------------------------------ contenido
   function loadContent(lang, keepPage) {
-    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    main.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
     api('content', lang ? { lang: lang } : {}).then(function (d) {
       state.data = d;
       state.lang = d.lang;
@@ -360,7 +407,7 @@
     box.appendChild(h('div', { class: 'np-ai-actions' }, [
       h('button', { type: 'button', class: 'np-button np-small-button', text: 'Guardar las traducciones', onclick: function (e) {
         e.target.disabled = true;
-        status.textContent = 'Guardando…';
+        status.textContent = t('Guardando…');
         var langs = Object.keys(inputs);
         Promise.all(langs.map(function (l) {
           var payload = { lang: l, fields: {}, images: {}, collections: {}, source: 'ai' };
@@ -368,9 +415,9 @@
           return post('save.php', payload);
         })).then(function (rs) {
           var bad = rs.filter(function (r) { return !r.ok; });
-          status.textContent = bad.length ? 'Error: ' + (bad[0].error || '') : 'Guardado en ' + langs.map(function (l) { return l.toUpperCase(); }).join(', ') + ' ✓';
+          status.textContent = t(bad.length ? 'Error: ' + (bad[0].error || '') : 'Guardado en ' + langs.map(function (l) { return l.toUpperCase(); }).join(', ') + ' ✓');
           if (bad.length) e.target.disabled = false;
-        }).catch(function () { status.textContent = 'Error de red'; e.target.disabled = false; });
+        }).catch(function () { status.textContent = t('Error de red'); e.target.disabled = false; });
       } }),
       h('button', { type: 'button', class: 'np-button np-secondary np-small-button', text: 'Cerrar', onclick: function () { box.remove(); } }),
       status
@@ -403,12 +450,12 @@
     var msg = h('span', { class: 'np-muted np-small' });
     var input = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp,image/gif', hidden: true, onchange: function () {
       if (!input.files[0]) return;
-      msg.textContent = 'Preparando imagen…';
+      msg.textContent = t('Preparando imagen…');
       upload(input.files[0]).then(function (url) {
         img.src = src(url);
-        msg.textContent = '';
+        msg.textContent = t('');
         onChange(url);
-      }).catch(function (err) { msg.textContent = err.message || 'No se ha podido subir'; });
+      }).catch(function (err) { msg.textContent = t(err.message || 'No se ha podido subir'); });
       input.value = '';
     } });
     return h('div', { class: 'np-image' }, [img, h('div', {}, [
@@ -469,7 +516,7 @@
   function markDirty() {
     state.dirty = Object.keys(state.values).length > 0;
     state.saveBtn.disabled = !state.dirty;
-    state.statusEl.textContent = state.dirty ? 'Cambios sin guardar' : '';
+    state.statusEl.textContent = t(state.dirty ? 'Cambios sin guardar' : '');
   }
 
 
@@ -486,7 +533,7 @@
   function itemsPost(body) { return post('items.php', body); }
 
   function loadCollection(name, keepFilters) {
-    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    main.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
     if (!keepFilters || col.name !== name) { col.search = ''; col.category = ''; }
     col.name = name;
     col.lang = col.lang || (cfg.languages ? cfg.languages.default : null);
@@ -540,7 +587,7 @@
       rows.forEach(function (it, i) {
         var meta = [];
         if (it.category) meta.push(categoryTitle(it.category));
-        if (it.date) meta.push(new Date(it.date + 'T12:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }));
+        if (it.date) meta.push(new Date(it.date + 'T12:00').toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' }));
         if (it.images !== undefined) meta.push(it.images + (it.images === 1 ? ' foto' : ' fotos'));
         if (it.file) meta.push(it.file);
         if (it.downloads) meta.push(it.downloads + ' descargas');
@@ -579,20 +626,20 @@
 
   // Ficha de un elemento: un control por campo de la definición
   function openItem(slug) {
-    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    main.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
     itemsApi({ a: 'get', c: col.name, i: slug, lang: col.lang || '' }).then(function (r) {
       if (!r.ok) { main.innerHTML = ''; main.appendChild(h('p', { class: 'np-error', text: r.error })); return; }
       var it = r.item, values = {}, d = col.def, dirty = false;
       var status = h('span', { class: 'np-status' });
       var translating = cfg.languages && col.lang !== cfg.languages.default;
-      var published = h('input', { type: 'checkbox', checked: it.status === 'published', onchange: function () { dirty = true; status.textContent = 'Cambios sin guardar'; } });
+      var published = h('input', { type: 'checkbox', checked: it.status === 'published', onchange: function () { dirty = true; status.textContent = t('Cambios sin guardar'); } });
       var saveBtn = h('button', { type: 'button', class: 'np-button', text: 'Guardar', onclick: function () {
-        saveBtn.disabled = true; status.textContent = 'Guardando…';
+        saveBtn.disabled = true; status.textContent = t('Guardando…');
         itemsPost({ a: 'save', c: col.name, i: slug, lang: col.lang || '', fields: values, status: published.checked ? 'published' : 'draft' }).then(function (res) {
           saveBtn.disabled = false;
-          if (!res.ok) { status.textContent = 'Error: ' + (res.error || ''); return; }
-          dirty = false; state.dirty = false; status.textContent = 'Guardado ✓';
-        }).catch(function () { saveBtn.disabled = false; status.textContent = 'Error de red'; });
+          if (!res.ok) { status.textContent = t('Error: ' + (res.error || '')); return; }
+          dirty = false; state.dirty = false; status.textContent = t('Guardado ✓');
+        }).catch(function () { saveBtn.disabled = false; status.textContent = t('Error de red'); });
       } });
       var back = h('button', { type: 'button', class: 'np-link', text: '← ' + d.label, onclick: function () {
         if (dirty && !confirm('Hay cambios sin guardar. ¿Salir sin guardarlos?')) return;
@@ -606,7 +653,7 @@
       ]));
       var card = h('section', { class: 'np-card' });
       d.fields.forEach(function (f) {
-        var set = function (v) { values[f.name] = v; dirty = true; state.dirty = true; status.textContent = 'Cambios sin guardar'; };
+        var set = function (v) { values[f.name] = v; dirty = true; state.dirty = true; status.textContent = t('Cambios sin guardar'); };
         var label = h('div', { class: 'np-label' }, [h('span', { text: f.label })]);
         if (translating && d.translated.indexOf(f.name) >= 0 && r.own.indexOf(f.name) < 0 && it[f.name]) label.appendChild(h('span', { class: 'np-tag np-tag-warn', text: 'Sin traducir' }));
         if (translating && d.translated.indexOf(f.name) < 0) label.appendChild(h('span', { class: 'np-tag', text: 'Común a todos los idiomas' }));
@@ -661,10 +708,10 @@
       input.value = '';
       var done = 0;
       var next = function () {
-        if (!files.length) { msg.textContent = done ? done + (done === 1 ? ' foto añadida' : ' fotos añadidas') : ''; return; }
-        msg.textContent = 'Subiendo ' + (done + 1) + ' de ' + (done + files.length) + '…';
+        if (!files.length) { msg.textContent = t(done ? done + (done === 1 ? ' foto añadida' : ' fotos añadidas') : ''); return; }
+        msg.textContent = t('Subiendo ' + (done + 1) + ' de ' + (done + files.length) + '…');
         upload(files.shift()).then(function (url) { list.push(url); done++; onChange(list.slice()); draw(); next(); })
-          .catch(function (err) { msg.textContent = err.message || 'No se ha podido subir'; });
+          .catch(function (err) { msg.textContent = t(err.message || 'No se ha podido subir'); });
       };
       next();
     } });
@@ -693,17 +740,17 @@
       var file = input.files[0];
       input.value = '';
       if (!file) return;
-      msg.textContent = 'Subiendo ' + file.name + ' (' + sizeText(file.size) + ')…';
+      msg.textContent = t('Subiendo ' + file.name + ' (' + sizeText(file.size) + ')…');
       var fd = new FormData();
       fd.append('file', file);
       fetch('upload.php', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': cfg.csrf }, body: fd })
         .then(function (r) { return r.json(); })
         .then(function (d) {
-          if (!d.ok) { msg.textContent = d.error || 'No se ha podido subir'; return; }
-          name.textContent = d.url.split('/').pop(); detail.textContent = sizeText(d.size); msg.textContent = 'Subido. Recuerda guardar.';
+          if (!d.ok) { msg.textContent = t(d.error || 'No se ha podido subir'); return; }
+          name.textContent = d.url.split('/').pop(); detail.textContent = sizeText(d.size); msg.textContent = t('Subido. Recuerda guardar.');
           icon.textContent = d.url.split('.').pop().toUpperCase().slice(0, 4);
           onChange(d.url);
-        }).catch(function () { msg.textContent = 'Error de red al subir'; });
+        }).catch(function () { msg.textContent = t('Error de red al subir'); });
     } });
     return h('div', { class: 'np-file' }, [icon,
       h('div', {}, [name, detail]), h('button', { type: 'button', class: 'np-button np-secondary', text: value ? 'Cambiar fichero' : 'Subir fichero', onclick: function () { input.click(); } }), input, msg]);
@@ -745,11 +792,76 @@
     draw();
   }
 
+  // ------------------------------------------------------------------ menú (lib/menu.php, site/menu.json)
+  function loadMenu() {
+    main.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
+    api('menu').then(renderMenu).catch(failed);
+  }
+
+  function renderMenu(d) {
+    var items = d.items.map(function (it) { return { href: it.href, label: clone(it.label), button: !!it.button, hidden: !!it.hidden }; });
+    var codes = cfg.languages ? Object.keys(cfg.languages.languages) : [null];
+    var status = h('span', { class: 'np-status' });
+    var saveBtn = h('button', { type: 'button', class: 'np-button', text: 'Guardar menú', disabled: true, onclick: save });
+    main.innerHTML = '';
+    main.appendChild(h('header', { class: 'np-head np-sticky' }, [h('h1', { text: 'Menú' }), h('div', { class: 'np-actions' }, [status, saveBtn])]));
+    main.appendChild(h('p', { class: 'np-muted np-small', text: 'Los enlaces del menú de la web, en este orden. Un enlace puede ir a una página de la web o a otra web (se abre aparte).' +
+      (d.custom ? '' : ' Ahora es el de la plantilla: al guardar, pasa a ser el de aquí.') }));
+    var targets = h('datalist', { id: 'np-menu-targets' }, d.targets.map(function (t) { return h('option', { value: t }); }));
+    var box = h('section', { class: 'np-card' });
+    main.appendChild(targets);
+    main.appendChild(box);
+    if (d.custom) main.appendChild(h('p', {}, [h('button', { type: 'button', class: 'np-link', text: 'Volver al menú de la plantilla', onclick: function () {
+      if (!confirm('¿Volver al menú de la plantilla? Se pierde el de aquí.')) return;
+      post('api.php?a=menu-save', { reset: true }).then(function (r) { if (r.ok) loadMenu(); else alert(r.error); });
+    } })]));
+    function changed() { state.dirty = true; saveBtn.disabled = false; status.textContent = t('Cambios sin guardar'); }
+    function move(i, dir) { items.splice(i + dir, 0, items.splice(i, 1)[0]); changed(); draw(); }
+    function draw() {
+      box.innerHTML = '';
+      items.forEach(function (it, i) {
+        var labels = codes.map(function (code) {
+          return h('label', { class: 'np-field' }, [h('span', { class: 'np-label', text: code ? 'Texto (' + cfg.languages.languages[code] + ')' : 'Texto' }),
+            h('input', { class: 'np-input', value: it.label[code || 'ca'] || (code ? '' : it.label[Object.keys(it.label)[0]] || ''), oninput: function (e) {
+              if (!code) it.label = {};
+              it.label[code || 'ca'] = e.target.value; changed();
+            } })]);
+        });
+        box.appendChild(h('div', { class: 'np-item' + (it.hidden ? ' is-hidden' : '') }, [
+          h('div', { class: 'np-item-head' }, [h('strong', { text: (it.label[state.lang || (cfg.languages && cfg.languages.default) || 'ca'] || it.label[Object.keys(it.label)[0]] || 'Enlace nuevo') }),
+            h('span', { class: 'np-item-tools' }, [
+              h('button', { type: 'button', title: 'Subir', text: '↑', disabled: i === 0, onclick: function () { move(i, -1); } }),
+              h('button', { type: 'button', title: 'Bajar', text: '↓', disabled: i === items.length - 1, onclick: function () { move(i, 1); } }),
+              h('button', { type: 'button', title: 'Quitar', text: '✕', onclick: function () { if (confirm('¿Quitar este enlace del menú?')) { items.splice(i, 1); changed(); draw(); } } })])]),
+          h('label', { class: 'np-field' }, [h('span', { class: 'np-label', text: 'Va a' }),
+            h('input', { class: 'np-input', list: 'np-menu-targets', value: it.href, placeholder: 'pagina.html o https://…', oninput: function (e) { it.href = e.target.value.trim(); changed(); } })])
+        ].concat(labels, [h('div', { class: 'np-tools' }, [
+          h('label', { class: 'np-check' }, [h('input', { type: 'checkbox', checked: it.hidden, onchange: function (e) { it.hidden = e.target.checked; changed(); } }), ' Ocultar']),
+          h('label', { class: 'np-check' }, [h('input', { type: 'checkbox', checked: it.button, onchange: function (e) { it.button = e.target.checked; changed(); } }), ' Destacado (botón)'])
+        ])])));
+      });
+      box.appendChild(h('div', { class: 'np-ai-actions' }, [h('button', { type: 'button', class: 'np-button np-secondary', text: '+ Añadir enlace', onclick: function () {
+        var label = {}; codes.forEach(function (c) { label[c || 'ca'] = ''; });
+        items.push({ href: '', label: label, button: false, hidden: false }); changed(); draw();
+      } })]));
+    }
+    function save() {
+      var bad = items.filter(function (it) { return !it.href || !Object.keys(it.label).some(function (k) { return (it.label[k] || '').trim(); }); });
+      if (bad.length) { alert('Cada enlace necesita a dónde va y su texto.'); return; }
+      saveBtn.disabled = true; status.textContent = t('Guardando…');
+      post('api.php?a=menu-save', { items: items }).then(function (r) {
+        if (!r.ok) { saveBtn.disabled = false; status.textContent = t(r.error || 'No se ha podido guardar'); return; }
+        state.dirty = false; status.textContent = t('Guardado');
+      }).catch(function () { saveBtn.disabled = false; status.textContent = t('No se ha podido guardar'); });
+    }
+    draw();
+  }
+
   // ------------------------------------------------------------------ mensajes del formulario (lib/messages.php)
   var inbox = { items: [], current: null, total: 0, keep: 365 };
 
   function loadMessages() {
-    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    main.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
     api('messages').then(function (d) {
       inbox.items = d.items; inbox.total = d.total; inbox.keep = d.keep_days;
       state.unread = d.unread; renderNav();
@@ -759,7 +871,7 @@
 
   function dateText(iso) {
     var d = new Date(iso);
-    return d.toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }) + ' · ' + d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    return d.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short', year: 'numeric' }) + ' · ' + d.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' });
   }
 
   function renderMessages() {
@@ -781,7 +893,7 @@
   function openMessage(m, detail, list) {
     inbox.current = m.id;
     Array.prototype.forEach.call(list.children, function (b, i) { b.classList.toggle('is-active', inbox.items[i].id === m.id); });
-    detail.innerHTML = '<p class="np-muted">Cargando…</p>';
+    detail.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
     api('message', { id: m.id }).then(function (d) {
       if (!d.ok) { detail.innerHTML = ''; detail.appendChild(h('p', { class: 'np-error', text: d.error })); return; }
       var msg = d.message;
@@ -811,16 +923,18 @@
           });
         } })
       ]));
-    }).catch(function () { detail.innerHTML = '<p class="np-error">Error de red</p>'; });
+    }).catch(function () { detail.innerHTML = '<p class="np-error">' + t('Error de red') + '</p>'; });
   }
 
   // ------------------------------------------------------------------ copias del contenido (lib/history.php)
   var SOURCES = { editor: 'En la web', panel: 'Panel', ai: 'Traducción con IA', restore: 'Antes de volver a una copia' };
 
   function loadHistory() {
-    main.innerHTML = '<p class="np-muted">Cargando…</p>';
-    Promise.all([api('history'), api('content')]).then(function (r) {
+    main.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
+    Promise.all([api('history'), api('content'), itemsApi({ a: 'collections' })]).then(function (r) {
       state.historyIndex = fieldIndex(r[1].schema);
+      state.historyCols = {};
+      (r[2].collections || []).forEach(function (c) { state.historyCols[c.name] = c; });
       renderHistory(r[0].items);
     }).catch(failed);
   }
@@ -834,6 +948,13 @@
     add('Común', schema.common);
     schema.pages.forEach(function (p) { add(p.title, p.sections); });
     return out;
+  }
+
+  var ITEM_ACTIONS = { save: 'Cambio', delete: 'Borrado', categories: 'Categorías', restore: 'Antes de volver a una copia' };
+  function describeVersion(v) {
+    if (v.kind !== 'item') return describeKeys(v.keys);
+    var c = state.historyCols[v.collection];
+    return (c ? c.label : v.collection) + ' › ' + (v.action === 'categories' ? 'Categorías' : v.title) + (v.action === 'delete' ? ' (borrado)' : '');
   }
 
   function describeKeys(keys) {
@@ -855,30 +976,64 @@
     var lastDay = '';
     items.forEach(function (v) {
       var d = new Date(v.at);
-      var day = d.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      var day = d.toLocaleDateString(LOCALE, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
       if (day !== lastDay) { list.appendChild(h('h2', { class: 'np-day', text: day.charAt(0).toUpperCase() + day.slice(1) })); lastDay = day; }
       list.appendChild(h('button', { type: 'button', class: 'np-version-row', onclick: function () { openVersion(v.id); } }, [
-        h('span', { class: 'np-muted', text: d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) }),
-        h('span', { text: describeKeys(v.keys) }),
+        h('span', { class: 'np-muted', text: d.toLocaleTimeString(LOCALE, { hour: '2-digit', minute: '2-digit' }) }),
+        h('span', { text: describeVersion(v) }),
         h('span', { class: 'np-tag', text: (SOURCES[v.source] || v.source) + (v.lang ? ' · ' + v.lang.toUpperCase() : '') })
       ]));
     });
     main.appendChild(list);
   }
 
+  // Copia de un elemento de una colección: antes y ahora de cada campo, y volver a esa versión (o recuperarlo)
+  function openItemVersion(v) {
+    var c = state.historyCols[v.collection] || { label: v.collection, fields: [] };
+    var labels = {}, types = {};
+    (c.fields || []).forEach(function (f) { labels[f.name] = f.label; types[f.name] = f.type; });
+    main.innerHTML = '';
+    main.appendChild(h('header', { class: 'np-head' }, [
+      h('div', {}, [h('button', { type: 'button', class: 'np-link', text: '← Todas las copias', onclick: function () { loadHistory(); } }),
+        h('h1', { text: describeVersion(v) })]),
+      h('button', { type: 'button', class: 'np-button np-secondary', text: v.deleted ? 'Recuperar el elemento' : 'Volver a esta versión', onclick: function () {
+        if (!confirm(v.deleted ? 'Se vuelve a crear tal como estaba. ¿Seguimos?' : 'El elemento vuelve a estar como en esta copia; lo de ahora queda en otra copia. ¿Seguimos?')) return;
+        post('api.php?a=history-restore&id=' + encodeURIComponent(v.id), {}).then(function (r) {
+          if (!r.ok) { alert(r.error || 'No se ha podido'); return; }
+          alert('Hecho.'); loadHistory();
+        });
+      } })
+    ]));
+    main.appendChild(h('p', { class: 'np-muted', text: 'Copia del ' + dateText(v.at) + ' · ' + (ITEM_ACTIONS[v.action] || v.action) + (SOURCES[v.source] ? ' · ' + SOURCES[v.source] : '') }));
+    if (!v.changes.length) main.appendChild(h('section', { class: 'np-card' }, [h('p', { class: 'np-muted', text: 'Ahora está igual que en esta copia.' })]));
+    v.changes.forEach(function (ch) {
+      var name = ch.key === 'categories' ? 'Categorías' : (labels[ch.key] || ch.key);
+      main.appendChild(h('section', { class: 'np-card' }, [
+        h('div', { class: 'np-card-head' }, [h('h2', { text: name }), ch.lang ? h('span', { class: 'np-tag', text: ch.lang.toUpperCase() }) : null]),
+        h('div', { class: 'np-compare' }, [
+          h('div', {}, [h('div', { class: 'np-label', text: 'Antes' }), valueView(ch.before, types[ch.key])]),
+          h('div', {}, [h('div', { class: 'np-label', text: 'Ahora' }), v.deleted ? h('em', { class: 'np-muted', text: '(borrado)' }) : valueView(ch.now, types[ch.key])])
+        ])
+      ]));
+    });
+  }
+
   function valueView(v, type) {
     if (v === null || v === undefined || v === '') return h('em', { class: 'np-muted', text: '(vacío)' });
     if (type === 'img') return h('img', { class: 'np-thumb', src: src(v), alt: '' });
+    if (type === 'images' && Array.isArray(v)) return h('div', { class: 'np-thumbs' }, v.slice(0, 8).map(function (x) { return h('img', { class: 'np-thumb-mini', src: src(x), alt: '' }); }));
+    if (type === 'file') return h('span', { text: String(v).split('/').pop() });
     if (Array.isArray(v)) return h('span', { text: 'Lista de ' + v.length + (v.length === 1 ? ' elemento' : ' elementos') });
     if (type === 'html') return h('span', { text: String(v).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 400) });
     return h('span', { text: String(v) });
   }
 
   function openVersion(id) {
-    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    main.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
     api('history-detail', { id: id }).then(function (d) {
       if (!d.ok) { failed(); return; }
       var v = d.version, idx = state.historyIndex;
+      if (v.kind === 'item') return openItemVersion(v);
       main.innerHTML = '';
       main.appendChild(h('header', { class: 'np-head' }, [
         h('div', {}, [h('button', { type: 'button', class: 'np-link', text: '← Todas las copias', onclick: function () { loadHistory(); } }),
@@ -925,7 +1080,7 @@
   var seo = { page: '', type: 'seo', data: null, running: false };
 
   function loadSeo() {
-    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    main.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
     api('seo').then(function (d) { seo.data = d; renderSeo(); }).catch(failed);
   }
 
@@ -1034,10 +1189,10 @@
   function save(force) {
     if (!state.dirty) return;
     state.saveBtn.disabled = true;
-    state.statusEl.textContent = 'Guardando…';
+    state.statusEl.textContent = t('Guardando…');
     post('save.php', payload(force)).then(function (d) {
       if (d.conflict) return conflict(d.conflict);
-      if (!d.ok) { state.statusEl.textContent = 'Error: ' + (d.error || ''); state.saveBtn.disabled = false; return; }
+      if (!d.ok) { state.statusEl.textContent = t('Error: ' + (d.error || '')); state.saveBtn.disabled = false; return; }
       Object.keys(state.values).forEach(function (k) {
         state.original[k] = clone(state.values[k]);
         var target = payload().images[k] !== undefined && cfg.languages ? state.data.shared : state.data.values;
@@ -1046,14 +1201,14 @@
       state.values = {};
       state.base = d.base || state.base;
       markDirty();
-      state.statusEl.textContent = 'Guardado ✓';
-    }).catch(function () { state.statusEl.textContent = 'Error de red al guardar'; state.saveBtn.disabled = false; });
+      state.statusEl.textContent = t('Guardado ✓');
+    }).catch(function () { state.statusEl.textContent = t('Error de red al guardar'); state.saveBtn.disabled = false; });
   }
 
   function conflict(keys) {
     var labels = {};
     state.pages.forEach(function (p) { p.sections.forEach(function (s) { s.fields.forEach(function (f) { labels[f.key] = s.title + ' › ' + f.label; }); }); });
-    state.statusEl.textContent = 'Sin guardar: hay cambios de otra ventana';
+    state.statusEl.textContent = t('Sin guardar: hay cambios de otra ventana');
     state.saveBtn.disabled = false;
     var overlay = h('div', { class: 'np-overlay' });
     var close = function () { overlay.remove(); };

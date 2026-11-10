@@ -451,8 +451,9 @@ se suben sin tocar (pueden ser animados). Si llega una imagen grande sin pasar p
 
 El cliente entra en `/admin/` con la misma contraseña que el editor (la sesión es la misma) y ve:
 
-- **Inicio**: nombre de la web, páginas, entradas del blog e idiomas, los **últimos cambios** (de `data/edits.json`,
-  con la página y la sección de cada campo) y los **avisos de AFI**: las campañas que envía Cosmo (*Campañas*) con la
+- **Inicio**: nombre de la web, páginas, idiomas y elementos de cada colección; las **visitas** de los últimos 30 días
+  (por día, y las páginas más vistas; ver «Visitas» más abajo); los **últimos cambios** (de `data/edits.json`, con la
+  página y la sección de cada campo) y los **avisos de AFI**: las campañas que envía Cosmo (*Campañas*) con la
   acción remota `announcements-set`. Se guardan en `data/announcements.json`
   (`{"items": [{"id", "title", "text", "url", "button", "until": "AAAA-MM-DD"}]}`; los caducados no salen, el enlace
   solo puede ser http(s) y sin enlace no hay botón). Cada aviso cuenta sus vistas (una por sesión del panel) y los
@@ -472,8 +473,12 @@ El cliente entra en `/admin/` con la misma contraseña que el editor (la sesión
 - **Copias**: antes de cada guardado (en la web, en el panel o una traducción con IA) se copia cómo estaban los ficheros
   de textos que cambian, con los campos afectados (`data/history/`, las últimas 300; `lib/history.php`). Por cada copia
   se ve el antes y el ahora de cada campo, con **Recuperar lo de antes** (un campo) y **Volver a esta versión** (todos
-  los de esa copia; deja a su vez una copia de lo que había, así que se puede deshacer). Las entradas del blog no
-  tienen copias todavía; las copias completas de la web las hace Cosmo.
+  los de esa copia; deja a su vez una copia de lo que había, así que se puede deshacer). Los **elementos de las
+  colecciones** (entradas, documentos, álbumes…) y sus categorías también: antes de guardarlos o borrarlos se copia su
+  fichero (`data/history/<id>/item/<colección>/`), y desde la copia se ve qué ha cambiado y se vuelve a como estaba
+  (también un elemento borrado). Ordenar con las flechas no deja copias. Las copias completas de la web las hace Cosmo.
+- **Menú** (si la plantilla marca su menú con `data-menu`): los enlaces del menú en una lista para añadir, quitar,
+  ordenar, ocultar o marcar como botón, con su texto en cada idioma; ver «Menú editable» más abajo.
 - **SEO** (si está configurado `pulsar`): análisis **SEO** (Google) y **GEO** (asistentes de IA) de cualquier página con
   la API de Pulsar: nota, puntuación por categoría y lo que se puede mejorar, con la solución (los textos son de Pulsar,
   en catalán). Los problemas del título y de la descripción tienen **Corregir**, que abre ese campo en *Contenido*. Se
@@ -494,8 +499,46 @@ bloque que contiene `<section>` (un `<main>`) se recorre por dentro. El nombre d
 descripción) va en «Datos de la página». Una clave que sale en varios sitios (el teléfono en la cabecera y en el pie)
 se edita una sola vez, en el primero. El botón de añadir de una lista usa su `data-edit-add`.
 
-El panel lee con `admin/api.php` (`?a=home`, `?a=content&lang=…`, `?a=seo`, `?a=messages`, `?a=history`…; ver la cabecera del fichero) y guarda con `admin/save.php`, igual que el editor:
+El panel lee con `admin/api.php` (`?a=home`, `?a=content&lang=…`, `?a=seo`, `?a=messages`, `?a=history`, `?a=menu`…; ver la cabecera del fichero) y guarda con `admin/save.php`, igual que el editor:
 solo lo cambiado y con los mismos avisos si otra ventana ha cambiado lo mismo.
+
+### Menú editable
+
+Si un elemento de la plantilla (o de un parcial) tiene `data-menu` —el `<nav>` de la cabecera, el del pie—, sus enlaces
+(los `<a>` que son hijos directos) se pueden cambiar desde *Panel → Menú*. Mientras no se guarde, el menú es el de la
+plantilla, tal cual; al guardar se crea `site/menu.json`, y a partir de entonces los enlaces de **todos** los `data-menu`
+salen de ahí (en los dos motores, antes de marcar la página actual y de poner el idioma a los enlaces):
+
+```json
+{"items": [{"href": "la-festa.html", "label": {"ca": "La Festa", "es": "La Fiesta"}, "button": false, "hidden": false},
+           {"href": "https://botiga.example.com", "label": {"ca": "Botiga"}, "button": true, "hidden": false}]}
+```
+
+- Cada enlace se hace copiando el primer enlace del elemento (clases y atributos, sin su `data-edit`); los marcados como
+  **botón**, el primero con la clase `btn` (si no hay, como los demás). Van donde estaba el primer enlace; lo demás que
+  haya dentro (el selector de idioma) se queda igual.
+- Los internos se escriben sin idioma (`la-festa.html`, `noticies/`); los externos (`https://…`) se abren en otra
+  pestaña. Solo `http(s)`, `mailto:`, `tel:` y páginas de la web. El texto, en el idioma que se ve, o en el principal.
+- **Sin submenús**: si el menú tiene un desplegable (un `<div>` con más enlaces dentro), no se le pone `data-menu`.
+- «Volver al menú de la plantilla» borra `site/menu.json`. Los bloques `header` y `footer` ya llevan `data-menu`.
+
+### Visitas
+
+Sin cookies ni servicios externos (no piden consentimiento): cada página que sirve Neutron con un 200 a una persona (no
+a robots, al editor con sesión ni a las precargas del navegador) es una línea en `data/stats/AAAA-MM-DD.log` con la
+página y una huella del visitante de ese día (`sha1` de una sal al azar del día + IP + navegador; la IP no se guarda y
+la sal se borra al terminar el día, así que no se puede seguir a nadie de un día a otro). Al día siguiente se resume en
+`data/stats/days.json` (vistas, visitantes, páginas más vistas; 400 días) y el registro se borra. Cuenta también las
+páginas servidas desde la caché. Config `stats.enabled` (true). Son cifras orientativas: no ven las visitas que se
+quedan en la caché de un proxy ni distinguen dos personas detrás de la misma IP con el mismo navegador.
+
+### Idioma del panel
+
+El panel y la barra del editor están en castellano o en catalán: en el idioma principal de la web si es uno de los dos
+(si no, en castellano), o el que diga `panel.lang` (`'es'` o `'ca'`). Los textos se escriben en castellano en
+`assets/panel.js` y `assets/editor.js`, y `assets/i18n/ca.json` los traduce (`lib/panel_lang.php`): la clave es el texto
+en castellano y `{}` vale para las partes que cambian (`"hace {} min": "fa {} min"`). Al añadir un texto al panel, se
+añade también su traducción. Los textos del contenido (páginas, colecciones) son los del sitio y no se traducen.
 
 ### Fichas de cualquier colección
 
@@ -553,6 +596,8 @@ return [
     'mail' => ['to' => '', 'from' => ''],
     'remote' => ['token' => '…', 'allow_ips' => ['IP de Cosmo'], 'backups_keep' => 5],
     'log' => ['level' => 'info', 'keep_days' => 30],
+    'panel' => ['lang' => null],                           // idioma del panel: 'es', 'ca' o null (el de la web)
+    'stats' => ['enabled' => true],                        // visitas del inicio del panel
 ];
 ```
 
