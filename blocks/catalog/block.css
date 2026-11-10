@@ -1,0 +1,11 @@
+.b-catalog__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 36px 28px; }
+.b-catalog__img { display: block; overflow: hidden; border-radius: var(--radius); background: var(--c-soft); margin-bottom: 14px; }
+.b-catalog__img img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; transition: transform .8s cubic-bezier(.2,.7,.2,1); }
+.b-catalog__item:hover .b-catalog__img img { transform: scale(1.04); }
+.b-catalog__cat { margin: 0 0 4px; font-size: 13px; font-weight: 600; color: var(--c-primary); }
+.b-catalog__cat:empty, .b-catalog__summary:empty, .b-catalog__price:empty { display: none; }
+.b-catalog__item h3 { font-size: 21px; margin: 0 0 6px; }
+.b-catalog__item h3 a { color: inherit; text-decoration: none; }
+.b-catalog__item h3 a:hover { color: var(--c-primary); }
+.b-catalog__summary { color: var(--c-muted); font-size: 15px; margin: 0 0 8px; }
+.b-catalog__price { font-weight: 700; color: var(--c-head); margin: 0; }

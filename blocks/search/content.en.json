@@ -1,0 +1,5 @@
+{
+  "title": "Search the site",
+  "placeholder": "What are you looking for?",
+  "empty": "Nothing found for «{q}». Try other words."
+}

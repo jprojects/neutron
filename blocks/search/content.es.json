@@ -1,0 +1,5 @@
+{
+  "title": "Buscar en la web",
+  "placeholder": "¿Qué buscas? Documentos, noticias, páginas…",
+  "empty": "No hay nada para «{q}». Prueba con otras palabras."
+}

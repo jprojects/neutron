@@ -1,0 +1,11 @@
+/* Buscador (assets/search.js): lo mínimo, con los colores del tema si los hay */
+form[data-search] { position: relative; }
+[data-search-results][hidden] { display: none; }
+.nsearch-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 2px; }
+.nsearch-list a { display: grid; gap: 2px; padding: 12px 14px; border-radius: var(--radius, 6px); color: inherit; text-decoration: none; }
+.nsearch-list a:hover, .nsearch-list a:focus-visible { background: var(--c-soft, #f4f4f4); }
+.nsearch-list strong { color: var(--c-head, inherit); }
+.nsearch-kind { font-size: 12px; color: var(--c-primary, #555); font-weight: 600; }
+.nsearch-text { font-size: 14px; color: var(--c-muted, #666); }
+.nsearch-list mark { background: color-mix(in srgb, var(--c-primary, #ffd84d) 22%, transparent); color: inherit; border-radius: 2px; }
+.nsearch-empty { margin: 12px 0 0; color: var(--c-muted, #666); }

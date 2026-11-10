@@ -462,14 +462,26 @@ function neutron_post_href(array $post): string {
 /** @return list<array{0:string,1:string,2:string,3:string}> [etiqueta, atributo clave, valor clave, contenido] */
 function neutron_post_meta_tags(array $post): array {
     $url = neutron_site_url() . '/' . neutron_lang_prefix() . neutron_post_href($post);
+    // Descripción e imagen: summary e image o, en una colección con otros campos, el primer texto y la primera imagen
+    $desc = is_string($post['summary'] ?? null) ? trim($post['summary']) : '';
+    $image = is_string($post['image'] ?? null) ? $post['image'] : '';
+    foreach (neutron_collection_fields($post['collection']) as $name => $f) {
+        $v = $post[$name] ?? '';
+        if ($desc === '' && in_array($f['type'], ['textarea', 'html'], true) && is_string($v) && trim(strip_tags($v)) !== '') {
+            $desc = trim((string)preg_replace('/\s+/u', ' ', html_entity_decode(strip_tags($v), ENT_QUOTES | ENT_HTML5, 'UTF-8')));
+            if (mb_strlen($desc) > 160) $desc = rtrim(mb_substr($desc, 0, 157)) . '…';
+        }
+        if ($image === '' && $f['type'] === 'image' && is_string($v)) $image = $v;
+        if ($image === '' && $f['type'] === 'images' && is_array($v) && $v) $image = (string)$v[0];
+    }
     $tags = [
-        ['meta', 'name', 'description', (string)($post['summary'] ?? '')],
+        ['meta', 'name', 'description', $desc],
         ['link', 'rel', 'canonical', $url],
         ['meta', 'property', 'og:type', 'article'],
-        ['meta', 'property', 'og:title', $post['title']],
-        ['meta', 'property', 'og:description', (string)($post['summary'] ?? '')],
+        ['meta', 'property', 'og:title', (string)$post['title']],
+        ['meta', 'property', 'og:description', $desc],
         ['meta', 'property', 'og:url', $url],
-        ['meta', 'property', 'og:image', is_string($post['image'] ?? null) && $post['image'] !== '' ? neutron_site_url() . '/' . $post['image'] : ''],
+        ['meta', 'property', 'og:image', $image !== '' ? neutron_site_url() . '/' . $image : ''],
     ];
     return array_values(array_filter($tags, fn($t) => $t[3] !== ''));
 }

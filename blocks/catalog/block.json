@@ -1,0 +1,119 @@
+{
+  "name": "catalog",
+  "description": "Catálogo sin venta (productos, inmuebles, proyectos, servicios): rejilla con foto, categoría y precio, y la ficha de cada elemento (página propia, generada a partir de sus campos)",
+  "variants": [
+    "grid"
+  ],
+  "collection": {
+    "names": {
+      "ca": "cataleg",
+      "es": "catalogo",
+      "en": "catalog"
+    },
+    "label": {
+      "ca": "Catàleg",
+      "es": "Catálogo",
+      "en": "Catalog"
+    },
+    "item": {
+      "ca": "Element",
+      "es": "Elemento",
+      "en": "Item"
+    },
+    "help": {
+      "ca": "Cada element té la seva pàgina amb les fotos, les dades i el text.",
+      "es": "Cada elemento tiene su página con las fotos, los datos y el texto.",
+      "en": "Each item has its own page with photos, details and text."
+    },
+    "sort": "order",
+    "fields": [
+      [
+        "title",
+        "text",
+        {
+          "ca": "Nom",
+          "es": "Nombre",
+          "en": "Name"
+        }
+      ],
+      [
+        "category",
+        "category",
+        {
+          "ca": "Categoria",
+          "es": "Categoría",
+          "en": "Category"
+        }
+      ],
+      [
+        "image",
+        "image",
+        {
+          "ca": "Foto principal",
+          "es": "Foto principal",
+          "en": "Main photo"
+        }
+      ],
+      [
+        "summary",
+        "textarea",
+        {
+          "ca": "Resum",
+          "es": "Resumen",
+          "en": "Summary"
+        }
+      ],
+      [
+        "price",
+        "text",
+        {
+          "ca": "Preu",
+          "es": "Precio",
+          "en": "Price"
+        }
+      ],
+      [
+        "body",
+        "html",
+        {
+          "ca": "Descripció",
+          "es": "Descripción",
+          "en": "Description"
+        }
+      ],
+      [
+        "images",
+        "images",
+        {
+          "ca": "Més fotos",
+          "es": "Más fotos",
+          "en": "More photos"
+        }
+      ],
+      [
+        "file",
+        "file",
+        {
+          "ca": "Fitxa tècnica (PDF)",
+          "es": "Ficha técnica (PDF)",
+          "en": "Data sheet (PDF)"
+        }
+      ],
+      [
+        "url",
+        "url",
+        {
+          "ca": "Enllaç",
+          "es": "Enlace",
+          "en": "Link"
+        }
+      ]
+    ],
+    "translated": [
+      "title",
+      "summary",
+      "body"
+    ],
+    "item_page": true
+  }
+}

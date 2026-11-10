@@ -87,6 +87,10 @@ function neutron_render_dom(string $html, array $content, array $options = []): 
         neutron_dom_inject_script($dom, 'neutron-form-config', $options['form_bootstrap'], 'assets/form.js');
     }
 
+    if (!empty($options['search_bootstrap'])) {
+        neutron_dom_inject_script($dom, 'neutron-search-config', $options['search_bootstrap'], 'assets/search.js', 'assets/search.css');
+    }
+
     if (!empty($options['cookies_bootstrap'])) {
         neutron_dom_inject_script($dom, 'neutron-cookies-config', $options['cookies_bootstrap'], 'assets/cookies.js', 'assets/cookies.css');
     }

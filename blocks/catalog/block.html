@@ -1,0 +1,18 @@
+<section class="section b-catalog">
+  <div class="container">
+    <header class="section-head">
+      <h2 data-edit="{p}_title">{{title}}</h2>
+      <p data-edit="{p}_text">{{text}}</p>
+    </header>
+    <div class="b-catalog__list" data-posts="{collection}">
+      <article class="b-catalog__item" data-post-item>
+        <a class="b-catalog__img" data-post-link href="#"><img data-post-img="image" src="" alt="" loading="lazy"></a>
+        <p class="b-catalog__cat" data-post="category"></p>
+        <h3><a data-post-link href="#" data-post="title">Element</a></h3>
+        <p class="b-catalog__summary" data-post="summary"></p>
+        <p class="b-catalog__price" data-post="price"></p>
+      </article>
+    </div>
+    <p data-posts-empty="{collection}" data-edit="{p}_empty">{{empty}}</p>
+  </div>
+</section>

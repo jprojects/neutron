@@ -70,3 +70,21 @@ strong { font-weight: 600; color: var(--c-head); }
 .b-legal__text th, .b-legal__text td { border: 1px solid var(--c-line); padding: 8px 10px; text-align: left; vertical-align: top; }
 .b-legal__text th { background: var(--c-soft); }
 .b-legal__text code { font-size: 13px; }
+/* Ficha de un elemento de colección (tools/compose.py, sin item.html propio) */
+.b-item { padding-top: calc(var(--header-h) + 56px); }
+.b-item__back { margin-bottom: 28px; font-size: 15px; }
+.b-item__meta { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 10px; color: var(--c-primary); font-weight: 600; font-size: 14px; }
+.b-item__meta:empty { display: none; }
+.b-item h1 { font-size: clamp(32px, 4.6vw, 50px); margin-bottom: 18px; }
+.b-item__lead { font-size: 20px; color: var(--c-muted); }
+.b-item__img { width: 100%; border-radius: var(--radius); margin: 28px 0; }
+.b-item__data { display: grid; grid-template-columns: max-content 1fr; gap: 10px 24px; margin: 28px 0; padding: 20px 0; border-block: 1px solid var(--c-line); }
+.b-item__data div { display: contents; }
+.b-item__data div:has(dd:empty) { display: none; }
+.b-item__data dt { color: var(--c-muted); }
+.b-item__data dd { margin: 0; font-weight: 600; color: var(--c-head); }
+.b-item__body { font-size: 18px; margin: 28px 0; }
+.b-item__body img { border-radius: var(--radius); margin: 1em 0; }
+.b-item__gallery { margin: 32px 0; }
+.b-item .b-videos__frame { margin: 32px 0; }
+@media (max-width: 640px) { .b-item__data { grid-template-columns: 1fr; gap: 2px; } .b-item__data dd { margin-bottom: 10px; } }

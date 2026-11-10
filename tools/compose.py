@@ -110,7 +110,9 @@ pages = recipe['pages']
 def collection_of(spec):
     if isinstance(spec, str): spec = {'block': spec}
     c = load_block(spec['block']).get('collection')
-    return (spec.get('collection') or c['names'].get(main) or c['names']['en'], c) if c else (None, None)
+    if not c: return (None, None)
+    if 'item_page' in spec: c = {**c, 'item_page': bool(spec['item_page'])}   # la receta manda: ficha para cualquier colección
+    return (spec.get('collection') or c['names'].get(main) or c['names']['en'], c)
 for p in pages:
     p['slug'] = 'home' if p['file'] == 'template' else re.sub(r'[^a-z0-9]+', '_', p['file'])
     p['href'] = './' if p['file'] == 'template' else p['file'] + '.html'
@@ -195,7 +197,7 @@ def render_block(spec, page, n):
         h = re.sub(rf'<!--variant:{v}-->(.*?)<!--/variant:{v}-->\n?', (lambda m: m.group(1)) if v == variant else '', h, flags=re.S)
     col_name, col_def = collection_of(spec)
     if col_def:
-        collections_out[col_name] = (col_def, b)
+        collections_out[col_name] = (col_def, b, page)
         h = h.replace('{collection}', col_name)
     h = h.replace('{variant}', variant).replace('{p}', prefix)
     specials = {'nav': lambda: nav_html(), 'nav_plain': lambda: nav_html(False), 'langs': langs_html, 'social': social_html,
@@ -291,15 +293,62 @@ if recipe.get('legal'):
 
 # Definición de cada colección (en el idioma principal) y, si tiene página propia, la página de cada elemento
 pick = lambda v: v.get(main) or v.get('en') or next(iter(v.values()), '') if isinstance(v, dict) else (v or '')
-for col_name, (c, b) in collections_out.items():
+ITEM_TEXTS = {'item_back': {'ca': '← Tornar', 'es': '← Volver', 'en': '← Back'},
+              'item_download': {'ca': 'Descarregar', 'es': 'Descargar', 'en': 'Download'},
+              'item_link': {'ca': 'Més informació', 'es': 'Más información', 'en': 'More information'}}
+
+def generic_item(col_name, c, listing):
+    """Ficha de un elemento a partir de los campos de su colección (sin item.html propio en el bloque)."""
+    for k, t in ITEM_TEXTS.items():
+        for l in langs: put(l, k, t.get(l, t['en']))
+    fields = {n: (t, pick(lab)) for n, t, lab in c['fields']}
+    by = lambda typ: [n for n, (t, _) in fields.items() if t == typ]
+    lead = next(iter(by('textarea')), None)
+    out = [f'<article class="section b-item b-item--{col_name}">', '  <div class="narrow">',
+           f'    <p class="b-item__back"><a href="{listing}" data-edit="item_back">{esc(content[main]["item_back"])}</a></p>',
+           '    <p class="b-item__meta">' + ' '.join([f'<span class="b-item__cat" data-post="{n}"></span>' for n in by('category')]
+                                                  + [f'<time data-post="{n}"></time>' for n in by('date')]) + '</p>',
+           '    <h1 data-post="title">' + esc(pick(c.get('item', {}))) + '</h1>']
+    if lead: out.append(f'    <p class="b-item__lead" data-post="{lead}"></p>')
+    for n in by('image'): out.append(f'    <img class="b-item__img" data-post-img="{n}" src="" alt="">')
+    data = [n for n, (t, _) in fields.items() if t == 'text' and n != 'title'] + [n for n in by('textarea') if n != lead]
+    if data:
+        out.append('    <dl class="b-item__data">' + ''.join(f'<div><dt>{esc(fields[n][1])}</dt><dd data-post="{n}"></dd></div>' for n in data) + '</dl>')
+    for n in by('html'): out.append(f'    <div class="b-item__body" data-post-html="{n}"></div>')
+    for n in by('images'):
+        out.append(f'    <div class="b-item__gallery b-albums__grid" data-post-images="{n}"><a data-post-image-link href="#"><img data-post-image src="" alt="" loading="lazy"></a></div>')
+        used.setdefault('albums', load_block('albums'))         # el visor de fotos
+    for n in by('file'):
+        out.append(f'    <p class="actions"><a class="btn" data-post-href="{n}" href="#" target="_blank" rel="noopener"><span data-edit="item_download">{esc(content[main]["item_download"])}</span> '
+                   f'<small><span data-post="{n}.ext"></span> · <span data-post="{n}.size"></span></small></a></p>')
+    for n in by('video'):
+        out.append(f'    <div class="b-videos__frame"><img class="b-videos__thumb" data-post-src="{n}.thumb" src="" alt="">'
+                   f'<iframe data-consent="videos" data-consent-src="" data-post-src="{n}" title="Vídeo" allowfullscreen></iframe>'
+                   f'<div class="b-videos__consent"><p data-edit="videos_consent">{esc(content[main].get("videos_consent", ""))}</p>'
+                   f'<button class="btn btn--light" type="button" data-cookie-accept="videos" data-edit="videos_accept">{esc(content[main].get("videos_accept", ""))}</button></div></div>')
+        vb = used.setdefault('videos', load_block('videos'))
+        for l in langs:
+            for k, v in (vb['content'].get(l) or vb['content'].get(main) or {}).items():
+                if k.startswith('@'): put(l, k[1:], v)
+        cookie_cats.add('videos')
+    for n in by('url'):
+        out.append(f'    <p class="actions"><a class="btn btn--ghost" data-post-href="{n}" href="#" target="_blank" rel="noopener" data-edit="item_link">{esc(content[main]["item_link"])}</a></p>')
+    out += ['  </div>', '</article>', '']
+    return '\n'.join(out)
+
+for col_name, (c, b, from_page) in collections_out.items():
     schema = {'label': pick(c.get('label', {})), 'item': pick(c.get('item', {})), 'help': pick(c.get('help', {})), 'sort': c.get('sort', '-date'),
               'fields': [{'name': n, 'type': t, 'label': pick(lab)} for n, t, lab in c['fields']], 'translated': c.get('translated', ['title'])}
     write(f'{col_name}/_collection.json', json.dumps(schema, ensure_ascii=False, indent=2) + '\n')
-    if c.get('item_page') and b.get('item'):
-        for l in langs:
-            for k, v in (b['content'].get(l) or b['content'].get(main) or {}).items():
-                if k.startswith('@'): put(l, k[1:], v)
-        body = re.sub(r'\{\{@(\w+)\}\}', lambda m: esc(content[main].get(m.group(1), '')), b['item'].replace('{collection}', col_name))
+    if c.get('item_page'):
+        listing = next((p['href'] for p in pages if p['file'] == col_name), None) or from_page.get('href', './')
+        if b.get('item'):
+            for l in langs:
+                for k, v in (b['content'].get(l) or b['content'].get(main) or {}).items():
+                    if k.startswith('@'): put(l, k[1:], v)
+            body = re.sub(r'\{\{@(\w+)\}\}', lambda m: esc(content[main].get(m.group(1), '')), b['item'].replace('{collection}', col_name))
+        else:
+            body = generic_item(col_name, c, listing)
         write(f'{col_name}/_item.html', f'''<!DOCTYPE html>
 <html lang="{main}">
 <head>

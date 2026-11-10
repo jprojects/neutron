@@ -91,6 +91,10 @@ function neutron_render_fallback(string $html, array $content, array $options = 
         neutron_fallback_inject_script($root, 'neutron-form-config', $options['form_bootstrap'], 'assets/form.js');
     }
 
+    if (!empty($options['search_bootstrap'])) {
+        neutron_fallback_inject_script($root, 'neutron-search-config', $options['search_bootstrap'], 'assets/search.js', 'assets/search.css');
+    }
+
     if (!empty($options['cookies_bootstrap'])) {
         neutron_fallback_inject_script($root, 'neutron-cookies-config', $options['cookies_bootstrap'], 'assets/cookies.js', 'assets/cookies.css');
     }

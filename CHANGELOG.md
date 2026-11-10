@@ -2,6 +2,14 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.21.0 — 2026-11-10
+
+- **Fichas de cualquier colección**: la descripción y la imagen para buscadores y redes salen de sus campos aunque no se
+  llamen `summary` ni `image`. `compose.py` genera la ficha a partir de los campos (`"item_page": true`, en el bloque o
+  en la receta) y hay un bloque nuevo `catalog` (catálogo sin venta, con ficha).
+- **Buscador** opcional: un formulario `data-search` en la plantilla, el índice en `/search.json` (páginas y colecciones,
+  en caché) y la búsqueda en el navegador (`assets/search.js`), configurable con `site/search.json`. Bloque `search`.
+
 ## 1.20.0 — 2026-11-10
 
 - **Caché de páginas** para los visitantes (`data/cache/`): se renueva sola cuando cambia cualquier cosa del sitio (por

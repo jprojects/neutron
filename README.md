@@ -497,6 +497,34 @@ se edita una sola vez, en el primero. El botón de añadir de una lista usa su `
 El panel lee con `admin/api.php` (`?a=home`, `?a=content&lang=…`, `?a=seo`, `?a=messages`, `?a=history`…; ver la cabecera del fichero) y guarda con `admin/save.php`, igual que el editor:
 solo lo cambiado y con los mismos avisos si otra ventana ha cambiado lo mismo.
 
+### Fichas de cualquier colección
+
+Cualquier colección puede tener una página por elemento con `site/<colección>/_item.html` (los mismos `data-post*` que en
+un listado). `tools/compose.py` la genera a partir de los campos si el bloque la pide (`"item_page": true` en su
+`collection`, como `news` y `catalog`) o la receta (`{"block": "documents", "item_page": true}`): categoría y fecha,
+título, entradilla (el primer `textarea`), imagen, los demás datos en una lista (los vacíos no se ven), el texto con
+formato, la galería con visor, el botón de descarga, el vídeo con consentimiento y el enlace. La descripción y la imagen
+para buscadores y redes salen de `summary` e `image` o, si la colección no los tiene, de su primer texto y su primera
+imagen. Bloque `catalog`: catálogo sin venta (productos, inmuebles, proyectos) con rejilla y ficha.
+
+### Buscador
+
+Opcional: solo en las páginas con un formulario `data-search` (en una plantilla o un parcial, como la cabecera):
+
+```html
+<form data-search role="search" data-search-empty="No hi ha res per «{q}»">
+  <input type="search" name="q" placeholder="Cerca…" aria-label="Cerca">
+  <div data-search-results hidden></div>
+</form>
+```
+
+El índice es `/search.json` (`/ca/search.json`… en varios idiomas; en caché como las páginas): los textos de cada página
+(sus campos editables) y los elementos publicados de las colecciones, cada uno con su enlace (la ficha, la descarga del
+documento, el vídeo o el enlace, o la página de su listado). `assets/search.js` lo baja al empezar a escribir y busca en
+el navegador, sin acentos ni mayúsculas, con todas las palabras y más peso en el título; con `?q=` busca al abrir.
+`site/search.json` (opcional): `{"pages": true, "collections": ["noticies"] | "all", "exclude": ["avis-legal"]}`; por
+defecto, todas las páginas menos las legales y la 404, y todas las colecciones. Bloque `search` para una página «Cerca».
+
 ## Velocidad: caché de páginas e imágenes para el móvil
 
 **Caché de páginas** (`lib/cache.php`, config `cache`): la primera visita a una página la monta y la guarda en

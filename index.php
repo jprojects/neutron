@@ -60,6 +60,12 @@ if ($page !== '' && !preg_match('/^[a-z0-9][a-z0-9-]{0,60}$/', $page)) {
 }
 $collection = null;
 $post = null;
+// Índice del buscador (lib/search.php): /search.json y, en una web de varios idiomas, /ca/search.json…
+if ($page === '' && $route === 'search.json' && ($langs === null || neutron_lang() !== null)) {
+    require_once __DIR__ . '/lib/search.php';
+    neutron_search_serve();
+    exit;
+}
 if ($page === '' && $route === 'sitemap.xml' && neutron_lang() === null) {
     neutron_sitemap();
     exit;
@@ -203,6 +209,11 @@ if (isset($_GET['admin'])) {
         preg_match_all('~data-posts="([a-z0-9-]+)"~', $template, $lists);
         $options['admin_bootstrap']['collections'] = array_values(array_unique(array_filter($lists[1], 'neutron_collection_has_page')));
     }
+}
+// Buscador: solo si la página (o un parcial suyo) tiene un formulario con data-search
+if (str_contains($template, 'data-search') || (str_contains($template, 'data-include') && str_contains(neutron_include_partials($template), 'data-search'))) {
+    require_once __DIR__ . '/lib/search.php';
+    $options['search_bootstrap'] = neutron_search_client_config();
 }
 if (str_contains($template, 'data-neutron-form')) {
     $options['form_bootstrap'] = neutron_form_client_config();

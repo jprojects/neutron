@@ -1,0 +1,7 @@
+{
+  "name": "search",
+  "description": "Buscador de la web (páginas y colecciones, en el navegador): para una página «Cerca» o al principio de un listado largo",
+  "variants": [
+    "section"
+  ]
+}
