@@ -20,6 +20,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 neutron_require_login();
 neutron_require_csrf();
 
+// Documentos (campo de tipo "file" de una colección): mismo punto de entrada con el campo «file»
+if (!empty($_FILES['file'])) {
+    neutron_upload_document($_FILES['file']);
+    exit;
+}
+
 if (empty($_FILES['image']) || $_FILES['image']['error'] !== UPLOAD_ERR_OK) {
     http_response_code(400);
     echo json_encode(['ok' => false, 'error' => 'Archivo inválido']);
@@ -136,3 +142,55 @@ function neutron_upload_has_exif(string $path): bool {
     $head = (string)@file_get_contents($path, false, null, 0, 65536);
     return str_contains($head, "Exif\0\0");
 }
+
+/**
+ * Sube un documento a site/uploads/docs/ con un nombre legible («festa-del-pi-1970-3fa2.pdf»). El tipo sale del
+ * contenido (finfo), no del nombre: PDF, Office, LibreOffice, texto, CSV y ZIP. Tamaño máximo: uploads.max_doc_mb.
+ */
+function neutron_upload_document(array $file): void {
+    $fail = function (string $msg, int $code = 400): void {
+        http_response_code($code);
+        echo json_encode(['ok' => false, 'error' => $msg]);
+    };
+    if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_INI_SIZE || ($file['error'] ?? 0) === UPLOAD_ERR_FORM_SIZE) {
+        $fail('El fichero es más grande de lo que deja subir el hosting (' . ini_get('upload_max_filesize') . ')');
+        return;
+    }
+    if (($file['error'] ?? 1) !== UPLOAD_ERR_OK) { $fail('Archivo inválido'); return; }
+    $maxMb = (float)(neutron_config()['uploads']['max_doc_mb'] ?? 20);
+    if ($file['size'] > $maxMb * 1024 * 1024) { $fail('El fichero supera ' . $maxMb . ' MB'); return; }
+
+    $byMime = [
+        'application/pdf' => 'pdf', 'text/plain' => 'txt', 'text/csv' => 'csv', 'application/rtf' => 'rtf', 'text/rtf' => 'rtf',
+        'application/msword' => 'doc', 'application/vnd.ms-excel' => 'xls', 'application/vnd.ms-powerpoint' => 'ppt',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document' => 'docx',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' => 'xlsx',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation' => 'pptx',
+        'application/vnd.oasis.opendocument.text' => 'odt', 'application/vnd.oasis.opendocument.spreadsheet' => 'ods',
+        'application/vnd.oasis.opendocument.presentation' => 'odp', 'application/zip' => 'zip',
+    ];
+    $mime = (new finfo(FILEINFO_MIME_TYPE))->file($file['tmp_name']);
+    $original = (string)($file['name'] ?? 'document');
+    $origExt = strtolower((string)pathinfo($original, PATHINFO_EXTENSION));
+    $ext = $byMime[$mime] ?? null;
+    // Los Office modernos son ZIP por dentro: algunos finfo los dan como application/zip u octet-stream
+    if (in_array($mime, ['application/zip', 'application/octet-stream', 'application/x-zip-compressed'], true)
+        && in_array($origExt, ['docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'zip'], true)) $ext = $origExt;
+    if ($ext === 'txt' && $origExt === 'csv') $ext = 'csv';
+    if ($ext === null) { $fail('Tipo de fichero no permitido: PDF, Word, Excel, PowerPoint, LibreOffice, texto, CSV o ZIP'); return; }
+
+    $map = ['à'=>'a','á'=>'a','è'=>'e','é'=>'e','í'=>'i','ï'=>'i','ò'=>'o','ó'=>'o','ú'=>'u','ü'=>'u','ç'=>'c','ñ'=>'n','·'=>''];
+    $base = trim((string)preg_replace('/[^a-z0-9]+/', '-', strtr(mb_strtolower((string)pathinfo($original, PATHINFO_FILENAME)), $map)), '-');
+    $base = substr($base !== '' ? $base : 'document', 0, 60);
+    $dir = NEUTRON_SITE . '/uploads/docs';
+    if (!is_dir($dir)) @mkdir($dir, 0775, true);
+    $name = $base . '-' . bin2hex(random_bytes(2)) . '.' . $ext;
+    if (!move_uploaded_file($file['tmp_name'], $dir . '/' . $name)) {
+        neutron_log('error', 'No se pudo guardar el documento en site/uploads/docs (¿permisos?)');
+        $fail('No se pudo guardar el archivo', 500);
+        return;
+    }
+    neutron_log('info', 'Documento subido: {name}', ['name' => $name, 'bytes' => $file['size']]);
+    echo json_encode(['ok' => true, 'url' => 'site/uploads/docs/' . $name, 'name' => $original, 'size' => (int)$file['size']]);
+}
+

@@ -51,6 +51,12 @@ function neutron_config_defaults(): array {
             'self_test' => true,        // tras actualizar, se pide el estado a sí misma y deshace si falla
         ],
 
+        // Documentos de las colecciones (campos de tipo "file"): tamaño máximo. El hosting también limita
+        // (upload_max_filesize y post_max_size de PHP): lo más pequeño manda.
+        'uploads' => [
+            'max_doc_mb' => 20,
+        ],
+
         // Análisis SEO y GEO del panel (/admin/) con Pulsar (api.php). Sin url o sin token, no sale en el panel.
         'pulsar' => [
             'url' => '',                // p. ej. https://pulsar.aficat.com

@@ -49,9 +49,9 @@ function neutron_sitemap(): void {
         foreach (glob(NEUTRON_SITE . '/pages/*.html') ?: [] as $file) {
             $slug = basename($file, '.html');
             if ($slug === '404' || !preg_match('/^[a-z0-9][a-z0-9-]*$/', $slug)) continue;
-            $urls[] = [$site . '/' . (neutron_collection_valid($slug) ? $slug . '/' : $slug . '.html'), filemtime($file)];
+            $urls[] = [$site . '/' . (neutron_collection_has_page($slug) ? $slug . '/' : $slug . '.html'), filemtime($file)];
         }
-        foreach (neutron_collections() as $collection) {
+        foreach (array_filter(neutron_collections(), 'neutron_collection_has_page') as $collection) {
             foreach (neutron_posts_list($collection) as $post) {
                 $urls[] = [$site . '/' . neutron_post_href($post), strtotime($post['updated'] ?: $post['date']) ?: null];
             }

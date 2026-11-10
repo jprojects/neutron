@@ -99,7 +99,8 @@
 
   function renderNav() {
     nav.innerHTML = '';
-    [['home', 'Inicio'], ['content', 'Contenido'], ['messages', 'Mensajes'], ['history', 'Copias']].concat(cfg.seo ? [['seo', 'SEO']] : []).forEach(function (item) {
+    var cols = (cfg.collections || []).map(function (c) { return ['col:' + c.name, c.label]; });
+    [['home', 'Inicio'], ['content', 'Contenido']].concat(cols, [['messages', 'Mensajes'], ['history', 'Copias']], cfg.seo ? [['seo', 'SEO']] : []).forEach(function (item) {
       nav.appendChild(h('button', { type: 'button', class: 'np-nav-item' + (state.view === item[0] ? ' is-active' : ''), onclick: function () { go(item[0]); } },
         [item[1], item[0] === 'messages' && state.unread ? h('span', { class: 'np-badge', text: String(state.unread) }) : null]));
     });
@@ -111,7 +112,8 @@
     state.dirty = false;
     state.view = view;
     renderNav();
-    if (view === 'home') loadHome(); else if (view === 'seo') loadSeo(); else if (view === 'messages') loadMessages();
+    if (view.indexOf('col:') === 0) loadCollection(view.slice(4));
+    else if (view === 'home') loadHome(); else if (view === 'seo') loadSeo(); else if (view === 'messages') loadMessages();
     else if (view === 'history') loadHistory(); else loadContent();
   }
 
@@ -471,6 +473,277 @@
   }
 
 
+
+
+  // ------------------------------------------------------------------ colecciones (admin/items.php)
+  // Blog, documentos, galería, vídeos…: la lista y la ficha salen de la definición de cada colección.
+  var col = { name: null, def: null, items: [], lang: null, search: '', category: '' };
+
+  function itemsApi(params) {
+    var q = Object.keys(params).map(function (k) { return k + '=' + encodeURIComponent(params[k]); }).join('&');
+    return fetch('items.php?' + q, { credentials: 'same-origin' }).then(function (r) { return r.json(); });
+  }
+  function itemsPost(body) { return post('items.php', body); }
+
+  function loadCollection(name, keepFilters) {
+    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    if (!keepFilters || col.name !== name) { col.search = ''; col.category = ''; }
+    col.name = name;
+    col.lang = col.lang || (cfg.languages ? cfg.languages.default : null);
+    Promise.all([itemsApi({ a: 'collections', lang: col.lang || '' }), itemsApi({ a: 'list', c: name, lang: col.lang || '' })]).then(function (r) {
+      col.def = r[0].collections.filter(function (c) { return c.name === name; })[0];
+      col.items = r[1].items || [];
+      renderCollection();
+    }).catch(failed);
+  }
+
+  function fieldOf(type) { return col.def.fields.filter(function (f) { return f.type === type; })[0]; }
+  function categoryTitle(id) {
+    var c = col.def.categories.filter(function (x) { return x.id === id; })[0];
+    return c ? c.title : '';
+  }
+
+  function langSelect(onChange) {
+    if (!cfg.languages) return null;
+    var sel = h('select', { class: 'np-select', 'aria-label': 'Idioma', onchange: function () { col.lang = sel.value; onChange(); } },
+      Object.keys(cfg.languages.languages).map(function (code) { return h('option', { value: code, selected: code === col.lang, text: cfg.languages.languages[code] }); }));
+    return sel;
+  }
+
+  function renderCollection() {
+    var d = col.def;
+    main.innerHTML = '';
+    var add = h('button', { type: 'button', class: 'np-button', text: '+ Nuevo: ' + d.item.toLowerCase(), onclick: function () { createItem(); } });
+    main.appendChild(h('header', { class: 'np-head' }, [h('h1', { text: d.label }), add]));
+    if (d.help) main.appendChild(h('p', { class: 'np-muted', text: d.help }));
+    var tools = [h('input', { type: 'search', class: 'np-input np-search', placeholder: 'Buscar…', value: col.search, oninput: function (e) { col.search = e.target.value; drawList(); } })];
+    var catField = fieldOf('category');
+    if (catField) {
+      var cat = h('select', { class: 'np-select', onchange: function () { col.category = cat.value; drawList(); } },
+        [h('option', { value: '', text: 'Todas las categorías' })].concat(d.categories.map(function (c) { return h('option', { value: c.id, selected: c.id === col.category, text: c.title }); })));
+      tools.push(cat, h('button', { type: 'button', class: 'np-link', text: 'Categorías…', onclick: function () { editCategories(); } }));
+    }
+    var ls = langSelect(function () { loadCollection(col.name, true); });
+    if (ls) tools.push(ls);
+    main.appendChild(h('div', { class: 'np-tools np-col-tools' }, tools));
+    var list = h('section', { class: 'np-card np-items' });
+    main.appendChild(list);
+
+    function drawList() {
+      list.innerHTML = '';
+      var q = col.search.trim().toLowerCase();
+      var rows = col.items.filter(function (it) {
+        return (!q || (it.title + ' ' + (it.file || '')).toLowerCase().indexOf(q) >= 0) && (!col.category || it.category === col.category);
+      });
+      if (!rows.length) { list.appendChild(h('p', { class: 'np-muted', text: col.items.length ? 'Nada coincide con la búsqueda.' : 'Todavía no hay ninguno. Pulsa «+ Nuevo».' })); return; }
+      var manual = d.sort === 'order' && !q && !col.category;
+      rows.forEach(function (it, i) {
+        var meta = [];
+        if (it.category) meta.push(categoryTitle(it.category));
+        if (it.date) meta.push(new Date(it.date + 'T12:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }));
+        if (it.images !== undefined) meta.push(it.images + (it.images === 1 ? ' foto' : ' fotos'));
+        if (it.file) meta.push(it.file);
+        if (it.downloads) meta.push(it.downloads + ' descargas');
+        list.appendChild(h('div', { class: 'np-item-row' }, [
+          it.thumb ? h('img', { class: 'np-item-thumb', src: src(it.thumb), alt: '', loading: 'lazy' }) : h('span', { class: 'np-item-thumb np-item-thumb-empty', text: fileIcon(it) }),
+          h('button', { type: 'button', class: 'np-item-main', onclick: function () { openItem(it.slug); } }, [
+            h('strong', { text: it.title || '(sin título)' }), h('span', { class: 'np-muted np-small', text: meta.join(' · ') })]),
+          it.status !== 'published' ? h('span', { class: 'np-tag np-tag-warn', text: 'Borrador' }) : null,
+          cfg.languages && col.lang !== cfg.languages.default && !it.translated ? h('span', { class: 'np-tag', text: 'Sin traducir' }) : null,
+          manual ? h('span', { class: 'np-item-tools' }, [
+            h('button', { type: 'button', title: 'Subir', text: '↑', disabled: i === 0, onclick: function () { moveItem(i, -1); } }),
+            h('button', { type: 'button', title: 'Bajar', text: '↓', disabled: i === rows.length - 1, onclick: function () { moveItem(i, 1); } })]) : null
+        ]));
+      });
+    }
+    drawList();
+  }
+
+  function fileIcon(it) { return it.file ? (it.file.split('.').pop() || '').toUpperCase().slice(0, 4) : '—'; }
+
+  function moveItem(i, delta) {
+    var it = col.items.splice(i, 1)[0];
+    col.items.splice(i + delta, 0, it);
+    renderCollection();
+    itemsPost({ a: 'order', c: col.name, slugs: col.items.map(function (x) { return x.slug; }) });
+  }
+
+  function createItem() {
+    var title = prompt('Título del nuevo ' + col.def.item.toLowerCase() + ':');
+    if (!title || !title.trim()) return;
+    itemsPost({ a: 'create', c: col.name, title: title.trim(), lang: col.lang || '' }).then(function (r) {
+      if (!r.ok) { alert(r.error || 'No se ha podido crear'); return; }
+      openItem(r.slug);
+    });
+  }
+
+  // Ficha de un elemento: un control por campo de la definición
+  function openItem(slug) {
+    main.innerHTML = '<p class="np-muted">Cargando…</p>';
+    itemsApi({ a: 'get', c: col.name, i: slug, lang: col.lang || '' }).then(function (r) {
+      if (!r.ok) { main.innerHTML = ''; main.appendChild(h('p', { class: 'np-error', text: r.error })); return; }
+      var it = r.item, values = {}, d = col.def, dirty = false;
+      var status = h('span', { class: 'np-status' });
+      var translating = cfg.languages && col.lang !== cfg.languages.default;
+      var published = h('input', { type: 'checkbox', checked: it.status === 'published', onchange: function () { dirty = true; status.textContent = 'Cambios sin guardar'; } });
+      var saveBtn = h('button', { type: 'button', class: 'np-button', text: 'Guardar', onclick: function () {
+        saveBtn.disabled = true; status.textContent = 'Guardando…';
+        itemsPost({ a: 'save', c: col.name, i: slug, lang: col.lang || '', fields: values, status: published.checked ? 'published' : 'draft' }).then(function (res) {
+          saveBtn.disabled = false;
+          if (!res.ok) { status.textContent = 'Error: ' + (res.error || ''); return; }
+          dirty = false; state.dirty = false; status.textContent = 'Guardado ✓';
+        }).catch(function () { saveBtn.disabled = false; status.textContent = 'Error de red'; });
+      } });
+      var back = h('button', { type: 'button', class: 'np-link', text: '← ' + d.label, onclick: function () {
+        if (dirty && !confirm('Hay cambios sin guardar. ¿Salir sin guardarlos?')) return;
+        state.dirty = false; loadCollection(col.name, true);
+      } });
+      main.innerHTML = '';
+      var ls = langSelect(function () { openItem(slug); });
+      main.appendChild(h('header', { class: 'np-head np-sticky' }, [
+        h('div', { class: 'np-tools' }, [back, ls]),
+        h('div', { class: 'np-actions' }, [h('label', { class: 'np-check' }, [published, ' Publicado']), status, saveBtn])
+      ]));
+      var card = h('section', { class: 'np-card' });
+      d.fields.forEach(function (f) {
+        var set = function (v) { values[f.name] = v; dirty = true; state.dirty = true; status.textContent = 'Cambios sin guardar'; };
+        var label = h('div', { class: 'np-label' }, [h('span', { text: f.label })]);
+        if (translating && d.translated.indexOf(f.name) >= 0 && r.own.indexOf(f.name) < 0 && it[f.name]) label.appendChild(h('span', { class: 'np-tag np-tag-warn', text: 'Sin traducir' }));
+        if (translating && d.translated.indexOf(f.name) < 0) label.appendChild(h('span', { class: 'np-tag', text: 'Común a todos los idiomas' }));
+        card.appendChild(h('div', { class: 'np-field' }, [label, itemControl(f, it[f.name], set, r.files[f.name])]));
+      });
+      main.appendChild(card);
+      main.appendChild(h('div', { class: 'np-ai-actions' }, [
+        r.url ? h('a', { class: 'np-button np-secondary', href: '../' + r.url + '?admin', target: '_blank', rel: 'noopener', text: 'Ver en la web ↗' }) : null,
+        h('button', { type: 'button', class: 'np-button np-secondary np-danger', text: 'Borrar', onclick: function () {
+          if (!confirm('¿Borrar «' + (it.title || '') + '»?')) return;
+          itemsPost({ a: 'delete', c: col.name, i: slug }).then(function (res) {
+            if (!res.ok) { alert(res.error || 'No se ha podido borrar'); return; }
+            state.dirty = false; loadCollection(col.name, true);
+          });
+        } })
+      ]));
+    }).catch(failed);
+  }
+
+  function itemControl(f, value, onChange, fileInfo) {
+    switch (f.type) {
+      case 'textarea': return control({ type: 'text', multiline: true }, value || '', onChange);
+      case 'html': return richControl(value || '', onChange);
+      case 'image': return imageControl(value || '', onChange);
+      case 'images': return imagesControl(Array.isArray(value) ? value.slice() : [], onChange);
+      case 'file': return fileControl(value || '', onChange, fileInfo);
+      case 'date': return h('input', { type: 'date', class: 'np-input np-input-short', value: value || '', oninput: function (e) { onChange(e.target.value); } });
+      case 'category':
+        var sel = h('select', { class: 'np-select', onchange: function () { onChange(sel.value); } },
+          [h('option', { value: '', text: '— Sin categoría —' })].concat(col.def.categories.map(function (c) { return h('option', { value: c.id, selected: c.id === value, text: c.title }); })));
+        return sel;
+      case 'video':
+        var thumb = h('img', { class: 'np-video-thumb', alt: '', hidden: !value });
+        var showThumb = function (url) {
+          var m = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})/.exec(url || '');
+          thumb.hidden = !m; if (m) thumb.src = 'https://i.ytimg.com/vi/' + m[1] + '/mqdefault.jpg';
+        };
+        showThumb(value);
+        return h('div', { class: 'np-video' }, [h('input', { type: 'url', class: 'np-input', value: value || '', placeholder: 'https://www.youtube.com/watch?v=…',
+          oninput: function (e) { onChange(e.target.value.trim()); showThumb(e.target.value); } }), thumb]);
+      case 'url': return h('input', { type: 'url', class: 'np-input', value: value || '', placeholder: 'https://…', oninput: function (e) { onChange(e.target.value.trim()); } });
+      default: return control({ type: 'text', multiline: false }, value || '', onChange);
+    }
+  }
+
+  // Varias imágenes (un álbum): subir muchas a la vez, quitar y cambiar el orden
+  function imagesControl(list, onChange) {
+    var box = h('div', { class: 'np-images' });
+    var msg = h('span', { class: 'np-muted np-small' });
+    var input = h('input', { type: 'file', accept: 'image/jpeg,image/png,image/webp,image/gif', multiple: true, hidden: true, onchange: function () {
+      var files = Array.prototype.slice.call(input.files);
+      input.value = '';
+      var done = 0;
+      var next = function () {
+        if (!files.length) { msg.textContent = done ? done + (done === 1 ? ' foto añadida' : ' fotos añadidas') : ''; return; }
+        msg.textContent = 'Subiendo ' + (done + 1) + ' de ' + (done + files.length) + '…';
+        upload(files.shift()).then(function (url) { list.push(url); done++; onChange(list.slice()); draw(); next(); })
+          .catch(function (err) { msg.textContent = err.message || 'No se ha podido subir'; });
+      };
+      next();
+    } });
+    function draw() {
+      box.innerHTML = '';
+      list.forEach(function (url, i) {
+        box.appendChild(h('div', { class: 'np-images-item' }, [h('img', { src: src(url), alt: '', loading: 'lazy' }), h('span', { class: 'np-item-tools' }, [
+          h('button', { type: 'button', title: 'Antes', text: '←', disabled: i === 0, onclick: function () { list.splice(i - 1, 0, list.splice(i, 1)[0]); onChange(list.slice()); draw(); } }),
+          h('button', { type: 'button', title: 'Después', text: '→', disabled: i === list.length - 1, onclick: function () { list.splice(i + 1, 0, list.splice(i, 1)[0]); onChange(list.slice()); draw(); } }),
+          h('button', { type: 'button', title: 'Quitar', text: '✕', onclick: function () { list.splice(i, 1); onChange(list.slice()); draw(); } })
+        ])]));
+      });
+    }
+    draw();
+    return h('div', {}, [box, h('div', { class: 'np-ai-actions' }, [
+      h('button', { type: 'button', class: 'np-button np-secondary', text: '+ Añadir fotos', onclick: function () { input.click(); } }), input, msg])]);
+  }
+
+  // Un documento: se sube con admin/upload.php (campo «file») a site/uploads/docs/
+  function fileControl(value, onChange, info) {
+    var name = h('strong', { text: value ? value.split('/').pop() : 'Ningún fichero' });
+    var icon = h('span', { class: 'np-file-icon', text: value ? value.split('.').pop().toUpperCase().slice(0, 4) : '—' });
+    var detail = h('span', { class: 'np-muted np-small', text: info ? [info.size ? sizeText(info.size) : '', info.downloads ? info.downloads + ' descargas' : ''].filter(Boolean).join(' · ') : '' });
+    var msg = h('span', { class: 'np-muted np-small' });
+    var input = h('input', { type: 'file', hidden: true, accept: '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.odt,.ods,.odp,.txt,.csv,.rtf,.zip', onchange: function () {
+      var file = input.files[0];
+      input.value = '';
+      if (!file) return;
+      msg.textContent = 'Subiendo ' + file.name + ' (' + sizeText(file.size) + ')…';
+      var fd = new FormData();
+      fd.append('file', file);
+      fetch('upload.php', { method: 'POST', credentials: 'same-origin', headers: { 'X-CSRF-Token': cfg.csrf }, body: fd })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d.ok) { msg.textContent = d.error || 'No se ha podido subir'; return; }
+          name.textContent = d.url.split('/').pop(); detail.textContent = sizeText(d.size); msg.textContent = 'Subido. Recuerda guardar.';
+          icon.textContent = d.url.split('.').pop().toUpperCase().slice(0, 4);
+          onChange(d.url);
+        }).catch(function () { msg.textContent = 'Error de red al subir'; });
+    } });
+    return h('div', { class: 'np-file' }, [icon,
+      h('div', {}, [name, detail]), h('button', { type: 'button', class: 'np-button np-secondary', text: value ? 'Cambiar fichero' : 'Subir fichero', onclick: function () { input.click(); } }), input, msg]);
+  }
+  function sizeText(b) { return b > 1048576 ? (b / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(b / 1024)) + ' KB'; }
+
+  function editCategories() {
+    var cats = col.def.categories.map(function (c) {
+      var t = cfg.languages && col.lang !== cfg.languages.default && c.i18n && c.i18n[col.lang] ? c.i18n[col.lang] : c;
+      return { id: c.id, title: t.title || c.title, description: t.description || '' };
+    });
+    main.innerHTML = '';
+    main.appendChild(h('header', { class: 'np-head' }, [h('div', {}, [h('button', { type: 'button', class: 'np-link', text: '← ' + col.def.label, onclick: function () { loadCollection(col.name, true); } }),
+      h('h1', { text: 'Categorías' })])]));
+    var box = h('section', { class: 'np-card' });
+    main.appendChild(box);
+    function draw() {
+      box.innerHTML = '';
+      cats.forEach(function (c, i) {
+        box.appendChild(h('div', { class: 'np-item' }, [
+          h('div', { class: 'np-item-head' }, [h('span', { class: 'np-muted np-small', text: c.id ? 'Categoría' : 'Nueva' }), h('span', { class: 'np-item-tools' }, [
+            h('button', { type: 'button', text: '↑', disabled: i === 0, onclick: function () { cats.splice(i - 1, 0, cats.splice(i, 1)[0]); draw(); } }),
+            h('button', { type: 'button', text: '↓', disabled: i === cats.length - 1, onclick: function () { cats.splice(i + 1, 0, cats.splice(i, 1)[0]); draw(); } }),
+            h('button', { type: 'button', text: '✕', onclick: function () { if (confirm('¿Quitar la categoría? Sus elementos quedan sin categoría.')) { cats.splice(i, 1); draw(); } } })])]),
+          h('input', { class: 'np-input', value: c.title, placeholder: 'Nombre', oninput: function (e) { c.title = e.target.value; } }),
+          h('textarea', { class: 'np-input', rows: 2, placeholder: 'Descripción (opcional)', oninput: function (e) { c.description = e.target.value; } }, [c.description])
+        ]));
+      });
+      box.appendChild(h('div', { class: 'np-ai-actions' }, [
+        h('button', { type: 'button', class: 'np-button np-secondary', text: '+ Añadir categoría', onclick: function () { cats.push({ id: '', title: '', description: '' }); draw(); } }),
+        h('button', { type: 'button', class: 'np-button', text: 'Guardar categorías', onclick: function () {
+          itemsPost({ a: 'categories', c: col.name, lang: col.lang || '', categories: cats }).then(function (r) {
+            if (!r.ok) { alert(r.error || 'No se han podido guardar'); return; }
+            loadCollection(col.name, true);
+          });
+        } })
+      ]));
+    }
+    draw();
+  }
 
   // ------------------------------------------------------------------ mensajes del formulario (lib/messages.php)
   var inbox = { items: [], current: null, total: 0, keep: 365 };

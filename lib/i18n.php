@@ -72,7 +72,7 @@ function neutron_site_json(string $name): string {
 function neutron_lang_href(string $href, string $prefix, string $self): ?string {
     $href = trim($href);
     if ($href === '' || $prefix === '') return null;
-    if (preg_match('~^([a-z][a-z0-9+.-]*:|/|site/|assets/|admin/|contact\.php|favicon\.ico|apple-touch-icon|index\.php\?r=|sitemap\.xml)~i', $href)) return null;
+    if (preg_match('~^([a-z][a-z0-9+.-]*:|/|site/|assets/|admin/|contact\.php|download\.php|favicon\.ico|apple-touch-icon|index\.php\?r=|sitemap\.xml)~i', $href)) return null;
     $langs = neutron_languages();
     if ($langs && preg_match('~^([a-z]{2}(?:-[a-z]{2})?)(/|$)~', $href, $m) && isset($langs['languages'][$m[1]])) return null;
     if ($href[0] === '#') return $prefix . $self . $href;

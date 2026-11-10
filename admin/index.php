@@ -7,6 +7,7 @@ require_once __DIR__ . '/../lib/bootstrap.php';
 require_once __DIR__ . '/../lib/auth.php';
 require_once __DIR__ . '/../lib/seo.php';
 require_once __DIR__ . '/../lib/ai.php';
+require_once __DIR__ . '/../lib/posts.php';
 
 neutron_block_if_maintenance();
 neutron_start_session();
@@ -24,6 +25,8 @@ $config = [
     'seo' => neutron_is_logged_in() && neutron_seo_config() !== null,
     // Botones de IA en los textos (lib/ai.php): solo si está activada
     'ai' => neutron_is_logged_in() && neutron_ai_enabled(),
+    // Una sección del menú por colección (blog, documentos, galería…): admin/items.php
+    'collections' => neutron_is_logged_in() ? array_map(fn($c) => ['name' => $c, 'label' => neutron_collection_schema($c)['label']], neutron_collections()) : [],
 ];
 $version = rawurlencode(trim((string)@file_get_contents(NEUTRON_ROOT . '/VERSION')));
 ?>

@@ -8,6 +8,7 @@
         ".htaccess",
         "index.php",
         "contact.php",
+        "download.php",
         "config.php",
         "router.php",
         "admin/**",

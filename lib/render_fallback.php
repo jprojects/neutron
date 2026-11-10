@@ -233,22 +233,13 @@ function neutron_fallback_apply_lang(object $root, array $l): void {
 function neutron_fallback_fill_posts(object $root, array $opt): void {
     foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-posts'])) as $list) {
         $collection = $list->attrs['data-posts'];
-        $view = neutron_posts_view($collection, $opt, (int)($list->attrs['data-posts-limit'] ?? 0), (int)($list->attrs['data-posts-per-page'] ?? 0));
-        $tpl = null;
-        foreach ($list->children as $child) {
-            if (($child->type ?? null) === 'element' && isset($child->attrs['data-post-item'])) { $tpl = $child; break; }
-        }
-        if ($tpl) {
-            $items = [];
-            foreach ($view['posts'] as $post) {
-                $item = neutron_clone_node($tpl);
-                $item->attrs['data-post-slug'] = $post['slug'];
-                if ($post['status'] !== 'published') $item->attrs['class'] = trim(($item->attrs['class'] ?? '') . ' is-draft');
-                neutron_fallback_post_node($item, $post, $opt);
-                neutron_fallback_post_walk($item, $post, $opt, false);
-                $items[] = $item;
-            }
-            $list->children = $items;
+        $view = neutron_posts_view($collection, $opt, (int)($list->attrs['data-posts-limit'] ?? 0), (int)($list->attrs['data-posts-per-page'] ?? 0),
+            (string)($list->attrs['data-posts-filter'] ?? ''));
+        $group = (string)($list->attrs['data-posts-group'] ?? '');
+        if ($group !== '') {
+            neutron_fallback_fill_groups($list, neutron_posts_groups($collection, $view['posts'], $group, (string)($list->attrs['data-posts-group-other'] ?? '')), $opt);
+        } else {
+            neutron_fallback_fill_items($list, $view['posts'], $opt);
         }
         foreach (['empty', 'prev', 'next'] as $kind) {
             neutron_fallback_filter($root, function (object $n) use ($kind, $collection, $view): bool {
@@ -278,6 +269,76 @@ function neutron_fallback_fill_posts(object $root, array $opt): void {
     }
 }
 
+// El molde (primer hijo con data-post-item) repetido para cada elemento
+function neutron_fallback_fill_items(object $container, array $posts, array $opt): void {
+    $tpl = null;
+    foreach ($container->children ?? [] as $child) {
+        if (($child->type ?? null) === 'element' && isset($child->attrs['data-post-item'])) { $tpl = $child; break; }
+    }
+    if (!$tpl) return;
+    $items = [];
+    foreach ($posts as $post) {
+        $item = neutron_clone_node($tpl);
+        $item->attrs['data-post-slug'] = $post['slug'];
+        if ($post['status'] !== 'published') $item->attrs['class'] = trim(($item->attrs['class'] ?? '') . ' is-draft');
+        neutron_fallback_post_node($item, $post, $opt);       // el propio molde no se quita aunque le falte un campo
+        neutron_fallback_post_walk($item, $post, $opt, false);
+        $items[] = $item;
+    }
+    $container->children = $items;
+}
+
+// data-posts-group: el molde de grupo por cada categoría (como neutron_dom_fill_groups)
+function neutron_fallback_fill_groups(object $list, array $groups, array $opt): void {
+    $tpl = null;
+    foreach ($list->children ?? [] as $child) {
+        if (($child->type ?? null) === 'element' && isset($child->attrs['data-post-group'])) { $tpl = $child; break; }
+    }
+    if (!$tpl) return;
+    $out = [];
+    foreach ($groups as $g) {
+        $el = neutron_clone_node($tpl);
+        $el->attrs['data-post-group'] = $g['id'];
+        $values = ['title' => $g['title'], 'description' => $g['description'], 'count' => (string)count($g['posts'])];
+        neutron_fallback_filter($el, function (object $n) use ($values): bool {
+            foreach ($values as $k => $v) {
+                if (!isset($n->attrs['data-post-group-' . $k])) continue;
+                if ($v === '' && $k !== 'count') return false;
+                neutron_set_text($n, $v);
+            }
+            return true;
+        });
+        $items = neutron_find_first($el, fn($n) => isset($n->attrs['data-post-group-items']));
+        if ($items) neutron_fallback_fill_items($items, $g['posts'], $opt);
+        $out[] = $el;
+    }
+    $list->children = $out;
+}
+
+// data-post-images (como neutron_dom_post_images). Devuelve false si hay que quitar el nodo.
+function neutron_fallback_post_images(object $node, array $post, array $opt): bool {
+    $images = (array)($post[$node->attrs['data-post-images']] ?? []);
+    if (!$images && empty($opt['admin'])) return false;
+    $tpl = null;
+    foreach ($node->children ?? [] as $c) { if (($c->type ?? null) === 'element') { $tpl = $c; break; } }
+    if (!$tpl || !$images) return true;
+    $out = [];
+    foreach ($images as $i => $src) {
+        $el = neutron_clone_node($tpl);
+        foreach (array_merge([$el], neutron_find_all($el, fn() => true)) as $n) {
+            if (($n->type ?? null) !== 'element') continue;
+            if (isset($n->attrs['data-post-image'])) {
+                $n->attrs['src'] = $src;
+                if (($n->attrs['alt'] ?? '') === '') $n->attrs['alt'] = trim(($post['title'] ?? '') . ' ' . ($i + 1));
+            }
+            if (isset($n->attrs['data-post-image-link'])) $n->attrs['href'] = $src;
+        }
+        $out[] = $el;
+    }
+    $node->children = $out;
+    return true;
+}
+
 // Recorre los descendientes de $node aplicando los campos de la entrada; con $skipLists no entra en los listados.
 function neutron_fallback_post_walk(object $node, array $post, array $opt, bool $skipLists): void {
     $kept = [];
@@ -294,6 +355,13 @@ function neutron_fallback_post_walk(object $node, array $post, array $opt, bool 
 // Aplica los data-post* de un nodo. Devuelve false si hay que quitarlo (imagen vacía fuera del editor).
 function neutron_fallback_post_node(object $node, array $post, array $opt): bool {
     $a = $node->attrs ?? [];
+    if (isset($a['data-post-images']) && !neutron_fallback_post_images($node, $post, $opt)) return false;
+    foreach (['data-post-href' => 'href', 'data-post-src' => 'src'] as $attr => $target) {
+        if (!isset($a[$attr])) continue;
+        $value = $attr === 'data-post-href' ? neutron_post_href_of($post, $a[$attr]) : neutron_post_src_of($post, $a[$attr]);
+        if ($value === '' && empty($opt['admin'])) return false;
+        $node->attrs[$target === 'src' && isset($a['data-consent']) ? 'data-consent-src' : $target] = $value;
+    }
     if (isset($a['data-post'])) {
         $text = neutron_post_text($post, $a['data-post'], $opt['lang'] ?? 'ca');
         if ($node->tag === 'title') {

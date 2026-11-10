@@ -2,6 +2,20 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.18.0 — 2026-11-10
+
+- **Colecciones con su propia definición** (`site/<colección>/_collection.json`): campos de texto, texto con formato,
+  fecha, imagen, **álbum de fotos**, **documento**, **categoría**, enlace y **vídeo**, orden y qué se traduce; con o
+  sin página propia. Categorías en `_categories.json`. Las colecciones de antes (blog) siguen igual.
+- **Gestor en el panel** para cada colección, generado a partir de su definición: buscador, filtro por categoría,
+  idiomas, ficha con un control por campo (subir documentos y varias fotos a la vez), publicar, borrar, orden manual y
+  categorías. El blog también se gestiona desde el panel.
+- Listados: `data-post-href` (descarga de un documento, enlace o vídeo), `data-post-src` (vídeo para insertar, con
+  consentimiento, o su miniatura), `data-post-images` (álbum), `data-posts-filter` y `data-posts-group` (por
+  categorías), y datos como `file.size` o `file.downloads`. En los dos motores.
+- `download.php` (nuevo en el núcleo): cuenta las descargas y lleva al fichero. `admin/upload.php` acepta documentos
+  (PDF, Office, LibreOffice, texto, CSV, ZIP) hasta `uploads.max_doc_mb` (20).
+
 ## 1.17.0 — 2026-11-10
 
 - **Mensajes en el panel**: los del formulario de contacto se guardan en la web antes de enviar el correo, así que no se

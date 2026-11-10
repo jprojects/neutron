@@ -185,22 +185,14 @@ function neutron_dom_apply_lang(DOMDocument $dom, DOMXPath $xpath, array $l): vo
 function neutron_dom_fill_posts(DOMDocument $dom, DOMXPath $xpath, array $opt): void {
     foreach (iterator_to_array($xpath->query('//*[@data-posts]')) as $list) {
         $collection = $list->getAttribute('data-posts');
-        $view = neutron_posts_view($collection, $opt, (int)$list->getAttribute('data-posts-limit'), (int)$list->getAttribute('data-posts-per-page'));
+        $view = neutron_posts_view($collection, $opt, (int)$list->getAttribute('data-posts-limit'), (int)$list->getAttribute('data-posts-per-page'),
+            $list->getAttribute('data-posts-filter'));
 
-        $tpl = null;
-        foreach ($list->childNodes as $child) {
-            if ($child instanceof DOMElement && $child->hasAttribute('data-post-item')) { $tpl = $child; break; }
-        }
-        if ($tpl) {
-            $mold = $tpl->cloneNode(true);
-            while ($list->firstChild) $list->removeChild($list->firstChild);
-            foreach ($view['posts'] as $post) {
-                $item = $mold->cloneNode(true);
-                $item->setAttribute('data-post-slug', $post['slug']);
-                if ($post['status'] !== 'published') $item->setAttribute('class', trim($item->getAttribute('class') . ' is-draft'));
-                neutron_dom_fill_post($xpath, $item, $post, $opt, false);
-                $list->appendChild($item);
-            }
+        $group = $list->getAttribute('data-posts-group');
+        if ($group !== '') {
+            neutron_dom_fill_groups($xpath, $list, neutron_posts_groups($collection, $view['posts'], $group, $list->getAttribute('data-posts-group-other')), $opt);
+        } else {
+            neutron_dom_fill_items($xpath, $list, $view['posts'], $opt);
         }
         // Aviso de lista vacía y paginación (data-posts-empty / -prev / -next con el nombre de la colección)
         foreach (['empty', 'prev', 'next'] as $kind) {
@@ -220,11 +212,68 @@ function neutron_dom_fill_posts(DOMDocument $dom, DOMXPath $xpath, array $opt): 
     }
 }
 
+// El molde (primer hijo con data-post-item) repetido para cada elemento
+function neutron_dom_fill_items(DOMXPath $xpath, DOMElement $container, array $posts, array $opt): void {
+    $tpl = null;
+    foreach ($container->childNodes as $child) {
+        if ($child instanceof DOMElement && $child->hasAttribute('data-post-item')) { $tpl = $child; break; }
+    }
+    if (!$tpl) return;
+    $mold = $tpl->cloneNode(true);
+    while ($container->firstChild) $container->removeChild($container->firstChild);
+    foreach ($posts as $post) {
+        $item = $mold->cloneNode(true);
+        $item->setAttribute('data-post-slug', $post['slug']);
+        if ($post['status'] !== 'published') $item->setAttribute('class', trim($item->getAttribute('class') . ' is-draft'));
+        // Se rellena antes de colgarlo (como siempre): el propio molde no se quita aunque le falte un campo
+        neutron_dom_fill_post($xpath, $item, $post, $opt, false);
+        $container->appendChild($item);
+    }
+}
+
+// data-posts-group: el molde de grupo (data-post-group) por cada categoría, con su título, descripción y número, y
+// sus elementos en data-post-group-items
+function neutron_dom_fill_groups(DOMXPath $xpath, DOMElement $list, array $groups, array $opt): void {
+    $tpl = null;
+    foreach ($list->childNodes as $child) {
+        if ($child instanceof DOMElement && $child->hasAttribute('data-post-group')) { $tpl = $child; break; }
+    }
+    if (!$tpl) return;
+    $mold = $tpl->cloneNode(true);
+    while ($list->firstChild) $list->removeChild($list->firstChild);
+    foreach ($groups as $g) {
+        $el = $mold->cloneNode(true);
+        $el->setAttribute('data-post-group', $g['id']);
+        $list->appendChild($el);
+        foreach (['title' => $g['title'], 'description' => $g['description'], 'count' => (string)count($g['posts'])] as $k => $v) {
+            foreach (iterator_to_array($xpath->query('descendant::*[@data-post-group-' . $k . ']', $el)) as $n) {
+                if ($v === '' && $k !== 'count') { $n->parentNode->removeChild($n); continue; }
+                neutron_dom_set_text($n, $v);
+            }
+        }
+        $items = $xpath->query('descendant::*[@data-post-group-items]', $el)->item(0);
+        if ($items instanceof DOMElement) neutron_dom_fill_items($xpath, $items, $g['posts'], $opt);
+    }
+}
+
 // Campos de una entrada dentro de $root. En la página de la entrada ($skipLists) no se tocan los listados.
 function neutron_dom_fill_post(DOMXPath $xpath, DOMElement $root, array $post, array $opt, bool $skipLists): void {
-    $nodes = $xpath->query('descendant-or-self::*[@data-post or @data-post-img or @data-post-html or @data-post-link]', $root);
+    $nodes = $xpath->query('descendant-or-self::*[@data-post or @data-post-img or @data-post-html or @data-post-link or @data-post-href or @data-post-src or @data-post-images]', $root);
     foreach (iterator_to_array($nodes) as $node) {
         if ($skipLists && $xpath->query('ancestor::*[@data-posts]', $node)->length) continue;
+        if ($node->hasAttribute('data-post-images')) {
+            if (!neutron_dom_post_images($xpath, $node, $post, $opt)) continue;
+        }
+        foreach (['data-post-href' => 'href', 'data-post-src' => 'src'] as $attr => $target) {
+            if (!$node->hasAttribute($attr)) continue;
+            $value = $attr === 'data-post-href' ? neutron_post_href_of($post, $node->getAttribute($attr)) : neutron_post_src_of($post, $node->getAttribute($attr));
+            if ($value === '' && empty($opt['admin'])) {
+                if ($node->parentNode) { $node->parentNode->removeChild($node); continue 2; }
+                continue;
+            }
+            // Un iframe con consentimiento (data-consent) recibe la dirección en data-consent-src
+            $node->setAttribute($target === 'src' && $node->hasAttribute('data-consent') ? 'data-consent-src' : $target, $value);
+        }
         if ($node->hasAttribute('data-post')) {
             $field = $node->getAttribute('data-post');
             $text = neutron_post_text($post, $field, $opt['lang'] ?? 'ca');
@@ -251,6 +300,31 @@ function neutron_dom_fill_post(DOMXPath $xpath, DOMElement $root, array $post, a
             $node->setAttribute('href', neutron_post_href($post));
         }
     }
+}
+
+// data-post-images="campo": el primer hijo es el molde de cada imagen (un <img data-post-image>, o un enlace
+// data-post-image-link con su imagen dentro). Sin imágenes, fuera (salvo en el editor). Devuelve false si se ha quitado.
+function neutron_dom_post_images(DOMXPath $xpath, DOMElement $node, array $post, array $opt): bool {
+    $images = (array)($post[$node->getAttribute('data-post-images')] ?? []);
+    if (!$images && empty($opt['admin'])) {
+        if ($node->parentNode) { $node->parentNode->removeChild($node); return false; }
+        return true;
+    }
+    $tpl = null;
+    foreach ($node->childNodes as $c) { if ($c instanceof DOMElement) { $tpl = $c; break; } }
+    if (!$tpl || !$images) return true;
+    $mold = $tpl->cloneNode(true);
+    while ($node->firstChild) $node->removeChild($node->firstChild);
+    foreach ($images as $i => $src) {
+        $el = $mold->cloneNode(true);
+        $node->appendChild($el);
+        foreach (iterator_to_array($xpath->query('descendant-or-self::*[@data-post-image]', $el)) as $img) {
+            $img->setAttribute('src', $src);
+            if ($img->getAttribute('alt') === '') $img->setAttribute('alt', trim(($post['title'] ?? '') . ' ' . ($i + 1)));
+        }
+        foreach (iterator_to_array($xpath->query('descendant-or-self::*[@data-post-image-link]', $el)) as $a) $a->setAttribute('href', $src);
+    }
+    return true;
 }
 
 // Descripción, URL canónica y etiquetas og: de la entrada

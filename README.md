@@ -22,6 +22,7 @@ Cada instalación tiene dos partes:
 ```
 index.php            página (y API remota con ?r=remote)
 contact.php          recibe los formularios data-neutron-form
+download.php         descargas de los documentos de las colecciones (las cuenta)
 config.php           valores por defecto (núcleo)  ·  config.local.php: los de esta instalación
 admin/               login, guardar, subir imagen (editor)
 lib/                 render, contenido, auth, log, formulario, reCAPTCHA
@@ -210,53 +211,117 @@ lectores aunque la página diga otra cosa; sin el fichero responden 404 vacío. 
 Al migrar una web, el favicon se coge de la original (las etiquetas `rel="icon"`/`shortcut icon` y `/favicon.ico`);
 si no tiene, se hace a partir del logo.
 
-### Blog (colecciones con página propia)
+### Colecciones: blog, documentos, galería, vídeos…
 
-Para un blog, noticias o cualquier lista de artículos con su propia página. Una colección es una carpeta del sitio
-con la plantilla de la entrada; cada entrada es un JSON:
+Una colección es una carpeta del sitio con elementos en JSON. El **blog** es la de siempre (página propia por entrada);
+desde la 1.18 una colección puede tener **su propia definición** de campos, con o sin página propia, y el panel genera
+su gestor (`/admin/` → una sección por colección).
 
 ```
-site/blog/_item.html          página de una entrada            → /blog/mi-entrada
-site/blog/mi-entrada.json     título, fecha, imagen, resumen, cuerpo (HTML limpio) y estado (draft | published)
-site/pages/blog.html          el listado                        → /blog/  (/blog.html redirige aquí)
+site/documentacio/_collection.json   definición (opcional; sin ella, la de un blog)
+site/documentacio/_categories.json   categorías (opcional): [{"id", "title", "description", "i18n": {"es": {…}}}]
+site/documentacio/_item.html         página de cada elemento (opcional) → /documentacio/mi-documento
+site/documentacio/mi-documento.json  un elemento: sus campos, "status" (draft | published), "order" y, traducidos, "i18n"
 ```
 
-- **Rutas**: `/blog/` (listado; `?p=2` para la página 2), `/blog/mi-entrada`, `/blog/feed.xml` (RSS de las 20
-  últimas) y, para todo el sitio, `/sitemap.xml` (portada, páginas y entradas publicadas). Las páginas de una
-  colección llevan `<base>` para que las rutas relativas (`site/assets/…`, `blog/…`, `./#contacte`) sigan valiendo.
-- **En la plantilla de la entrada**: `data-post="title"`, `data-post="summary"`, `data-post="date"` (la fecha en el
-  idioma de `<html lang>`, catalán, castellano, francés o inglés: «2 de novembre de 2026»; en un `<time>`, también `datetime`), `data-post-img="image"` y
-  `data-post-html="body"`. En `<title data-post="title">Entrada · Mi web</title>` se conserva lo de después de ` · `.
-  El núcleo añade la descripción, la URL canónica y las etiquetas `og:` de la entrada.
-- **Listados** (en cualquier página, también en la portada o en la propia entrada):
+Hace falta `_item.html` (con página propia: listado en `/coleccion/`, RSS y sitemap) o `_collection.json` (sin página
+propia: documentos, álbumes, vídeos, que solo salen en los listados).
+
+**Definición** (`_collection.json`):
+
+```json
+{
+  "label": "Documentació", "item": "Document", "help": "Texto de ayuda en el panel",
+  "sort": "-date",
+  "fields": [
+    {"name": "title", "type": "text", "label": "Títol"},
+    {"name": "category", "type": "category", "label": "Categoria"},
+    {"name": "date", "type": "date", "label": "Publicat"},
+    {"name": "file", "type": "file", "label": "Fitxer"},
+    {"name": "summary", "type": "textarea", "label": "Descripció"}
+  ],
+  "translated": ["title", "summary"]
+}
+```
+
+- Tipos de campo: `text`, `textarea`, `html` (texto con formato, por la lista blanca), `date`, `image`, `images` (un
+  álbum), `file` (un documento: PDF, Word, Excel, PowerPoint, LibreOffice, texto, CSV o ZIP, en `site/uploads/docs/`),
+  `category` (de `_categories.json`), `url` y `video` (YouTube o Vimeo). `title` siempre está.
+- `sort`: `-date` (por defecto, el más nuevo primero), `date`, `title`, `-title` u `order` (orden manual, con flechas
+  en el panel). `translated`: los campos que se traducen en una web de varios idiomas (por defecto, `title`).
+- Sin `_collection.json`, la de un blog: `title`, `date`, `image`, `summary`, `body` (html), con `title`, `image`,
+  `summary` y `body` traducibles.
+
+**Listados** (en cualquier página; en la de un elemento, también):
 
 ```html
 <div data-posts="blog" data-posts-per-page="9">        <!-- o data-posts-limit="3" -->
-  <article data-post-item>                              <!-- molde de cada entrada -->
+  <article data-post-item>                              <!-- molde de cada elemento -->
     <a data-post-link href="#"><img data-post-img="image" src="site/assets/img/ejemplo.jpg" alt=""></a>
     <time data-post="date"></time>
     <h2><a data-post-link href="#" data-post="title">…</a></h2>
     <p data-post="summary"></p>
   </article>
 </div>
-<p data-posts-empty="blog">Aún no hay entradas.</p>   <!-- solo si no hay ninguna -->
+<p data-posts-empty="blog">Aún no hay entradas.</p>   <!-- solo si no hay ninguno -->
 <a data-posts-prev="blog" href="#">← Más nuevas</a> <a data-posts-next="blog" href="#">Anteriores →</a>
 ```
 
-  De la más nueva a la más antigua (por fecha). En la página de una entrada, sus listados no la repiten. Sin imagen,
-  el `<img data-post-img>` se quita (en el editor se deja el de la plantilla para poder poner una).
-- **Editor**: en las páginas con un listado, **«Nueva entrada»** pide el título, crea un borrador
-  (`/blog/titulo-de-la-entrada`) y lo abre. En la entrada se editan en la página el título, el resumen y la imagen,
-  y el cuerpo con una barra de formato (negrita, cursiva, subtítulos, listas, cita, enlace e imagen); en la barra
-  del editor, la **fecha**, **Publicar / Pasar a borrador** y **Borrar entrada** (va a `data/deleted/`, se puede
-  recuperar a mano). Los borradores solo los ve quien ha entrado al editor; en los listados llevan la etiqueta
-  «Borrador».
-- **Texto con formato seguro**: el cuerpo se limpia en el servidor con una lista blanca (`lib/sanitize.php`) al
-  guardar y al pintar: `p`, `h2`, `h3`, `strong`, `em`, `a` (http, https, mailto, tel o rutas relativas), `ul`,
-  `ol`, `li`, `blockquote`, `br` e `img` solo de `site/uploads/` o `site/assets/`. Ningún script, estilo, `on…`,
+| Atributo | Qué hace |
+|---|---|
+| `data-post="campo"` | el texto del campo; la fecha en el idioma de la web («2 de novembre de 2026»; en un `<time>`, también `datetime`); una categoría, su nombre. Con punto, un dato: `category.description`, `file.size` («1,9 MB»), `file.ext` («PDF»), `file.name`, `file.downloads`, `images.count` |
+| `data-post-img="campo"` | `src` de una imagen (sin imagen, se quita) |
+| `data-post-html="campo"` | texto con formato |
+| `data-post-link` | `href` a la página del elemento (colecciones con página propia) |
+| `data-post-href="campo"` | `href` de un fichero (por `download.php`, que cuenta las descargas), un enlace o un vídeo; vacío = se quita |
+| `data-post-src="campo"` | `src` de una imagen o de un vídeo para insertar (`youtube-nocookie.com/embed/…`); en un iframe con `data-consent`, va a `data-consent-src`. `video.thumb`: la miniatura de YouTube |
+| `data-post-images="campo"` | un álbum: su primer hijo es el molde de cada foto, con `data-post-image` (`src`) y `data-post-image-link` (`href`); sin fotos, se quita |
+| `data-posts-filter="category:marc-legal"` | solo los que cumplen (`campo:valor`, varios con comas) |
+| `data-posts-group="category"` | por categorías, en el orden de `_categories.json`: molde `data-post-group` con `data-post-group-title`, `-description`, `-count` y los elementos dentro de `data-post-group-items`; los que no tienen categoría, al final con el título de `data-posts-group-other` |
+
+Un documento por categorías:
+
+```html
+<div data-posts="documentacio" data-posts-group="category" data-posts-group-other="Altres documents">
+  <section data-post-group>
+    <h2 data-post-group-title>Categoria</h2> <p data-post-group-description></p>
+    <ul data-post-group-items>
+      <li data-post-item><a data-post-href="file" href="#" download data-post="title">…</a>
+        <span data-post="file.ext"></span> · <span data-post="file.size"></span></li>
+    </ul>
+  </section>
+</div>
+```
+
+Una galería por álbumes y vídeos con consentimiento:
+
+```html
+<div data-posts="imatges"><section data-post-item><h2 data-post="title"></h2>
+  <div data-post-images="images"><a data-post-image-link href="#"><img data-post-image src="" alt="" loading="lazy"></a></div>
+</section></div>
+<div data-posts="videos"><article data-post-item><h3 data-post="title"></h3>
+  <iframe data-consent="videos" data-consent-src="" data-post-src="video" title="Vídeo" allowfullscreen></iframe>
+</article></div>
+```
+
+- **Descargas**: `download.php?c=coleccion&i=elemento&f=campo` suma una (los robots no cuentan) en `data/downloads.json`
+  y lleva al fichero. Solo de elementos publicados y de `site/uploads/` o `site/assets/`.
+- **Panel**: una sección por colección con buscador, filtro por categoría, idioma, «+ Nuevo», la ficha con un control por
+  campo (subir documentos, varias fotos a la vez, vista previa del vídeo…), publicado o borrador, borrar y, con
+  `sort: "order"`, flechas para ordenar. **Categorías…** edita las de la colección (en otro idioma, su traducción).
+  Un elemento nuevo empieza como borrador si la colección tiene página propia, y publicado si no.
+- **Páginas de un blog** (`_item.html`): `data-post="title"`, `data-post="summary"`, `data-post="date"`,
+  `data-post-img="image"`, `data-post-html="body"`; en `<title data-post="title">Entrada · Mi web</title>` se conserva lo
+  de después de ` · `. El núcleo añade la descripción, la URL canónica y las etiquetas `og:`.
+- **Editor en la página**: en las páginas con un listado de una colección con página propia, **«Nueva entrada»** pide
+  el título, crea un borrador y lo abre. En la entrada se editan en la página el título, el resumen, la imagen y el
+  cuerpo (con barra de formato); en la barra, la **fecha**, **Publicar / Pasar a borrador** y **Borrar entrada** (va a
+  `data/deleted/`). Los borradores solo los ve quien ha entrado al editor; en los listados llevan la etiqueta «Borrador».
+- **Texto con formato seguro**: se limpia en el servidor con una lista blanca (`lib/sanitize.php`) al guardar y al
+  pintar: `p`, `h2`, `h3`, `strong`, `em`, `a` (http, https, mailto, tel o rutas relativas), `ul`, `ol`, `li`,
+  `blockquote`, `br`, tablas, `code` e `img` solo de `site/uploads/` o `site/assets/`. Ningún script, estilo, `on…`,
   iframe ni enlace `javascript:`. Lo que se pega (Word, otra web) se limpia ya en el navegador.
-- La dirección de la entrada sale del título al crearla y no cambia aunque se edite el título (los enlaces que ya
-  circulan siguen funcionando).
+- La dirección de un elemento sale del título al crearlo y no cambia aunque se edite el título.
 
 ### Varios idiomas
 

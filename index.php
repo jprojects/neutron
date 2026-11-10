@@ -64,7 +64,7 @@ if ($page === '' && $route === 'sitemap.xml' && neutron_lang() === null) {
     neutron_sitemap();
     exit;
 }
-if ($page === '' && preg_match('~^([a-z0-9][a-z0-9-]*)(?:/([a-z0-9][a-z0-9.-]*)?)?$~', $route, $m) && neutron_collection_valid($m[1])) {
+if ($page === '' && preg_match('~^([a-z0-9][a-z0-9-]*)(?:/([a-z0-9][a-z0-9.-]*)?)?$~', $route, $m) && neutron_collection_has_page($m[1])) {
     $rest = $m[2] ?? '';
     // Varios idiomas: /noticies/… sin idioma va al principal; si no existe, puede ser una URL antigua (redirects.json)
     if ($langs !== null && neutron_lang() === null) {
@@ -90,7 +90,7 @@ if ($page === '' && preg_match('~^([a-z0-9][a-z0-9-]*)(?:/([a-z0-9][a-z0-9.-]*)?
         $page = $post !== null && ($post['status'] === 'published' || neutron_is_logged_in()) ? '@post' : '-';
         if ($page === '-') $post = null;
     }
-} elseif ($page !== '' && neutron_collection_valid($page) && $route === $page . '.html') {
+} elseif ($page !== '' && neutron_collection_has_page($page) && $route === $page . '.html') {
     neutron_redirect(neutron_lang_prefix() . $page . '/');
 }
 $known = ($page !== '' && $page !== '-') || in_array($route, ['', 'index.php'], true);
@@ -197,7 +197,7 @@ if (isset($_GET['admin'])) {
             $options['admin_bootstrap']['post'] = ['collection' => $collection, 'slug' => $post['slug'], 'status' => $post['status'], 'date' => $post['date'], 'translated' => $post['translated']];
         }
         preg_match_all('~data-posts="([a-z0-9-]+)"~', $template, $lists);
-        $options['admin_bootstrap']['collections'] = array_values(array_unique(array_filter($lists[1], 'neutron_collection_valid')));
+        $options['admin_bootstrap']['collections'] = array_values(array_unique(array_filter($lists[1], 'neutron_collection_has_page')));
     }
 }
 if (str_contains($template, 'data-neutron-form')) {
