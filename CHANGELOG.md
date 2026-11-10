@@ -2,6 +2,13 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.24.0 — 2026-11-10
+
+- **Cabeceras de seguridad** en todas las respuestas (`lib/security.php`, desde `bootstrap.php`, antes de servir la
+  caché): `nosniff`, `X-Frame-Options: SAMEORIGIN`, `Referrer-Policy`, `Permissions-Policy` y HSTS por HTTPS (también
+  detrás del proxy del hosting); fuera `X-Powered-By`. Configurable en `security` (`hsts_subdomains`, `headers`, `hsts`).
+- **`/.well-known/security.txt`**: el de `site/` o generado con `security.contact` (y `security.languages`).
+
 ## 1.23.0 — 2026-11-10
 
 - **SEO y GEO en el núcleo** (`lib/meta.php`), en todas las páginas y en los dos motores, sin tocar las plantillas: URL

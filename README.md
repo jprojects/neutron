@@ -623,6 +623,7 @@ return [
     'log' => ['level' => 'info', 'keep_days' => 30],
     'panel' => ['lang' => null],                           // idioma del panel: 'es', 'ca' o null (el de la web)
     'stats' => ['enabled' => true],                        // visitas del inicio del panel
+    'security' => ['contact' => 'seguretat@…'],            // security.txt y opciones de HSTS (ver «Seguridad»)
 ];
 ```
 
@@ -764,3 +765,27 @@ Lo que no esté en `core.json` no llega a las instalaciones al actualizar.
 - `lib/`, `data/`, `bin/`, la configuración, `site/*.json`, la plantilla, `site/pages/` y `site/partials/` no se
   sirven directamente.
 - API remota: token de 32+ caracteres comparado en tiempo constante, IP opcional, 404 si falla.
+- **Cabeceras de seguridad** en todas las respuestas, también las que salen de la caché, el mantenimiento y el panel
+  (`lib/security.php`, desde `bootstrap.php`): `X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`,
+  `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy` (cámara, micrófono, ubicación, pago y USB
+  desactivados) y, por HTTPS (también detrás del proxy del hosting, `X-Forwarded-Proto`),
+  `Strict-Transport-Security: max-age=31536000`. Sin `X-Powered-By` (la versión de PHP). Todavía sin CSP.
+- **`/.well-known/security.txt`** (RFC 9116) para que quien encuentre un fallo sepa a quién avisar: el de
+  `site/security.txt` si existe; si no, se genera con `security.contact` (y `Expires` a un año, siempre vigente). Sin
+  contacto, 404.
+
+```php
+'security' => [
+    'contact' => 'seguretat@cliente.com',   // o una URL; activa /.well-known/security.txt
+    'languages' => 'ca, es',               // opcional: Preferred-Languages
+    'hsts_subdomains' => false,            // true solo si TODOS los subdominios tienen HTTPS (si no, quedan inaccesibles un año)
+    // 'hsts' => false, 'headers' => false: si ya las pone el servidor
+],
+```
+
+Comprobarlo (dos veces: la segunda sale de la caché, `X-Neutron-Cache: HIT`):
+
+```bash
+curl -sI https://cliente.com/ | grep -iE "x-neutron-cache|strict-transport|x-frame|nosniff|referrer|permissions|x-powered"
+curl -s https://cliente.com/.well-known/security.txt
+```

@@ -102,6 +102,17 @@ function neutron_config_defaults(): array {
             ],
         ],
 
+        // Cabeceras de seguridad en todas las respuestas (lib/security.php): nosniff, X-Frame-Options,
+        // Referrer-Policy, Permissions-Policy y HSTS (solo por HTTPS). Y /.well-known/security.txt.
+        'security' => [
+            'headers' => true,          // false = sin cabeceras (p. ej. si ya las pone el servidor)
+            'hsts' => true,             // Strict-Transport-Security
+            'hsts_max_age' => 31536000, // segundos (un año)
+            'hsts_subdomains' => false, // includeSubDomains: solo si TODOS los subdominios tienen HTTPS
+            'contact' => '',            // security.txt: correo o URL para avisar de fallos; vacío = no se publica
+            'languages' => '',          // security.txt: idiomas de contacto, p. ej. 'ca, es, en'
+        ],
+
         'log' => [
             'level' => 'info',          // debug | info | notice | warning | error
             'keep_days' => 30,

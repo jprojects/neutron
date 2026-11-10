@@ -71,6 +71,11 @@ if ($page === '' && $route === 'sitemap.xml' && neutron_lang() === null) {
     neutron_sitemap();
     exit;
 }
+// Contacto para avisar de fallos de seguridad (lib/security.php): el de site/security.txt o security.contact
+if ($page === '' && $route === '.well-known/security.txt') {
+    neutron_security_txt();
+    exit;
+}
 // Para buscadores y asistentes de IA (lib/meta.php): /robots.txt y /llms.txt (o los de site/, si los hay)
 if ($page === '' && in_array($route, ['robots.txt', 'llms.txt'], true) && neutron_lang() === null) {
     require_once __DIR__ . '/lib/meta.php';
