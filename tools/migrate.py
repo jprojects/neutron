@@ -321,6 +321,14 @@ def analyse(p):
     p.update(lang=lang_of(p), title=title, description=meta(t, 'description'), og_image=meta(t, 'og:image'),
              blocks=blocks_of(main_container(t), base))
     p['date'] = next((n.get('datetime')[:10] for n in t.find_all('time') if n.get('datetime')), '') or meta(t, 'article:published_time')[:10]
+    if not p['date']:                                       # «Publicat el 08-10-2026» (blogs de componentes de Joomla)
+        m = re.search(r'\b(?:publicat|publicado|publié|published|posted|data de publicació|fecha de publicación)\b[^\d]{0,20}'
+                      r'(\d{1,2}[-/.]\d{1,2}[-/.]\d{4}|\d{4}-\d{2}-\d{2}|\d{1,2}\s+(?:de\s+|d\')?[a-zçéûô]{3,10}\.?\s+(?:de\s+)?\d{4})',
+                      re.sub(r'\s+', ' ', body.text_content()), re.I)
+        if m:
+            sys.path.insert(0, str(Path(__file__).resolve().parent))
+            import migrate_collections
+            p['date'] = migrate_collections.parse_date(m.group(1))
     p['links'] = [(clean_text(n.text_content()), urllib.parse.urljoin(base, html.unescape(n.get('href')))) for n in body.find_all('a') if n.get('href')]
 for p in pages.values(): analyse(p)
 uniq = {}
@@ -518,23 +526,28 @@ if not a.sin_imagenes and home:
 
 def is_post(p):
     path = urllib.parse.urlsplit(p['final']).path
-    if re.search(r'view=article&id=\d+:[^&]+&catid=', urllib.parse.urlsplit(p['final']).query): return True   # Joomla
+    q = urllib.parse.urlsplit(p['final']).query
+    if re.search(r'view=article&id=\d+:[^&]+&catid=', q): return True   # Joomla
+    # Componentes de blog de Joomla (com_blogger, com_k2, com_easyblog…): la ficha de un elemento
+    if re.search(r'(?:^|&)option=com_\w+', q) and re.search(r'(?:^|&)view=(?:item|entry|post)(?:&|$)', q) and re.search(r'(?:^|&)id=\d+', q): return True
     return bool(re.search(rf'/{BLOGWORDS}/[^/]+', path, re.I) or re.search(r'/\d{4}/\d{2}/', path) or
                 (p['date'] and next(iter(p['tree'].find_all('article')), None) is not None))
 # Las páginas legales de un Joomla son artículos, pero no entradas del blog
-posts = [p for p in pages.values() if is_post(p) and not re.search(r'legal|privac|cookies|aviso|avís|mentions', p['url'] + ' ' + p['title'], re.I)]
+LEGAL_RE = r'legal|privac|cookies|aviso|avís|mentions|cancel|devoluci|desistim|condicions|condiciones|terms|términos|termes'
+posts = [p for p in pages.values() if is_post(p) and not re.search(LEGAL_RE, p['url'] + ' ' + p['title'], re.I)]
 # Las páginas del menú (de cualquier idioma) no son entradas
 menu_urls = set()
 for p in pages.values():
     for nav in p['tree'].find_all('nav') + [n for n in p['tree'].iter() if re.search(r'\b(menu|nav|navigation)\b', n.classes())]:
         menu_urls.update(norm(n.get('href'), p['final']) for n in nav.find_all('a'))
 listings = [p for p in pages.values() if re.search(rf'/{BLOGWORDS}/?$', urllib.parse.urlsplit(p['final']).path, re.I)
-            or re.search(r'layout=blog|view=category', urllib.parse.urlsplit(p['final']).query)]
+            or re.search(r'layout=blog|view=category|view=items?list|view=items(?:&|$)', urllib.parse.urlsplit(p['final']).query)]
 for lp in listings:
     for _, href in lp['links']:
         q = pages.get(norm(href, lp['final']) or '')
         if q and q not in posts and q not in listings and q['url'] not in menu_urls and q['lang'] == lp['lang'] \
-           and not re.fullmatch(r'/[a-z]{2}/?', urllib.parse.urlsplit(q['final']).path) and q is not home:
+           and not re.fullmatch(r'/[a-z]{2}/?', urllib.parse.urlsplit(q['final']).path) and q is not home \
+           and not re.search(LEGAL_RE, q['url'] + ' ' + q['title'], re.I):
             posts.append(q)
 
 # Datos del titular para las páginas legales (tools/legal.py): del aviso legal de la web antigua, si lo tiene
@@ -554,6 +567,14 @@ if cps: legal_found['address_hint'] = cps.most_common(1)[0][0]
 multi = len([l for l in langs if l != '?']) > 1
 main_lang = langs.most_common(1)[0][0] if langs else 'ca'
 redir = {}
+# El nombre de una página, el de su enlace en el menú (en Joomla, varias páginas comparten título y solo cambia Itemid)
+menu_label = {}
+for p in pages.values():
+    for nav in p['tree'].find_all('nav') + [n for n in p['tree'].iter() if re.search(r'\b(menu|nav|navigation)\b', n.classes())]:
+        for n in nav.find_all('a'):
+            u, t = norm(n.get('href'), p['final']), clean_text(n.text_content())
+            if u and t and len(t) < 40: menu_label.setdefault(u, t)
+taken_names = collections.Counter()
 for p in pages.values():
     for old in [p['url']] + p.get('alias', []):
         r = rel(old)
@@ -562,7 +583,8 @@ for p in pages.values():
         segs = [s for s in u.path.split('/') if s and not re.fullmatch(r'[a-z]{2}', s)]
         name = slugify(re.sub(r'\.(php|html?|aspx?)$', '', segs[-1])) if segs else ''
         if (name in ('index', '') and u.query) or re.fullmatch(r'\d+-.*', name or ''):
-            name = slugify(re.sub(r'\s*[|·–-].*$', '', p['title'])) if p['title'] else name
+            label = menu_label.get(p['url']) or next((menu_label[x] for x in p.get('alias', []) if x in menu_label), '')
+            name = slugify(label) if label else (slugify(re.sub(r'\s*[|·–-].*$', '', p['title'])) if p['title'] else name)
         pre = (p['lang'] + '/') if multi else ''
         if p in posts:
             col = next((m.group(1) for m in [re.search(rf'/{BLOGWORDS}/', u.path, re.I)] if m), 'blog').lower()
@@ -580,14 +602,44 @@ for p in posts:
 for old in list(redir):
     m = re.match(rf'(?:[a-z]{{2}}/)?{BLOGWORDS}/(\d+)-[^/]+$', old, re.I)
     if m and by_id.get(m.group(2)): redir[old] = by_id[m.group(2)]
-(out / 'redirects.json').write_text(json.dumps(redir, ensure_ascii=False, indent=4) + '\n')
-
 # Colecciones: noticias, documentos, galería y vídeos (tools/migrate_collections.py)
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import migrate_collections
 cols = migrate_collections.run({'pages': pages, 'posts': posts, 'main_lang': main_lang, 'inst': inst, 'fetch': fetch, 'slugify': slugify,
                                 'clean_text': clean_text, 'save_image': save_image, 'sin_imagenes': a.sin_imagenes,
                                 'main_container': main_container})
+# Las entradas y las categorías del blog, a sus direcciones nuevas (con el nombre que les ha dado la migración)
+pre = lambda p: (p['lang'] + '/') if multi and p.get('lang') else ''
+for url, (col, slug) in cols.pop('news_urls', {}).items():
+    q = pages.get(url)
+    for old in [url] + (q.get('alias', []) if q else []):
+        if rel(old): redir[rel(old)] = f"{pre(q) if q else ''}{col}/{slug}"
+# El listado del blog (sin categoría), a la página de la colección
+if cols['created'].get('news'):
+    for lp in listings:
+        if rel(lp['url']) not in redir or '/categoria/' in redir[rel(lp['url'])]: continue
+        for old in [lp['url']] + lp.get('alias', []):
+            if rel(old) and '/categoria/' not in redir.get(rel(old), ''): redir[rel(old)] = f"{pre(lp)}{cols['names']['news']}/"
+for url, (col, path) in cols.pop('news_category_urls', {}).items():
+    q = pages.get(url)
+    for old in [url] + (q.get('alias', []) if q else []):
+        if rel(old): redir[rel(old)] = f"{pre(q) if q else ''}{col}/{path}"
+(out / 'redirects.json').write_text(json.dumps(redir, ensure_ascii=False, indent=4) + '\n')
+
+# Los enlaces de los textos a la propia web, a sus direcciones nuevas (los de una página que no se ha migrado se quedan)
+def relink(h):
+    def one(m):
+        u = norm(html.unescape(m.group(1)), a.url)
+        if u is None: return m.group(0)
+        r = rel(u)
+        if r.startswith('?'): r = 'index.php' + r                     # /?option=… es lo mismo que /index.php?option=…
+        dest = redir.get(r) if r not in ('', 'index.php', 'index.html') else './'
+        return f'href="{html.escape(dest, quote=True)}"' if dest else m.group(0)
+    return re.sub(r'href="([^"]+)"', one, h or '')
+for f in (inst / 'site' / cols['names']['news']).glob('[a-z0-9]*.json') if (inst / 'site' / cols['names']['news']).is_dir() else []:
+    d = json.loads(f.read_text())
+    if isinstance(d.get('body'), str) and (nb := relink(d['body'])) != d['body']:
+        d['body'] = nb; f.write_text(json.dumps(d, ensure_ascii=False, indent=4) + '\n')
 
 # contenido.json y páginas originales
 pages_out = []
@@ -598,8 +650,8 @@ for i, p in enumerate(sorted(pages.values(), key=lambda p: (p['lang'], len(p['ur
                       'description': p['description'], 'date': p['date'], 'post': p in posts, 'imagen_og': p.get('og_local'),
                       'html': 'paginas/' + fn, 'blocks': p['blocks'],
                       # El cuerpo limpio (para un bloque richtext): sin el h1, con las imágenes ya descargadas
-                      'body_html': migrate_collections.clean_body(mc := main_container(p['tree']), p['final'], save_image,
-                                                                  skip={next(iter(mc.find_all('h1')), None)})})
+                      'body_html': relink(migrate_collections.clean_body(mc := main_container(p['tree']), p['final'], save_image,
+                                                                         skip={next(iter(mc.find_all('h1')), None)}))})
 (out / 'contenido.json').write_text(json.dumps(pages_out, ensure_ascii=False, indent=1) + '\n')
 (out / 'comun.json').write_text(json.dumps(common, ensure_ascii=False, indent=1) + '\n')
 
@@ -649,6 +701,9 @@ if not posts: w('- No se han detectado entradas.')
 w('\n## Colecciones (→ `site/<colección>/`, con los bloques `news`, `documents`, `albums` y `videos` de compose.py)\n')
 cr, cn = cols['report'], cols['names']
 if 'news' in cr: w(f"- **Noticias**: {cr['news']['count']} en `site/{cn['news']}/` (cuerpo, fecha y resumen; revisar el formato)")
+if cr.get('news_categories'):
+    w(f"- **Categorías del blog** (`site/{cn['news']}/_categories.json`, páginas `{cn['news']}/categoria/<id>`): "
+      + ', '.join(f'{n} ({c})' for n, c in cr['news_categories'].items()) + '. Las vacías no salen en la lista hasta que tengan entradas.')
 if 'docs' in cr: w(f"- **Documentos**: {cr['docs']['count']} en `site/{cn['docs']}/`, ficheros en `site/uploads/docs/`"
                    + (f"; categorías: {', '.join(cr['docs']['categories'])}" if cr['docs']['categories'] else '')
                    + (f"; {cr['docs']['downloads']} descargas de la web antigua en `data/downloads.json`" if cr['docs']['downloads'] else ''))

@@ -6,5 +6,6 @@
   "@legal_notice": "Avís legal",
   "@legal_privacy": "Política de privacitat",
   "@legal_cookies": "Política de cookies",
-  "@cookie_settings": "Configurar cookies"
+  "@cookie_settings": "Configurar cookies",
+  "@funding_html": "<p><strong>Amb el suport de</strong> les administracions que financen els nostres projectes.</p>"
 }

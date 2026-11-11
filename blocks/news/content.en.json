@@ -5,5 +5,7 @@
   "prev": "← Newer",
   "next": "Older →",
   "all": "All news",
-  "@news_back": "← All news"
+  "@news_back": "← All news",
+  "@news_categories": "Categories",
+  "@news_latest": "Latest news"
 }

@@ -14,3 +14,11 @@
 .b-footer__bottom nav { display: flex; flex-wrap: wrap; gap: 6px 20px; }
 .b-footer__bottom a, .b-footer__bottom button { color: var(--c-dark-text); background: none; border: 0; padding: 0; font: inherit; cursor: pointer; }
 @media (max-width: 900px) { .b-footer__grid { grid-template-columns: 1fr; gap: 36px; } }
+
+/* Variante funding: el texto y los logotipos de las subvenciones (sobre blanco: los logotipos oficiales lo piden) */
+.b-footer__funding { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 18px 32px; align-items: center; margin-top: 34px;
+  padding: 18px 22px; background: #fff; color: #222; border-radius: var(--radius); font-size: 13px; line-height: 1.45; }
+.b-footer__funding-text p { margin: 0 0 4px; }
+.b-footer__funding-logos { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 18px; align-items: center; }
+.b-footer__funding-logos img { height: 44px; width: auto; }
+@media (max-width: 760px) { .b-footer__funding { grid-template-columns: 1fr; } }

@@ -6,5 +6,6 @@
   "@legal_notice": "Legal notice",
   "@legal_privacy": "Privacy policy",
   "@legal_cookies": "Cookie policy",
-  "@cookie_settings": "Cookie settings"
+  "@cookie_settings": "Cookie settings",
+  "@funding_html": "<p><strong>Supported by</strong> the public bodies that fund our projects.</p>"
 }

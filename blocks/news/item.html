@@ -1,9 +1,21 @@
 <article class="section b-news-item">
+<!--if:categories-->
+  <div class="container b-news__layout"><div class="b-news__main">
+<!--/if:categories-->
+<!--if:!categories-->
   <div class="narrow">
+<!--/if:!categories-->
     <p><a href="{collection}/" data-edit="news_back">{{@news_back}}</a></p>
-    <time class="eyebrow" data-post="date"></time>
+    <p class="eyebrow"><time data-post="date"></time><!--if:categories--> · <a data-post-href="category" data-post="category" href="#"></a><!--/if:categories--></p>
     <h1 data-post="title">Notícia</h1>
     <img class="b-news-item__img" data-post-img="image" src="" alt="">
     <div class="b-news-item__body" data-post-html="body"></div>
+<!--if:categories-->
   </div>
+  {{#news_side}}
+  </div>
+<!--/if:categories-->
+<!--if:!categories-->
+  </div>
+<!--/if:!categories-->
 </article>

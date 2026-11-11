@@ -136,8 +136,15 @@ def nav_html(btn=True):
         label = p['nav'].get(main) if isinstance(p['nav'], dict) else p['nav']
         for l in langs:
             put(l, key, p['nav'].get(l, label) if isinstance(p['nav'], dict) else label)
-        cls = ' class="btn"' if btn and cta_page is p and p['file'] != 'template' else ''
+        cls = ' class="btn"' if btn and cta_page is p and p['file'] != 'template' and not any(x.get('button') for x in recipe.get('nav_extra', [])) else ''
         out.append(f'<a{cls} href="{p["href"]}" data-edit="{key}">{esc(content[main].get(key, label))}</a>')
+    # Enlaces a otras webs (la tienda, otra entidad del grupo…): "nav_extra": [{"nav": "Bugaderia", "url": "https://…", "button": true}]
+    for i, x in enumerate(recipe.get('nav_extra', []), 1):
+        key = f'nav_extra_{i}'
+        label = x['nav'].get(main) if isinstance(x['nav'], dict) else x['nav']
+        for l in langs: put(l, key, x['nav'].get(l, label) if isinstance(x['nav'], dict) else label)
+        cls = ' class="btn"' if btn and x.get('button') else ''
+        out.append(f'<a{cls} href="{attr(x["url"])}" target="_blank" rel="noopener" data-edit="{key}">{esc(content[main].get(key, label))}</a>')
     return '\n      '.join(out)
 
 def langs_html():
@@ -164,12 +171,38 @@ def legal_html():
     if recipe.get('legal'):
         for file, key in LEGAL:
             out.append(f'<a href="{file}.html" data-edit="{key}">{esc(content[main].get(key, ""))}</a>')
+    # Páginas de la receta con "legal_link": true (condiciones de venta, devoluciones…), junto a las legales
+    for p in pages:
+        if p.get('legal_link'):
+            key = f"{p['slug']}_link"
+            label = p['legal_link'] if isinstance(p['legal_link'], str) else (p.get('title') or p['file'])
+            for l in langs: put(l, key, label)
+            out.append(f'<a href="{p["href"]}" data-edit="{key}">{esc(content[main].get(key, label))}</a>')
     if cookie_cats:
         out.append(f'<button type="button" data-cookie-settings data-edit="cookie_settings">{esc(content[main].get("cookie_settings", ""))}</button>')
     return ''.join(out)
 
 # ---------------------------------------------------------------- un bloque → HTML
 used = {}
+def has_categories(col):
+    f = site / col / '_categories.json'
+    try: return bool(json.loads(f.read_text())) if f.exists() else False
+    except Exception: return False
+def if_blocks(h, col):
+    """<!--if:categories-->…<!--/if:categories--> (y su contrario, if:!categories): solo si la colección tiene categorías
+    (site/<colección>/_categories.json, que deja tools/migrate.py o se crea en el panel)."""
+    on = has_categories(col)
+    h = re.sub(r'<!--if:categories-->(.*?)<!--/if:categories-->\n?', (lambda m: m.group(1)) if on else '', h, flags=re.S)
+    return re.sub(r'<!--if:!categories-->(.*?)<!--/if:!categories-->\n?', '' if on else (lambda m: m.group(1)), h, flags=re.S)
+def news_side(col):
+    """La barra lateral de un blog con categorías: la lista de categorías y las últimas cuatro."""
+    return (f'<aside class="b-news__side">\n'
+            f'      <div><h2 data-edit="news_categories">{esc(content[main].get("news_categories", ""))}</h2>\n'
+            f'      <ul class="b-news__cats" data-post-categories="{col}"><li data-post-category><a data-post-category-link href="#"><span data-post-category-title>Categoria</span> <small data-post-category-count>0</small></a></li></ul></div>\n'
+            f'      <div><h2 data-edit="news_latest">{esc(content[main].get("news_latest", ""))}</h2>\n'
+            f'      <ul class="b-news__latest" data-posts="{col}" data-posts-limit="4"><li data-post-item><a data-post-link href="#"><img data-post-img="image" src="" alt="" loading="lazy"></a>'
+            f'<div><a data-post-link href="#" data-post="title">Notícia</a><time data-post="date"></time></div></li></ul></div>\n'
+            f'    </aside>')
 def render_block(spec, page, n):
     if isinstance(spec, str): spec = {'block': spec}
     b = used.setdefault(spec['block'], load_block(spec['block']))
@@ -198,9 +231,11 @@ def render_block(spec, page, n):
     col_name, col_def = collection_of(spec)
     if col_def:
         collections_out[col_name] = (col_def, b, page)
+        h = if_blocks(h, col_name)
         h = h.replace('{collection}', col_name)
     h = h.replace('{variant}', variant).replace('{p}', prefix)
-    specials = {'nav': lambda: nav_html(), 'nav_plain': lambda: nav_html(False), 'langs': langs_html, 'social': social_html,
+    specials = {'news_side': lambda: news_side(col_name),
+                'nav': lambda: nav_html(), 'nav_plain': lambda: nav_html(False), 'langs': langs_html, 'social': social_html,
                 'cta_href': lambda: cta_href, 'privacy_href': lambda: 'politica-de-privacitat.html', 'legal_links': lambda: '{{#legal_links}}',
                 'map_embed': lambda: attr(map_embed), 'map_link': lambda: attr(map_link)}
     h = re.sub(r'\{\{#(\w+)\}\}', lambda m: specials[m.group(1)]() if m.group(1) in specials else m.group(0), h)
@@ -217,7 +252,10 @@ def render_block(spec, page, n):
         v = content[main].get(key, shared.get(key, ''))
         if idx is not None:
             v = (v[int(idx)] if isinstance(v, list) and len(v) > int(idx) else {}).get(field, '')
-        return attr(v) if m.string[max(0, m.start() - 5):m.start()].endswith('="') else esc(v)
+        if m.string[max(0, m.start() - 5):m.start()].endswith('="'): return attr(v)
+        # Dentro de un data-edit-html el texto por defecto ya es HTML (limpio, de la migración o del bloque)
+        if re.search(r'data-edit-html="[^"]*">\s*$', m.string[max(0, m.start() - 200):m.start()]): return str(v)
+        return esc(v)
     h = re.sub(r'\{\{(@?\w+(?:\[\d+\]\.\w+)?)\}\}', text, h)
     return h
 
@@ -261,8 +299,8 @@ for p in pages:
     parts = []
     for spec in p['blocks']:
         name = spec if isinstance(spec, str) else spec['block']
-        counts[name] = counts.get(name, 0) + 1
-        parts.append(render_block(spec, p, counts[name]))
+        if isinstance(spec, str) or not spec.get('prefix'): counts[name] = counts.get(name, 0) + 1   # los de prefijo propio no cuentan
+        parts.append(render_block(spec, p, counts.get(name, 1)))
     bodies[p['file']] = '\n\n'.join(parts)
 
 # Descripción para buscadores de cada página: la de la receta («desc», texto o {idioma: texto}) o, si no, el primer
@@ -361,6 +399,8 @@ def generic_item(col_name, c, listing):
 for col_name, (c, b, from_page) in collections_out.items():
     schema = {'label': pick(c.get('label', {})), 'item': pick(c.get('item', {})), 'help': pick(c.get('help', {})), 'sort': c.get('sort', '-date'),
               'fields': [{'name': n, 'type': t, 'label': pick(lab)} for n, t, lab in c['fields']], 'translated': c.get('translated', ['title'])}
+    if has_categories(col_name) and not any(f['type'] == 'category' for f in schema['fields']):      # el blog migrado tiene categorías
+        schema['fields'].insert(2, {'name': 'category', 'type': 'category', 'label': {'ca': 'Categoria', 'es': 'Categoría'}.get(main, 'Category')})
     write(f'{col_name}/_collection.json', json.dumps(schema, ensure_ascii=False, indent=2) + '\n')
     if c.get('item_page'):
         listing = next((p['href'] for p in pages if p['file'] == col_name), None) or from_page.get('href', './')
@@ -368,7 +408,8 @@ for col_name, (c, b, from_page) in collections_out.items():
             for l in langs:
                 for k, v in (b['content'].get(l) or b['content'].get(main) or {}).items():
                     if k.startswith('@'): put(l, k[1:], v)
-            body = re.sub(r'\{\{@(\w+)\}\}', lambda m: esc(content[main].get(m.group(1), '')), b['item'].replace('{collection}', col_name))
+            body = re.sub(r'\{\{@(\w+)\}\}', lambda m: esc(content[main].get(m.group(1), '')), if_blocks(b['item'], col_name).replace('{collection}', col_name))
+            body = body.replace('{{#news_side}}', news_side(col_name))
         else:
             body = generic_item(col_name, c, listing)
         write(f'{col_name}/_item.html', f'''<!DOCTYPE html>

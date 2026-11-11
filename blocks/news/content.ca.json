@@ -5,5 +5,7 @@
   "prev": "← Més noves",
   "next": "Anteriors →",
   "all": "Totes les notícies",
-  "@news_back": "← Totes les notícies"
+  "@news_back": "← Totes les notícies",
+  "@news_categories": "Categories",
+  "@news_latest": "Últimes notícies"
 }

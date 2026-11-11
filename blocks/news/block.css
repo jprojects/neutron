@@ -14,3 +14,27 @@
 .b-news-item__img { width: 100%; border-radius: var(--radius); margin-bottom: 28px; }
 .b-news-item__body { font-size: 18px; }
 .b-news-item__body img { border-radius: var(--radius); margin: 1em 0; }
+
+/* Con categorías: el listado (o la noticia) y una barra lateral con las categorías y las últimas */
+.b-news__layout { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 48px; align-items: start; }
+.b-news__layout .b-news__list { grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.b-news__cat:empty, .b-news__cat:not(:has(span)) { display: none; }
+.b-news__cat span { display: inline-block; font: 600 13px/1.3 var(--font-body); letter-spacing: .12em; text-transform: uppercase;
+  color: var(--c-primary-ink, #fff); background: var(--c-primary); padding: 6px 12px; border-radius: 999px; margin-bottom: 18px; }
+.b-news__side { position: sticky; top: calc(var(--header-h) + 24px); display: grid; gap: 34px; }
+.b-news__side h2 { font-size: 18px; margin: 0 0 12px; }
+.b-news__side ul { list-style: none; margin: 0; padding: 0; }
+.b-news__cats li { border-bottom: 1px solid var(--c-line); }
+.b-news__cats a { display: flex; justify-content: space-between; gap: 10px; padding: 11px 0; color: inherit; text-decoration: none; }
+.b-news__cats a:hover, .b-news__cats a[aria-current="page"] { color: var(--c-primary); font-weight: 600; }
+.b-news__cats small { color: var(--c-muted); }
+.b-news__latest li { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: center; margin-bottom: 14px; }
+.b-news__latest img { width: 64px; height: 64px; object-fit: cover; border-radius: calc(var(--radius) / 2); }
+.b-news__latest a { color: inherit; text-decoration: none; font-weight: 600; font-size: 15px; line-height: 1.35; }
+.b-news__latest a:hover { color: var(--c-primary); }
+.b-news__latest time { display: block; color: var(--c-muted); font-size: 13px; }
+.b-news-item .eyebrow a { color: inherit; }
+@media (max-width: 900px) {
+  .b-news__layout { grid-template-columns: 1fr; gap: 40px; }
+  .b-news__side { position: static; }
+}

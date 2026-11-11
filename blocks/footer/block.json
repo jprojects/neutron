@@ -1,8 +1,9 @@
 {
   "name": "footer",
-  "description": "Pie: nombre, frase, datos de contacto, páginas, redes (data-edit-href) y enlaces legales",
+  "description": "Pie: nombre, frase, datos de contacto, páginas, redes (data-edit-href) y enlaces legales; con «funding», una franja con el texto y los logotipos de las subvenciones (Generalitat, Unión Europea…)",
   "variants": [
-    "dark"
+    "dark",
+    "funding"
   ],
   "images": []
 }

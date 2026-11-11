@@ -71,13 +71,15 @@ def wrap_loose(h):
     while stack: out.append(f'</{stack.pop()}>')
     return ''.join(out)
 
+BLOCKS_IN_LINK = {'p', 'div', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'ul', 'ol', 'table', 'section', 'article', 'figure'}
+
 def clean_body(node, base, save_image, save_doc=None, skip=()):
     """HTML limpio (lista blanca de lib/sanitize.php) de un nodo: imágenes descargadas, PDF del visor de Google como enlace."""
     out = []
     def walk(n):
         if n.tag is None: out.append(html.escape(n.text, quote=False)); return
         if n in skip or n.tag in ('script', 'style', 'noscript', 'svg', 'form', 'button', 'nav', 'audio', 'video', 'object'): return
-        if re.search(r'\b(icons|btn-group|dropdown|breadcrumb|pagination|pager|share|print)\b', n.classes()): return
+        if re.search(r'\b(icons|btn-group|dropdown|breadcrumb|pagination|pager|share|social|print)\b|-social\b', n.classes()): return
         if n.tag == 'iframe':                       # un PDF incrustado con el visor de Google: un enlace al PDF
             src = n.get('src')
             q = urllib.parse.parse_qs(urllib.parse.urlsplit(src).query)
@@ -89,6 +91,16 @@ def clean_body(node, base, save_image, save_doc=None, skip=()):
         if tag == 'img':
             src = save_image(urllib.parse.urljoin(base, n.get('src'))) if n.get('src') else None
             if src: out.append(f'<img src="{src}" alt="{html.escape(n.get("alt"), quote=True)}">')
+            return
+        # Un enlace que envuelve bloques (una tarjeta: logotipo y título): un párrafo con el enlace y lo de dentro en línea
+        if tag == 'a' and any(c.tag in BLOCKS_IN_LINK or c.tag == 'img' for c in n.iter() if c is not n):
+            inner = [f'<img src="{src}" alt="{html.escape(c.get("alt"), quote=True)}">' for c in n.iter()
+                     if c.tag == 'img' and c.get('src') and (src := save_image(urllib.parse.urljoin(base, c.get('src'))))]
+            label = re.sub(r'\s+', ' ', n.text_content()).strip()
+            if label: inner.append(html.escape(label, quote=False))
+            href = n.get('href')
+            if inner and href and not href.startswith('javascript:'):
+                out.append(f'<p><a href="{html.escape(urllib.parse.urljoin(base, href), quote=True)}">{" ".join(inner)}</a></p>')
             return
         keep = tag in ALLOWED and tag != 'img'
         if keep:
@@ -173,18 +185,105 @@ def run(ctx):
                 row = head.parent.parent
             if row is not None and row is not item: skip.add(row)
             seen_titles.add(title)
-            news.append((title, date, body_html(item, p['final'], skip)))
+            news.append((title, date, body_html(item, p['final'], skip), None))
+
+    # Categorías de los blogs de componentes (?catid=N): el nombre, del enlace que lleva a su listado (la barra lateral), y
+    # sus entradas, las tarjetas del listado (enlaces con un título dentro; los «últimos» de la barra lateral no lo llevan)
+    # Las direcciones se comparan por sus parámetros (con o sin index.php, con o sin Itemid…)
+    def ukey(u):
+        sp = urllib.parse.urlsplit(html.unescape(u))
+        q = tuple(sorted((k, v) for k, v in urllib.parse.parse_qsl(sp.query) if k in ('option', 'view', 'id', 'catid', 'task')))
+        return q if q else re.sub(r'/(index\.php)?$', '', sp.path) or '/'
+    post_urls = {ukey(q['final']): q for q in ctx['posts']} | {ukey(q['url']): q for q in ctx['posts']}
+    cat_listings = {}
+    # Solo los listados del mismo componente que las entradas (un artículo de Joomla también lleva catid)
+    blog_options = {o for q in ctx['posts'] for o in urllib.parse.parse_qs(urllib.parse.urlsplit(q['final']).query).get('option', [])}
+    for p in pages.values():
+        q = urllib.parse.parse_qs(urllib.parse.urlsplit(p['final']).query)
+        if not blog_options or (q.get('option') or [''])[0] not in blog_options: continue
+        cid = (q.get('catid') or [''])[0]
+        if cid.isdigit() and cid != '0' and not re.search(r'view=(?:item|article|entry|post)(?:&|$)', urllib.parse.urlsplit(p['final']).query):
+            cat_listings[p['final']] = p
+        # Dos listados vacíos son la misma página para migrate.py (uno queda como alias del otro): cada uno es una categoría
+        for al in p.get('alias', []):
+            aq = urllib.parse.parse_qs(urllib.parse.urlsplit(al).query)
+            acid = (aq.get('catid') or [''])[0]
+            if (aq.get('option') or [''])[0] in blog_options and acid.isdigit() and acid != '0' and acid != cid: cat_listings[al] = {**p, 'final': al, 'url': al, 'alias': []}
+    by_cid = {}
+    for lurl, lp in cat_listings.items():
+        cid = (urllib.parse.parse_qs(urllib.parse.urlsplit(lurl).query).get('catid') or [''])[0]
+        by_cid.setdefault(cid, []).append((lurl, lp))
+    cat_names, cat_of, cat_order = {}, {}, []
+    for lurl, lp in [x for xs in by_cid.values() for x in xs]:
+        keys = {ukey(lurl), ukey(lp['url'])}
+        names = collections.Counter(t for p in pages.values() for t, h in p['links'] if t and ukey(h) in keys)
+        name = names.most_common(1)[0][0] if names else ''
+        if not name: continue
+        cat_names[lurl] = name
+        if name not in cat_order: cat_order.append(name)
+        for a_ in lp['tree'].find_all('a'):
+            href = a_.get('href')
+            if not href or not any(h for h in a_.iter() if h.tag in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6')): continue
+            k = ukey(urllib.parse.urljoin(lp['final'], html.unescape(href)))
+            if k in post_urls: cat_of.setdefault(post_urls[k]['final'], name)
+    # La imagen de cada entrada en su tarjeta (un fondo CSS, si en la ficha no hay ninguna)
+    card_img = {}
+    for lp in [p for p in pages.values()]:
+        for a_ in lp['tree'].find_all('a'):
+            href = a_.get('href')
+            if not href: continue
+            k = ukey(urllib.parse.urljoin(lp['final'], html.unescape(href)))
+            if k not in post_urls: continue
+            for n in a_.iter():
+                st = n.get('style') or ''
+                if (m := re.search(r'url\([\'"]?([^\'")]+)', st)) and post_urls[k]['final'] not in card_img:
+                    card_img[post_urls[k]['final']] = urllib.parse.urljoin(lp['final'], html.unescape(m.group(1)))
+
     for p in ctx['posts']:
         title = p['title'].split(' - ')[0].split(' | ')[0].strip()
-        if not title or title in seen_titles or re.search(r'legal|privac|cookies|aviso|avís', p['url'] + title, re.I): continue
-        seen_titles.add(title)
         container = ctx['main_container'](p['tree'])
         h1 = next(iter(container.find_all('h1')), None)
-        news.append((title, p['date'] or '', body_html(container, p['final'], {h1} if h1 else set())))
-    for title, date, body in news:
+        if h1 is not None and text_of(h1): title = text_of(h1)      # el <title> de algunos componentes es el del menú
+        if not title or title in seen_titles or re.search(r'legal|privac|cookies|aviso|avís|cancel|devoluci|desistim|condicions|condiciones|terms', p['url'] + title, re.I): continue
+        seen_titles.add(title)
+        # El artículo: el bloque del título, si tiene el texto (así no entra la barra lateral)
+        if h1 is not None and h1.parent is not None and len(text_of(h1.parent)) > len(title) + 80: container = h1.parent
+        skip = {h1} if h1 is not None else set()
+        skip |= {n for n in container.iter() if re.search(r'\b(meta|date|published|created)\b', n.classes())
+                 and re.search(r'\d{4}', text_of(n)) and len(text_of(n)) < 60}
+        news.append((title, p['date'] or '', body_html(container, p['final'], skip), p))
+    news_urls = {}
+    for title, date, body, p in news:
+        data = {'date': date}
+        # La primera imagen del cuerpo, si va al principio, es la de la entrada
+        if (m := re.match(r'\s*(?:<p>\s*)?<img\b[^>]*\bsrc="([^"]+)"[^>]*>(?:\s*</p>)?', body)):
+            data['image'] = html.unescape(m.group(1))
+            body = body[m.end():]
+        elif p is not None and p['final'] in card_img and not ctx['sin_imagenes']:
+            local = ctx['save_image'](card_img[p['final']])
+            if local: data['image'] = local
         summary = re.sub(r'\s+', ' ', html.unescape(re.sub(r'<[^>]+>', ' ', body))).strip()
         if len(summary) > 220: summary = summary[:217].rsplit(' ', 1)[0] + '…'
-        write_item('news', title, {'date': date, 'summary': summary, 'body': body or '<p></p>'})
+        if p is not None and p['final'] in cat_of: data['category'] = slugify(cat_of[p['final']])
+        col, slug = write_item('news', title, {**data, 'summary': summary, 'body': body or '<p></p>'})
+        if p is not None: news_urls[p['url']] = (col, slug)
+    # En el orden de la lista de categorías de la web antigua (la página que enlaza más de ellas)
+    if cat_order:
+        cat_keys = {ukey(u) for u in cat_listings} | {ukey(lp['url']) for lp in cat_listings.values()}
+        link_pos = lambda p: {t: i for i, (t, h) in reversed(list(enumerate(p['links']))) if ukey(h) in cat_keys}
+        best = max(pages.values(), key=lambda p: sum(1 for n in cat_order if n in link_pos(p)))
+        pos = link_pos(best)
+        cat_order.sort(key=lambda n: pos.get(n, 10**6))
+    news_category_urls = {}
+    if cat_order:
+        col = name_of('news')
+        (site / col).mkdir(parents=True, exist_ok=True)
+        cf = site / col / '_categories.json'
+        if not cf.exists():
+            cf.write_text(json.dumps([{'id': slugify(n), 'title': n, 'description': ''} for n in cat_order], ensure_ascii=False, indent=4) + '\n')
+        for lurl, name in cat_names.items():
+            news_category_urls[cat_listings[lurl]['url']] = (col, 'categoria/' + slugify(name))
+        report['news_categories'] = {n: sum(1 for c in cat_of.values() if c == n) for n in cat_order}
 
     # ------------------------------------------------ documentos
     docs, cats, counts, seen_docs = [], collections.OrderedDict(), {}, set()
@@ -293,4 +392,5 @@ def run(ctx):
                   for s_ in (n.find_all('source') or [n]) if (s_.get('src') or n.get('src'))})
     if own: report['own_videos'] = own
     if news: report['news'] = {'count': len(news)}
-    return {'report': report, 'created': created, 'names': {k: name_of(k) for k in NAMES}}
+    return {'report': report, 'created': created, 'names': {k: name_of(k) for k in NAMES},
+            'news_urls': news_urls, 'news_category_urls': news_category_urls}

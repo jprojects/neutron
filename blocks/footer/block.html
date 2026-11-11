@@ -17,6 +17,14 @@
         <nav class="b-footer__nav" data-menu>{{#nav_plain}}</nav>
       </div>
     </div>
+<!--variant:funding-->
+    <div class="b-footer__funding">
+      <div class="b-footer__funding-text" data-edit-html="funding_html">{{@funding_html}}</div>
+      <ul class="b-footer__funding-logos" data-edit-collection="funding_logos" data-edit-add="+">
+        <li data-edit-item><img data-edit-field="image" src="{{img:@funding_logo}}" alt="" loading="lazy"></li>
+      </ul>
+    </div>
+<!--/variant:funding-->
     <div class="b-footer__bottom">
       <span data-edit="copyright">{{@copyright}}</span>
       <nav>{{#legal_links}}</nav>
