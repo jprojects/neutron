@@ -1,0 +1,17 @@
+{
+  "eyebrow": "Local shops",
+  "title": "Directory",
+  "text": "Find what you need close to home.",
+  "all": "All",
+  "empty": "There are no listings in this category.",
+  "prev": "← Previous",
+  "next": "Next →",
+  "@directory_back": "← All listings",
+  "@directory_contact": "Contact",
+  "@directory_hours": "Opening hours",
+  "@directory_map": "See the map",
+  "@directory_features": "Services",
+  "@directory_photos": "Photos",
+  "@directory_web": "Website",
+  "@directory_whatsapp": "WhatsApp"
+}

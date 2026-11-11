@@ -1,0 +1,21 @@
+{
+  "eyebrow": "Història",
+  "title": "La nostra història",
+  "text": "",
+  "prev": "Anterior",
+  "next": "Següent",
+  "items": [
+    {
+      "when": "Fa molt de temps",
+      "title": "Els inicis",
+      "text": "Explica aquí com va començar tot.",
+      "image": "IMG"
+    },
+    {
+      "when": "Avui",
+      "title": "Ara",
+      "text": "I com és avui.",
+      "image": "IMG"
+    }
+  ]
+}

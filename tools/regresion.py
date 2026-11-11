@@ -51,7 +51,7 @@ def get(base, path):
     except Exception as e: return f'ERROR {e}'
 
 def norm(t):
-    t = html.unescape(t)
+    t = html.unescape(re.sub(r"(\s[\w:-]+)='([^']*)'", r'\1="\2"', t))   # DOMDocument pone '…' si el valor lleva comillas
     t = re.sub(r'127\.0\.0\.1:\d+', 'HOST', t)
     t = re.sub(r'"csrf":"[a-f0-9]+"|"base":[0-9.]+', '', t)
     t = re.sub(r'<!doctype html>\s*', '<!DOCTYPE html>', t, flags=re.I)

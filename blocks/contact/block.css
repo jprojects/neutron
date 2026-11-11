@@ -12,3 +12,6 @@
 .b-contact__consent p { margin: 0; max-width: 48ch; }
 .b-contact__map iframe[src] + .b-contact__consent { display: none; }
 @media (max-width: 900px) { .b-contact__in { grid-template-columns: 1fr; gap: 36px; } .b-contact__map { aspect-ratio: 4 / 3; margin-top: 48px; } }
+
+/* Un dato vacío (sin horario, sin correo…) no sale, salvo en el editor (para poder rellenarlo) */
+body:not(.neutron-editing) .b-contact li:has(span[data-edit]:empty) { display: none; }

@@ -1,0 +1,17 @@
+{
+  "eyebrow": "Comercio local",
+  "title": "Los establecimientos",
+  "text": "Encuentra lo que necesitas cerca de casa.",
+  "all": "Todos",
+  "empty": "No hay ningún establecimiento en esta categoría.",
+  "prev": "← Anteriores",
+  "next": "Siguientes →",
+  "@directory_back": "← Todos los establecimientos",
+  "@directory_contact": "Contacto",
+  "@directory_hours": "Horario",
+  "@directory_map": "Ver el mapa",
+  "@directory_features": "Servicios",
+  "@directory_photos": "Fotos",
+  "@directory_web": "Web",
+  "@directory_whatsapp": "WhatsApp"
+}

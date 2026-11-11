@@ -1,0 +1,8 @@
+{
+  "name": "timeline",
+  "description": "Cronología (historia, etapas, trayectoria): una línea con las etapas para ir pasando (clic, flechas, teclado o deslizando), y cada una con su época, título, foto y texto. Sin JavaScript y en el editor, todas una debajo de otra",
+  "variants": [
+    "steps"
+  ],
+  "images": []
+}

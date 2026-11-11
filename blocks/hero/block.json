@@ -1,9 +1,10 @@
 {
   "name": "hero",
-  "description": "Portada: título grande, texto y botones sobre una foto (image) o al lado de la foto (split)",
+  "description": "Portada: título grande, texto y botones sobre una foto (image), al lado de la foto (split) o sobre un fondo animado de partículas con los colores del tema (particles: sin foto, más bajo; quieto si el visitante pide menos movimiento)",
   "variants": [
     "image",
-    "split"
+    "split",
+    "particles"
   ],
   "images": [
     "image"

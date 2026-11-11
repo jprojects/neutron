@@ -1,0 +1,8 @@
+{
+  "name": "shortcuts",
+  "description": "Tres accesos directos con icono, título, texto y enlace editable (data-edit-href): «On menjar / On dormir / On comprar», «Serveis / Preus / Reserves»…",
+  "variants": [
+    "icons"
+  ],
+  "images": []
+}

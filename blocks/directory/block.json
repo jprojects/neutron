@@ -1,0 +1,202 @@
+{
+  "name": "directory",
+  "description": "Directorio (comercios, socios, establecimientos): filtros por categoría y rejilla con logotipo, dirección y características; cada uno con su ficha (contacto con iconos, horario, redes, fotos, vídeo). Las características son un campo «options» con iconos (site/<colección>/_features.json, de tools/migrate.py)",
+  "variants": [
+    "grid"
+  ],
+  "cookies": [
+    "videos"
+  ],
+  "collection": {
+    "names": {
+      "ca": "establiments",
+      "es": "establecimientos",
+      "en": "directory"
+    },
+    "label": {
+      "ca": "Establiments",
+      "es": "Establecimientos",
+      "en": "Directory"
+    },
+    "item": {
+      "ca": "Establiment",
+      "es": "Establecimiento",
+      "en": "Listing"
+    },
+    "help": {
+      "ca": "Cada establiment té la seva fitxa. Les categories són els filtres del llistat; les característiques, les icones.",
+      "es": "Cada establecimiento tiene su ficha. Las categorías son los filtros del listado; las características, los iconos.",
+      "en": "Each listing has its own page. Categories are the filters of the list; features are the icons."
+    },
+    "sort": "title",
+    "item_page": true,
+    "schema": "LocalBusiness",
+    "fields": [
+      [
+        "title",
+        "text",
+        {
+          "ca": "Nom",
+          "es": "Nombre",
+          "en": "Name"
+        }
+      ],
+      [
+        "category",
+        "category",
+        {
+          "ca": "Categoria",
+          "es": "Categoría",
+          "en": "Category"
+        }
+      ],
+      [
+        "logo",
+        "image",
+        {
+          "ca": "Logotip",
+          "es": "Logotipo",
+          "en": "Logo"
+        }
+      ],
+      [
+        "summary",
+        "textarea",
+        {
+          "ca": "Resum",
+          "es": "Resumen",
+          "en": "Summary"
+        }
+      ],
+      [
+        "address",
+        "text",
+        {
+          "ca": "Adreça",
+          "es": "Dirección",
+          "en": "Address"
+        }
+      ],
+      [
+        "map",
+        "url",
+        {
+          "ca": "Mapa (enllaç)",
+          "es": "Mapa (enlace)",
+          "en": "Map (link)"
+        }
+      ],
+      [
+        "phone",
+        "tel",
+        {
+          "ca": "Telèfon",
+          "es": "Teléfono",
+          "en": "Phone"
+        }
+      ],
+      [
+        "whatsapp",
+        "url",
+        {
+          "ca": "WhatsApp (enllaç)",
+          "es": "WhatsApp (enlace)",
+          "en": "WhatsApp (link)"
+        }
+      ],
+      [
+        "email",
+        "email",
+        {
+          "ca": "Correu",
+          "es": "Correo",
+          "en": "Email"
+        }
+      ],
+      [
+        "web",
+        "url",
+        {
+          "ca": "Web",
+          "es": "Web",
+          "en": "Website"
+        }
+      ],
+      [
+        "instagram",
+        "url",
+        "Instagram"
+      ],
+      [
+        "facebook",
+        "url",
+        "Facebook"
+      ],
+      [
+        "twitter",
+        "url",
+        "X (Twitter)"
+      ],
+      [
+        "hours",
+        "textarea",
+        {
+          "ca": "Horari",
+          "es": "Horario",
+          "en": "Opening hours"
+        }
+      ],
+      [
+        "features",
+        "options",
+        {
+          "ca": "Característiques",
+          "es": "Características",
+          "en": "Features"
+        }
+      ],
+      [
+        "tags",
+        "text",
+        {
+          "ca": "Paraules clau",
+          "es": "Palabras clave",
+          "en": "Keywords"
+        }
+      ],
+      [
+        "body",
+        "html",
+        {
+          "ca": "Descripció",
+          "es": "Descripción",
+          "en": "Description"
+        }
+      ],
+      [
+        "images",
+        "images",
+        {
+          "ca": "Fotos",
+          "es": "Fotos",
+          "en": "Photos"
+        }
+      ],
+      [
+        "video",
+        "video",
+        {
+          "ca": "Vídeo",
+          "es": "Vídeo",
+          "en": "Video"
+        }
+      ]
+    ],
+    "translated": [
+      "title",
+      "summary",
+      "hours",
+      "body"
+    ]
+  }
+}

@@ -1,0 +1,9 @@
+.b-shortcuts__list { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+.b-shortcuts__item { display: grid; justify-items: center; gap: 6px; padding: 34px 26px; text-align: center; border-radius: var(--radius);
+  background: var(--c-bg); border: 1px solid var(--c-line); color: var(--c-text); text-decoration: none; transition: transform .25s, box-shadow .25s, border-color .25s; }
+.b-shortcuts__item:hover { transform: translateY(-4px); border-color: var(--c-primary); box-shadow: 0 16px 36px rgba(0, 0, 0, .08); }
+.b-shortcuts__icon { width: 56px; height: 56px; margin-bottom: 8px; }
+.b-shortcuts__item h3 { font-size: 22px; margin: 0; color: var(--c-head); }
+.b-shortcuts__item:hover h3 { color: var(--c-primary); }
+.b-shortcuts__item p { margin: 0; color: var(--c-muted); font-size: 15px; }
+@media (max-width: 800px) { .b-shortcuts__list { grid-template-columns: 1fr; } .b-shortcuts__item { grid-template-columns: 56px 1fr; justify-items: start; text-align: left; column-gap: 18px; } .b-shortcuts__icon { grid-row: span 2; margin: 0; } }

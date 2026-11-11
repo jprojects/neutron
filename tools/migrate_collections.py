@@ -13,7 +13,17 @@ NAMES = {
     'docs': {'ca': 'documentacio', 'es': 'documentacion', 'fr': 'documents', 'en': 'documents'},
     'gallery': {'ca': 'galeria', 'es': 'galeria', 'fr': 'galerie', 'en': 'gallery'},
     'videos': {'ca': 'videos', 'es': 'videos', 'fr': 'videos', 'en': 'videos'},
+    'directory': {'ca': 'establiments', 'es': 'establecimientos', 'fr': 'etablissements', 'en': 'directory'},
 }
+# Directorio (comercios, socios, establecimientos): las fichas, sus etiquetas y las características con icono
+ADDRESS_LABEL = r'^(adreça|adreca|dirección|direccion|address|adresse|domicili|ubicació|ubicación)$'
+HOURS_LABEL = r'^(horari|horario|hours|opening hours|horaires)$'
+SOCIAL = {'facebook': r'facebook\.com', 'instagram': r'instagram\.com', 'twitter': r'(twitter|x)\.com', 'linkedin': r'linkedin\.com',
+          'youtube': r'youtube\.com', 'tiktok': r'tiktok\.com'}
+# Iconos de Font Awesome de las características → nombre del icono (blocks/_icons/features/<nombre>.svg)
+FEATURE_ICONS = {'wheelchair': 'accessible', 'credit-card': 'card', 'car': 'parking', 'truck': 'delivery', 'paw': 'pets',
+                 'users': 'loyalty', 'language': 'language', 'wifi': 'wifi', 'leaf': 'eco', 'shopping-bag': 'bag', 'gift': 'gift',
+                 'child': 'kids', 'cutlery': 'food', 'coffee': 'coffee', 'bicycle': 'bike', 'motorcycle': 'bike'}
 MONTHS = {}
 for i, names in enumerate([('jan', 'gen', 'ene', 'janv', 'january', 'gener', 'enero', 'janvier'), ('feb', 'febr', 'fev', 'févr', 'february', 'febrer', 'febrero', 'février'),
                            ('mar', 'març', 'mars', 'march', 'marzo'), ('apr', 'abr', 'avr', 'april', 'abril', 'avril'), ('may', 'maig', 'mai', 'mayo'),
@@ -80,6 +90,9 @@ def clean_body(node, base, save_image, save_doc=None, skip=()):
         if n.tag is None: out.append(html.escape(n.text, quote=False)); return
         if n in skip or n.tag in ('script', 'style', 'noscript', 'svg', 'form', 'button', 'nav', 'audio', 'video', 'object'): return
         if re.search(r'\b(icons|btn-group|dropdown|breadcrumb|pagination|pager|share|social|print)\b|-social\b', n.classes()): return
+        # «Tornar amunt» y el copyright del pie, que algunas plantillas meten dentro del contenido
+        if re.search(r'\b(cd-top|back-to-top|backtotop|totop|scroll-top|copyright)\b', n.classes()): return
+        if n.tag == 'a' and re.fullmatch(r'\s*(back to top|tornar amunt|volver arriba|haut de page)\s*', n.text_content(), re.I): return
         if n.tag == 'iframe':                       # un PDF incrustado con el visor de Google: un enlace al PDF
             src = n.get('src')
             q = urllib.parse.parse_qs(urllib.parse.urlsplit(src).query)
@@ -169,13 +182,13 @@ def run(ctx):
         return doc_cache[url]
 
     # ------------------------------------------------ noticias
-    seen_titles = set()
+    seen_titles, dup_url = set(), {}
     news = []
     for p in pages.values():
         for item in [n for n in p['tree'].iter() if n.get('itemprop') == 'blogPost' or re.search(r'\bblog-item\b', n.classes())]:
             head = next((h for h in item.find_all('h2', 'h3', 'h1') if text_of(h)), None)
             title = text_of(head)
-            if not title or title in seen_titles: continue
+            if not title or title.lower() in seen_titles: continue
             date_node = next((n for n in item.iter() if n.tag == 'time' or re.search(r'\b(create|published|date|fecha|data)\b', n.classes())), None)
             date = parse_date(date_node.get('datetime') if date_node is not None and date_node.get('datetime') else text_of(date_node))
             skip = {head} | ({date_node} if date_node is not None else set())
@@ -184,7 +197,7 @@ def run(ctx):
             if row is None and head.parent is not None and head.parent.parent is not None and date_node is not None and date_node in list(head.parent.parent.iter()):
                 row = head.parent.parent
             if row is not None and row is not item: skip.add(row)
-            seen_titles.add(title)
+            seen_titles.add(title.lower())
             news.append((title, date, body_html(item, p['final'], skip), None))
 
     # Categorías de los blogs de componentes (?catid=N): el nombre, del enlace que lleva a su listado (la barra lateral), y
@@ -244,8 +257,9 @@ def run(ctx):
         container = ctx['main_container'](p['tree'])
         h1 = next(iter(container.find_all('h1')), None)
         if h1 is not None and text_of(h1): title = text_of(h1)      # el <title> de algunos componentes es el del menú
-        if not title or title in seen_titles or re.search(r'legal|privac|cookies|aviso|avís|cancel|devoluci|desistim|condicions|condiciones|terms', p['url'] + title, re.I): continue
-        seen_titles.add(title)
+        if title and title.lower() in seen_titles: dup_url.setdefault(title.lower(), p['url'])   # ya está (del listado): su dirección
+        if not title or title.lower() in seen_titles or re.search(r'legal|privac|cookies|aviso|avís|cancel|devoluci|desistim|condicions|condiciones|terms', p['url'] + title, re.I): continue
+        seen_titles.add(title.lower())
         # El artículo: el bloque del título, si tiene el texto (así no entra la barra lateral)
         if h1 is not None and h1.parent is not None and len(text_of(h1.parent)) > len(title) + 80: container = h1.parent
         skip = {h1} if h1 is not None else set()
@@ -267,6 +281,7 @@ def run(ctx):
         if p is not None and p['final'] in cat_of: data['category'] = slugify(cat_of[p['final']])
         col, slug = write_item('news', title, {**data, 'summary': summary, 'body': body or '<p></p>'})
         if p is not None: news_urls[p['url']] = (col, slug)
+        elif title.lower() in dup_url: news_urls[dup_url[title.lower()]] = (col, slug)   # del listado, con su página aparte
     # En el orden de la lista de categorías de la web antigua (la página que enlaza más de ellas)
     if cat_order:
         cat_keys = {ukey(u) for u in cat_listings} | {ukey(lp['url']) for lp in cat_listings.values()}
@@ -284,6 +299,107 @@ def run(ctx):
         for lurl, name in cat_names.items():
             news_category_urls[cat_listings[lurl]['url']] = (col, 'categoria/' + slugify(name))
         report['news_categories'] = {n: sum(1 for c in cat_of.values() if c == n) for n in cat_order}
+
+    # ------------------------------------------------ directorio (fichas de establecimientos)
+    # Una ficha: una página «detail» de un componente (o con dirección y teléfono) que no es una entrada del blog
+    def directory_card(p):
+        q = urllib.parse.urlsplit(p['final']).query
+        if not re.search(r'(?:^|&)view=detail(?:&|$)', q): return None
+        root = next((n for n in p['tree'].iter() if re.search(r'\b(establiments?|establecimientos?|directory|listing|detail|fitxa|ficha)\b', n.classes())), None)
+        return root or ctx['main_container'](p['tree'])
+    features, dir_items, dir_cats, dir_cat_ids = collections.OrderedDict(), [], collections.OrderedDict(), {}
+    for p in sorted(pages.values(), key=lambda p: p['url']):
+        root = directory_card(p)
+        if root is None: continue
+        head = next((n for n in root.iter() if n.tag in ('h1', 'h2', 'h3', 'h4') or 'h4' in n.classes() or (n.tag == 'strong' and len(text_of(n)) > 2)), None)
+        title = text_of(head)
+        if not title: continue
+        data = {}
+        # Categoría: el enlace a un listado con catid
+        for a_ in root.find_all('a'):
+            qs = urllib.parse.parse_qs(urllib.parse.urlsplit(html.unescape(a_.get('href'))).query)
+            if (qs.get('catid') or [''])[0].isdigit() and text_of(a_):
+                data['category'] = slugify(text_of(a_)); dir_cats.setdefault(data['category'], text_of(a_))
+                dir_cat_ids[qs['catid'][0]] = data['category']; break
+        # Características: iconos con un title (o un tooltip) que dicen qué ofrecen
+        feats = []
+        for n in root.iter():
+            t = n.get('title') or n.get('data-original-title') or n.get('aria-label')
+            if not t or not re.search(r'\b(hastip|tip|tooltip|feature|servei|servicio)\b', (n.classes() + ' ' + n.get('data-toggle')).lower()): continue
+            fid = slugify(t)[:40]
+            icon = next((FEATURE_ICONS[c[3:]] for i in n.iter() if i.tag == 'i' for c in i.classes().split() if c.startswith('fa-') and c[3:] in FEATURE_ICONS), '')
+            features.setdefault(fid, {'id': fid, 'label': ctx['clean_text'](t), 'icon': icon})
+            if fid not in feats: feats.append(fid)
+        if feats: data['features'] = feats
+        # Etiquetas «Adreça: …» y «Horari: …»
+        for n in root.iter():
+            if n.tag != 'strong': continue
+            lab = text_of(n).rstrip(':').strip().lower()
+            box = n.parent
+            if box is None: continue
+            rest = ctx['clean_text'](box.text_content()).replace(text_of(n), '', 1).strip(' :')
+            if re.match(ADDRESS_LABEL, lab) and rest and 'address' not in data: data['address'] = rest[:200]
+            if re.match(HOURS_LABEL, lab) and 'hours' not in data:
+                paras = [text_of(x) for x in box.find_all('p') if text_of(x)]
+                data['hours'] = '\n'.join(paras) if paras else rest
+        # Enlaces: teléfono, WhatsApp, correo, web y redes
+        for a_ in root.find_all('a'):
+            href = html.unescape(a_.get('href')).strip()
+            if re.match(r'^/?www\.', href): href = 'https://' + href.lstrip('/')     # «/www.botiga.com»: la web antigua el enlace mal
+            icons = ' '.join(i.classes() for i in a_.iter())
+            if href.startswith('tel:'):
+                num = re.sub(r'[^0-9+ ]', '', href[4:]).strip()
+                if 'whatsapp' in icons and 'whatsapp' not in data: data['whatsapp'] = 'https://wa.me/' + ('' if num.startswith('+') or num.startswith('34') else '34') + re.sub(r'\D', '', num)
+                elif 'phone' not in data: data['phone'] = num
+            elif re.search(r'(wa\.me|api\.whatsapp\.com|whatsapp\.com/send)', href) and 'whatsapp' not in data:
+                num = re.sub(r'\D', '', (urllib.parse.parse_qs(urllib.parse.urlsplit(href).query).get('phone') or [href.rsplit('/', 1)[-1]])[0])
+                data['whatsapp'] = 'https://wa.me/' + ('' if num.startswith('34') or len(num) > 9 else '34') + num if num else href
+            elif href.startswith('mailto:') and 'email' not in data: data['email'] = href[7:].split('?')[0]
+            elif re.match(r'https?://', href):
+                net = next((k for k, rx in SOCIAL.items() if re.search(rx, href)), None)
+                if net and 'share' not in href and 'sharer' not in href: data.setdefault(net, href)
+                elif re.search(r'google\.[a-z.]+/maps|maps\.google|goo\.gl/maps', href): data.setdefault('map', href.replace(' ', '%20'))
+                elif not net and 'globe' in icons or (not net and 'web' not in data and text_of(a_).lower().startswith('www')): data.setdefault('web', href)
+        # Imágenes: la primera es el logotipo; las demás (un carrusel), las fotos
+        imgs = [urllib.parse.urljoin(p['final'], i.get('src')) for i in root.find_all('img') if i.get('src')]
+        if imgs and not ctx['sin_imagenes']:
+            logo = ctx['save_image'](imgs[0])
+            if logo: data['logo'] = logo
+            photos = [x for x in (ctx['save_image'](u) for u in imgs[1:]) if x]
+            if photos: data['images'] = photos
+        # Vídeo (YouTube o Vimeo)
+        for f_ in root.find_all('iframe'):
+            src = f_.get('src')
+            if re.search(r'(youtube|youtu\.be|vimeo)', src): data['video'] = re.sub(r'\?.*$', '', src) if 'vimeo' in src else src; break
+        if 'video' in data and (m := re.search(r'player\.vimeo\.com/video/(\d+)', data['video'])): data['video'] = f'https://vimeo.com/{m[1]}'
+        # Etiquetas (palabras clave) y descripción: el texto que queda después de la línea
+        tags = [text_of(n) for n in root.iter() if re.search(r'\b(label|tag|badge|chip)\b', n.classes()) and text_of(n) and len(text_of(n)) < 40]
+        if tags: data['tags'] = ', '.join(dict.fromkeys(t.strip() for t in tags))
+        hrs = [n for n in root.iter() if n.tag == 'hr']
+        desc = ''
+        if hrs:
+            after = False
+            for n in root.iter():
+                if n is hrs[min(1, len(hrs) - 1)]: after = True; continue
+                if after and n.tag == 'p' and text_of(n) and not re.search(r'mapa|promoci|clic', text_of(n), re.I):
+                    desc += f'<p>{html.escape(text_of(n), quote=False)}</p>'
+                if after and n.tag in ('h4', 'h3') and re.search(r'promoci', text_of(n), re.I): break
+        if desc: data['body'] = desc
+        data['summary'] = re.sub(r'<[^>]+>', ' ', desc).strip()[:200] if desc else ''
+        dir_items.append((title, data, p))
+    dir_urls = {}
+    if dir_items:
+        for title, data, p in dir_items:
+            nice = title if not title.isupper() else ' '.join(w.capitalize() if len(w) > 2 else w.lower() for w in title.lower().split())
+            col, slug = write_item('directory', nice, data)
+            dir_urls[p['url']] = (col, slug)
+        col = name_of('directory')
+        if dir_cats and not (site / col / '_categories.json').exists():
+            (site / col / '_categories.json').write_text(json.dumps([{'id': k, 'title': v, 'description': ''} for k, v in sorted(dir_cats.items(), key=lambda kv: kv[1])],
+                                                                    ensure_ascii=False, indent=4) + '\n')
+        if features:
+            (site / col / '_features.json').write_text(json.dumps(list(features.values()), ensure_ascii=False, indent=4) + '\n')
+        report['directory'] = {'count': len(dir_items), 'categories': len(dir_cats), 'features': [f['label'] for f in features.values()]}
 
     # ------------------------------------------------ documentos
     docs, cats, counts, seen_docs = [], collections.OrderedDict(), {}, set()
@@ -361,7 +477,9 @@ def run(ctx):
 
     # ------------------------------------------------ vídeos
     vids = collections.OrderedDict()
+    dir_pages = {id(p) for _, _, p in dir_items}
     for p in pages.values():
+        if id(p) in dir_pages: continue                  # el vídeo de una ficha del directorio es suyo, no de la galería
         for n in p['tree'].iter():
             url = n.get('src') or n.get('data-src') if n.tag == 'iframe' else (n.get('href') if n.tag == 'a' else '')
             m = re.search(r'(?:youtube(?:-nocookie)?\.com/(?:embed/|watch\?(?:.*&)?v=)|youtu\.be/)([\w-]{11})', url or '')
@@ -393,4 +511,5 @@ def run(ctx):
     if own: report['own_videos'] = own
     if news: report['news'] = {'count': len(news)}
     return {'report': report, 'created': created, 'names': {k: name_of(k) for k in NAMES},
-            'news_urls': news_urls, 'news_category_urls': news_category_urls}
+            'news_urls': news_urls, 'news_category_urls': news_category_urls, 'directory_urls': dir_urls,
+            'directory_category_ids': dir_cat_ids}

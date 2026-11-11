@@ -79,3 +79,19 @@ crea `tools/migrate.py` (o el cliente desde el panel).
 
 `richtext`: texto largo con formato (`data-edit-html`), para las páginas de texto de una web migrada (historia,
 estatutos…); `migrate.py` deja el cuerpo limpio de cada página en `_migracio/contenido.json` (`body_html`).
+
+## Bloques añadidos con tpc.cat
+
+- `directory`: directorio de establecimientos (colección con ficha): filtros por categoría, rejilla con logotipo,
+  dirección y características, y la ficha con el contacto con iconos, el horario, las redes, las fotos y el vídeo. Las
+  características son un campo `options`; sus opciones salen de `site/<colección>/_features.json` (lo escribe
+  `tools/migrate.py` a partir de los iconos de la web antigua) y sus iconos, de `_icons/ui/`.
+- `timeline`: cronología para ir pasando etapas (época, título, foto y texto), editable como una lista.
+- `shortcuts`: tres accesos directos con icono (`"icons": ["food", "bed", "bag"]` en la receta) y enlace editable.
+- `hero`, variante `particles`: fondo animado de partículas con el color principal, sin foto (quieto con «reducir
+  movimiento»).
+- `_icons/ui/`: iconos de línea propios (características y contacto). `compose.py` copia a `site/assets/icons/` los que
+  usan las plantillas, con el color del tema.
+
+En la receta, un bloque puede llevar `"id"` (el ancla: `"./#qui-som"` en `nav_extra`), y `"cta_href"` cambia a dónde
+llevan los botones principales.

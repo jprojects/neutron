@@ -258,7 +258,8 @@ try:
             if src and 'data-consent' not in tag and '127.0.0.1' not in src.group(2) and 'recaptcha' not in tag:
                 unconsented.add(src.group(2))
         for tag in re.findall(r'<a\b[^>]*href="https?://[^"]*(?:' + SOCIAL + r')[^"]*"[^>]*>', body):
-            if 'data-edit-href' not in tag and not re.search(r'share|sharer|intent', tag): socials.add(re.search(r'href="([^"]+)"', tag).group(1))
+            # data-post-href: el enlace de un elemento de una colección (se edita en su ficha del panel)
+            if 'data-edit-href' not in tag and 'data-post-href' not in tag and not re.search(r'share|sharer|intent', tag): socials.add(re.search(r'href="([^"]+)"', tag).group(1))
     if unconsented: report('✗', f'servicios de terceros que se cargan sin consentimiento: {", ".join(sorted(unconsented))}')
     else: report('✓', 'ningún tercero se carga sin consentimiento')
     if socials: report('!', f'redes sociales sin data-edit-href (el cliente no las podrá cambiar): {", ".join(sorted(socials)[:4])}')
@@ -305,7 +306,7 @@ try:
 
     head('Motores de render')
     def normalise(s):
-        s = html.unescape(s)
+        s = html.unescape(re.sub(r"(\s[\w:-]+)='([^']*)'", r'\1="\2"', s))
         s = re.sub(r'"csrf":"\w+"', '', s); s = re.sub(r'127\.0\.0\.1:\d+', 'HOST', s)
         s = re.sub(r'( [\w-]+)=""', r'\1', s); s = re.sub(r'\s*/?>', '>', s); s = re.sub(r'<!doctype html>', '<!DOCTYPE html>', s, flags=re.I)
         return re.sub(r'\s+', ' ', s)

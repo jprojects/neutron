@@ -1,0 +1,24 @@
+<section class="section b-timeline" data-timeline>
+  <div class="container">
+    <header class="section-head">
+      <span class="eyebrow" data-edit="{p}_eyebrow">{{eyebrow}}</span>
+      <h2 data-edit="{p}_title">{{title}}</h2>
+      <p data-edit="{p}_text">{{text}}</p>
+    </header>
+    <div class="b-timeline__nav" hidden>
+      <button class="b-timeline__arrow" type="button" data-timeline-prev aria-label="{{prev}}"><span aria-hidden="true">←</span></button>
+      <div class="b-timeline__track" role="tablist"></div>
+      <button class="b-timeline__arrow" type="button" data-timeline-next aria-label="{{next}}"><span aria-hidden="true">→</span></button>
+    </div>
+    <ol class="b-timeline__list" data-edit-collection="{p}_items" data-edit-add="+">
+      <li class="b-timeline__item" data-edit-item>
+        <figure class="b-timeline__img"><img data-edit-field="image" src="{{items[0].image}}" alt="" loading="lazy"></figure>
+        <div class="b-timeline__text">
+          <span class="b-timeline__when" data-edit-field="when">{{items[0].when}}</span>
+          <h3 data-edit-field="title">{{items[0].title}}</h3>
+          <p data-edit-field="text">{{items[0].text}}</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</section>

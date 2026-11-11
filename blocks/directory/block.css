@@ -1,0 +1,59 @@
+.b-directory__cats { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 28px; }
+.b-directory__chips { display: contents; }
+.b-directory__chip { display: inline-flex; align-items: center; gap: 6px; padding: 7px 14px; border: 1px solid var(--c-line); border-radius: 999px;
+  color: var(--c-text); text-decoration: none; font-size: 14px; background: var(--c-bg); transition: background .2s, color .2s, border-color .2s; }
+.b-directory__chip small { color: var(--c-muted); font-size: 12px; }
+.b-directory__chip:hover { border-color: var(--c-primary); color: var(--c-primary); }
+.b-directory__chip[aria-current="page"] { background: var(--c-primary); border-color: var(--c-primary); color: var(--c-primary-ink, #fff); }
+.b-directory__chip[aria-current="page"] small { color: inherit; opacity: .8; }
+.b-directory__current:not(:has(span)) { display: none; }
+.b-directory__current { font-size: 24px; margin: 0 0 18px; }
+.b-directory__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; }
+.b-directory__item { display: grid; grid-template-rows: auto 1fr; background: var(--c-bg); border: 1px solid var(--c-line); border-radius: var(--radius);
+  overflow: hidden; transition: box-shadow .25s, transform .25s; }
+.b-directory__item:hover { box-shadow: 0 14px 34px rgba(0, 0, 0, .09); transform: translateY(-3px); }
+.b-directory__logo { position: relative; display: block; aspect-ratio: 16 / 10; overflow: hidden; background: var(--c-soft); }
+.b-directory__logo img { position: absolute; inset: 18px; width: calc(100% - 36px); height: calc(100% - 36px); object-fit: contain; transition: transform .4s ease; }
+.b-directory__item:hover .b-directory__logo img { transform: scale(1.04); }
+.b-directory__info { padding: 16px 18px 18px; }
+.b-directory__cat { margin: 0 0 4px; font: 600 12px/1.3 var(--font-body); letter-spacing: .12em; text-transform: uppercase; color: var(--c-primary); }
+.b-directory__info h3 { font-size: 19px; margin: 0 0 8px; }
+.b-directory__info h3 a { color: inherit; text-decoration: none; }
+.b-directory__info h3 a:hover { color: var(--c-primary); }
+.b-directory__address { display: flex; gap: 6px; align-items: flex-start; margin: 0 0 10px; color: var(--c-muted); font-size: 14px; }
+.b-directory__address img { margin-top: 2px; flex: none; }
+.b-directory__features, .b-directory-item__features { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.b-directory__features li { display: grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; background: var(--c-soft); }
+.b-directory__empty { color: var(--c-muted); }
+.b-directory__pager { display: flex; justify-content: space-between; gap: 12px; margin-top: 36px; }
+
+.b-directory-item { padding-top: calc(var(--header-h) + 40px); }
+.b-directory-item__back { margin: 0 0 24px; }
+.b-directory-item__head { display: flex; gap: 28px; align-items: center; padding-bottom: 28px; margin-bottom: 32px; border-bottom: 1px solid var(--c-line); }
+.b-directory-item__logo { width: 160px; height: 120px; max-width: 100%; object-fit: contain; padding: 14px; background: var(--c-soft); border-radius: var(--radius); flex: none; }
+.b-directory-item__head h1 { font-size: clamp(30px, 4.4vw, 46px); margin: 6px 0 14px; }
+.b-directory-item__head .eyebrow { text-decoration: none; }
+.b-directory-item__features li { display: inline-flex; align-items: center; gap: 8px; padding: 6px 12px 6px 8px; border-radius: 999px; background: var(--c-soft); font-size: 14px; }
+.b-directory-item__grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 44px; align-items: start; }
+.b-directory-item__body { font-size: 18px; margin-bottom: 30px; }
+.b-directory-item__main h2 { font-size: 22px; margin: 34px 0 14px; }
+.b-directory-item__main .b-videos__frame { margin-top: 30px; }
+.b-directory-item__card { position: sticky; top: calc(var(--header-h) + 24px); padding: 26px; border-radius: var(--radius); background: var(--c-soft); }
+.b-directory-item__card h2 { display: flex; align-items: center; gap: 8px; font-size: 18px; margin: 0 0 14px; }
+.b-directory-item__contact { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 12px; }
+.b-directory-item__contact li { display: grid; grid-template-columns: 20px 1fr; gap: 12px; align-items: start; overflow-wrap: anywhere; }
+.b-directory-item__contact img { margin-top: 2px; }
+.b-directory-item__contact a { color: var(--c-text); }
+.b-directory-item__contact a:hover { color: var(--c-primary); }
+.b-directory-item__social { display: flex; gap: 10px; margin: 0 0 22px; }
+.b-directory-item__social a { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; background: var(--c-bg); transition: transform .2s; }
+.b-directory-item__social a:hover { transform: translateY(-2px); }
+.b-directory-item__hours { padding-top: 18px; border-top: 1px solid var(--c-line); }
+.b-directory-item__hours p { white-space: pre-line; margin: 0; color: var(--c-muted); }
+@media (max-width: 900px) {
+  .b-directory-item__grid { grid-template-columns: 1fr; }
+  .b-directory-item__card { position: static; }
+  .b-directory-item__head { flex-direction: column; align-items: flex-start; gap: 18px; }
+}
+/* En la página de una categoría, «Tots» (que enlaza al listado, como el menú) no se marca: la marcada es la categoría */
+.b-directory__cats:has(.b-directory__chips [aria-current]) > .b-directory__chip[aria-current] { background: var(--c-bg); border-color: var(--c-line); color: var(--c-text); }

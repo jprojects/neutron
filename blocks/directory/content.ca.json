@@ -1,0 +1,17 @@
+{
+  "eyebrow": "Comerç local",
+  "title": "Els establiments",
+  "text": "Troba el que necessites a prop de casa.",
+  "all": "Tots",
+  "empty": "No hi ha cap establiment en aquesta categoria.",
+  "prev": "← Anteriors",
+  "next": "Següents →",
+  "@directory_back": "← Tots els establiments",
+  "@directory_contact": "Contacte",
+  "@directory_hours": "Horari",
+  "@directory_map": "Veure el mapa",
+  "@directory_features": "Serveis",
+  "@directory_photos": "Fotos",
+  "@directory_web": "Web",
+  "@directory_whatsapp": "WhatsApp"
+}

@@ -24,7 +24,7 @@ VOID = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'met
 SKIP = {'script', 'style', 'noscript', 'svg', 'template', 'iframe', 'canvas', 'select', 'button', 'form'}
 BLOCK = {'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'figcaption', 'td', 'th', 'dt', 'dd', 'address'}
 FILES = re.compile(r'\.(pdf|jpe?g|png|gif|webp|svg|zip|rar|docx?|xlsx?|pptx?|mp4|mp3|webm|ico|css|js|xml|txt|exe)$', re.I)
-JUNK_Q = re.compile(r'(^|&)(format=feed|type=rss|print=1|tmpl=component|share=|replytocom=|utm_|fbclid=|gclid=|limitstart=0)', re.I)
+JUNK_Q = re.compile(r'(^|&)(format=feed|type=rss|print=1|tmpl=component|share=|replytocom=|utm_|fbclid=|gclid=|limitstart=0|filter_search=|searchword=)', re.I)
 # Páginas de cuenta, carrito y acciones (no son contenido): no se rastrean
 NOT_CONTENT = re.compile(r'(^|/)(component/users|wp-login\.php|wp-admin|my-account|mi-cuenta|cart|carrito|checkout)(/|$|\?)'
                          r'|[?&](view=(login|logout|register|registration|reset|remind|checkout|cart|history|favorites)|task=)', re.I)
@@ -45,7 +45,7 @@ CMS = [(r'cdn-website\.com|multiscreensite', 'Duda'), (r'wp-content|wp-includes'
 # Textos de relleno de los constructores de webs
 JUNK_TEXT = {'Button', 'Botón', 'Botó', 'Share by:', 'Compartir con:', 'Nuevo párrafo', 'New paragraph', 'Click here', 'Haz clic aquí',
              'Read more', 'Leer más', 'Llegir més', 'Learn more', 'Más información', 'Skip to main content', 'Saltar al contenido'}
-BLOGWORDS = r'(blog|noticies|noticias|news|actualitat|actualidad|nouvelles|articles|articulos|entrades|posts?)'
+BLOGWORDS = r'(blog|bloc|noticies|noticias|news|actualitat|actualidad|nouvelles|articles|articulos|entrades|posts?)'
 
 ap = argparse.ArgumentParser(description='Migra el contenido de una web antigua a una instalación Neutron')
 ap.add_argument('url', help='portada de la web antigua')
@@ -587,7 +587,7 @@ for p in pages.values():
             name = slugify(label) if label else (slugify(re.sub(r'\s*[|·–-].*$', '', p['title'])) if p['title'] else name)
         pre = (p['lang'] + '/') if multi else ''
         if p in posts:
-            col = next((m.group(1) for m in [re.search(rf'/{BLOGWORDS}/', u.path, re.I)] if m), 'blog').lower()
+            col = {'ca': 'noticies', 'es': 'noticias', 'fr': 'actualites'}.get(p['lang'] or main_lang, 'news')   # como migrate_collections.NAMES
             dest = f'{pre}{col}/{re.sub(r"^\\d+-", "", name)}'
         elif not name or name in ('index', 'home', 'inici', 'inicio'):
             dest = pre or './'
@@ -614,6 +614,25 @@ for url, (col, slug) in cols.pop('news_urls', {}).items():
     q = pages.get(url)
     for old in [url] + (q.get('alias', []) if q else []):
         if rel(old): redir[rel(old)] = f"{pre(q) if q else ''}{col}/{slug}"
+# Las fichas del directorio, a su página
+for url, (col, slug) in cols.pop('directory_urls', {}).items():
+    q = pages.get(url)
+    for old in [url] + (q.get('alias', []) if q else []):
+        if rel(old): redir[rel(old)] = f"{pre(q) if q else ''}{col}/{slug}"
+# Los listados del directorio (la misma ruta que las fichas): con categoría, a la suya; sin, al directorio. Las páginas
+# de etiquetas de Joomla (component/tags), a las noticias.
+dir_ids = cols.pop('directory_category_ids', {})
+if cols['created'].get('directory'):
+    dcol = cols['names']['directory']
+    detail_paths = {urllib.parse.urlsplit('/' + k).path.rsplit('/', 1)[0] for k, v in redir.items() if v.startswith(dcol + '/')}
+    for k in list(redir):
+        sp = urllib.parse.urlsplit('/' + k)
+        if sp.path in detail_paths and 'view=detail' not in sp.query:
+            cid = (urllib.parse.parse_qs(sp.query).get('catid') or [''])[0]
+            redir[k] = f'{dcol}/categoria/{dir_ids[cid]}' if cid in dir_ids else f'{dcol}/'
+if cols['created'].get('news'):
+    for k in list(redir):
+        if re.search(r'component/tags/', k): redir[k] = cols['names']['news'] + '/'
 # El listado del blog (sin categoría), a la página de la colección
 if cols['created'].get('news'):
     for lp in listings:
@@ -701,6 +720,9 @@ if not posts: w('- No se han detectado entradas.')
 w('\n## Colecciones (→ `site/<colección>/`, con los bloques `news`, `documents`, `albums` y `videos` de compose.py)\n')
 cr, cn = cols['report'], cols['names']
 if 'news' in cr: w(f"- **Noticias**: {cr['news']['count']} en `site/{cn['news']}/` (cuerpo, fecha y resumen; revisar el formato)")
+if 'directory' in cr:
+    w(f"- **Directorio**: {cr['directory']['count']} fichas en `site/{cn['directory']}/` ({cr['directory']['categories']} categorías); "
+      f"características (`_features.json`, campo con iconos): {', '.join(cr['directory']['features']) or '—'}. Bloque `directory` de compose.py.")
 if cr.get('news_categories'):
     w(f"- **Categorías del blog** (`site/{cn['news']}/_categories.json`, páginas `{cn['news']}/categoria/<id>`): "
       + ', '.join(f'{n} ({c})' for n, c in cr['news_categories'].items()) + '. Las vacías no salen en la lista hasta que tengan entradas.')

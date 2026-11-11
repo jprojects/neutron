@@ -1,0 +1,21 @@
+{
+  "eyebrow": "History",
+  "title": "Our history",
+  "text": "",
+  "prev": "Previous",
+  "next": "Next",
+  "items": [
+    {
+      "when": "Long ago",
+      "title": "The beginning",
+      "text": "Tell how it all began.",
+      "image": "IMG"
+    },
+    {
+      "when": "Today",
+      "title": "Now",
+      "text": "And how it is today.",
+      "image": "IMG"
+    }
+  ]
+}

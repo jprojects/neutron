@@ -1,0 +1,21 @@
+{
+  "eyebrow": "Historia",
+  "title": "Nuestra historia",
+  "text": "",
+  "prev": "Anterior",
+  "next": "Siguiente",
+  "items": [
+    {
+      "when": "Hace mucho",
+      "title": "Los inicios",
+      "text": "Explica aquí cómo empezó todo.",
+      "image": "IMG"
+    },
+    {
+      "when": "Hoy",
+      "title": "Ahora",
+      "text": "Y cómo es hoy.",
+      "image": "IMG"
+    }
+  ]
+}

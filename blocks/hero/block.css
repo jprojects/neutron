@@ -14,6 +14,19 @@
 .b-hero--split .b-hero__in { display: grid; grid-template-columns: 1.05fr 1fr; gap: 64px; align-items: center; }
 .b-hero__figure { margin: 0; }
 .b-hero__figure img { width: 100%; aspect-ratio: 4 / 5; object-fit: cover; border-radius: var(--radius); box-shadow: var(--shadow); }
+/* Partículas: el color principal de fondo, puntos blancos y del color unidos por líneas que siguen el puntero */
+.b-hero--particles { min-height: min(68vh, 640px); display: flex; align-items: center; color: #fff;
+  background: radial-gradient(120% 140% at 85% 10%, color-mix(in srgb, var(--c-primary) 70%, #fff) 0%, var(--c-primary) 45%, color-mix(in srgb, var(--c-primary) 70%, #000) 100%); }
+.b-hero__particles { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.b-hero--particles .b-hero__in { padding: calc(var(--header-h) + 56px) 0 72px; pointer-events: none; }
+.b-hero--particles .b-hero__in a { pointer-events: auto; }
+.b-hero--particles h1 { color: #fff; text-shadow: 0 2px 24px color-mix(in srgb, var(--c-primary) 60%, #000); }
+.b-hero--particles .eyebrow { color: rgba(255,255,255,.85); }
+.b-hero--particles p { color: rgba(255,255,255,.9); }
+.b-hero--particles .btn { background: #fff; color: var(--c-primary); border-color: #fff; }
+.b-hero--particles .btn:hover { background: transparent; color: #fff; }
+.b-hero--particles .btn--ghost { background: transparent; border-color: rgba(255,255,255,.7); color: #fff; }
+.b-hero--particles .btn--ghost:hover { background: #fff; color: var(--c-primary); }
 @media (max-width: 900px) {
   .b-hero--split .b-hero__in { grid-template-columns: 1fr; gap: 40px; }
   .b-hero__figure img { aspect-ratio: 4 / 3; }

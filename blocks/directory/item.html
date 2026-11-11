@@ -1,0 +1,44 @@
+<article class="section b-directory-item">
+  <div class="container">
+    <p class="b-directory-item__back"><a href="{collection}/" data-edit="directory_back">{{@directory_back}}</a></p>
+    <header class="b-directory-item__head">
+      <img class="b-directory-item__logo" data-post-img="logo" src="" alt="">
+      <div>
+        <a class="eyebrow" data-post-href="category" data-post="category" href="#"></a>
+        <h1 data-post="title">Establiment</h1>
+        <ul class="b-directory-item__features" data-post-options="features"><li><img data-post-option-icon src="" alt="" width="22" height="22"><span data-post-option-label></span></li></ul>
+      </div>
+    </header>
+    <div class="b-directory-item__grid">
+      <div class="b-directory-item__main">
+        <div class="b-directory-item__body" data-post-html="body"></div>
+        <div data-post-if="images">
+          <h2 data-edit="directory_photos">{{@directory_photos}}</h2>
+          <div class="b-albums__grid" data-post-images="images"><a data-post-image-link href="#"><img data-post-image src="" alt="" loading="lazy"></a></div>
+        </div>
+        <div class="b-videos__frame" data-post-if="video"><img class="b-videos__thumb" data-post-src="video.thumb" src="" alt="">
+          <iframe data-consent="videos" data-consent-src="" data-post-src="video" title="Vídeo" allowfullscreen></iframe>
+          <div class="b-videos__consent"><p data-edit="videos_consent">{{@videos_consent}}</p><button class="btn btn--light" type="button" data-cookie-accept="videos" data-edit="videos_accept">{{@videos_accept}}</button></div></div>
+      </div>
+      <aside class="b-directory-item__card">
+        <h2 data-edit="directory_contact">{{@directory_contact}}</h2>
+        <ul class="b-directory-item__contact">
+          <li data-post-if="address"><img src="site/assets/icons/pin.svg" alt="" width="20" height="20"><span><span data-post="address"></span><br><a data-post-href="map" href="#" target="_blank" rel="noopener" data-edit="directory_map">{{@directory_map}}</a></span></li>
+          <li data-post-if="phone"><img src="site/assets/icons/phone.svg" alt="" width="20" height="20"><a data-post-href="phone" data-post="phone" href="#"></a></li>
+          <li data-post-if="whatsapp"><img src="site/assets/icons/chat.svg" alt="" width="20" height="20"><a data-post-href="whatsapp" href="#" target="_blank" rel="noopener" data-edit="directory_whatsapp">{{@directory_whatsapp}}</a></li>
+          <li data-post-if="email"><img src="site/assets/icons/mail.svg" alt="" width="20" height="20"><a data-post-href="email" data-post="email" href="#"></a></li>
+          <li data-post-if="web"><img src="site/assets/icons/globe.svg" alt="" width="20" height="20"><a data-post-href="web" href="#" target="_blank" rel="noopener" data-edit="directory_web">{{@directory_web}}</a></li>
+        </ul>
+        <p class="b-directory-item__social" data-post-if="instagram,facebook,twitter">
+          <a data-post-href="instagram" href="#" target="_blank" rel="noopener" aria-label="Instagram"><img src="site/assets/icons/instagram.svg" alt="" width="20" height="20"></a>
+          <a data-post-href="facebook" href="#" target="_blank" rel="noopener" aria-label="Facebook"><img src="site/assets/icons/facebook-f.svg" alt="" width="20" height="20"></a>
+          <a data-post-href="twitter" href="#" target="_blank" rel="noopener" aria-label="X"><img src="site/assets/icons/x-twitter.svg" alt="" width="20" height="20"></a>
+        </p>
+        <div class="b-directory-item__hours" data-post-if="hours">
+          <h2><img src="site/assets/icons/clock.svg" alt="" width="20" height="20"> <span data-edit="directory_hours">{{@directory_hours}}</span></h2>
+          <p data-post="hours"></p>
+        </div>
+      </aside>
+    </div>
+  </div>
+</article>

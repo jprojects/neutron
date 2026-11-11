@@ -1,0 +1,28 @@
+<section class="section b-directory">
+  <div class="container">
+    <header class="section-head">
+      <span class="eyebrow" data-edit="{p}_eyebrow">{{eyebrow}}</span>
+      <h2 data-edit="{p}_title">{{title}}</h2>
+      <p data-edit="{p}_text">{{text}}</p>
+    </header>
+    <nav class="b-directory__cats" aria-label="Categories">
+      <a class="b-directory__chip" href="{collection}/" data-edit="{p}_all">{{all}}</a>
+      <span class="b-directory__chips" data-post-categories="{collection}"><a class="b-directory__chip" data-post-category data-post-category-link href="#"><span data-post-category-title>Categoria</span> <small data-post-category-count>0</small></a></span>
+    </nav>
+    <h3 class="b-directory__current"><span data-posts-category="{collection}"></span></h3>
+    <div class="b-directory__list" data-posts="{collection}" data-posts-per-page="24">
+      <article class="b-directory__item" data-post-item>
+        <a class="b-directory__logo" data-post-link href="#"><img data-post-img="logo" src="" alt="" loading="lazy"></a>
+        <div class="b-directory__info">
+          <p class="b-directory__cat" data-post="category"></p>
+          <h3><a data-post-link href="#" data-post="title">Establiment</a></h3>
+          <p class="b-directory__address" data-post-if="address"><img src="site/assets/icons/pin.svg" alt="" width="16" height="16"> <span data-post="address"></span></p>
+          <ul class="b-directory__features" data-post-options="features"><li><img data-post-option-icon src="" alt="" width="18" height="18"></li></ul>
+        </div>
+      </article>
+    </div>
+    <p class="b-directory__empty" data-posts-empty="{collection}" data-edit="{p}_empty">{{empty}}</p>
+    <nav class="b-directory__pager"><a class="btn btn--ghost" data-posts-prev="{collection}" href="#" data-edit="{p}_prev">{{prev}}</a>
+      <a class="btn btn--ghost" data-posts-next="{collection}" href="#" data-edit="{p}_next">{{next}}</a></nav>
+  </div>
+</section>

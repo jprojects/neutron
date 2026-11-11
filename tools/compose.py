@@ -123,7 +123,7 @@ for p in pages:
 collections_out = {}
 cta_page = next((p for p in pages if p['file'] == recipe.get('cta')), None) or \
            next((p for p in pages if any((b if isinstance(b, str) else b['block']) in ('contact', 'form') for b in p['blocks'])), None)
-cta_href = cta_page['href'] if cta_page else './'
+cta_href = recipe.get('cta_href') or (cta_page['href'] if cta_page else './')   # "cta_href": "./#contacte" (una sección de la portada)
 address_q = recipe.get('map') or content[main].get('address') or ''
 map_embed = 'https://www.google.com/maps?q=' + urllib.parse.quote(address_q) + '&z=16&output=embed'
 map_link = 'https://www.google.com/maps/search/?api=1&query=' + urllib.parse.quote(address_q)
@@ -144,7 +144,8 @@ def nav_html(btn=True):
         label = x['nav'].get(main) if isinstance(x['nav'], dict) else x['nav']
         for l in langs: put(l, key, x['nav'].get(l, label) if isinstance(x['nav'], dict) else label)
         cls = ' class="btn"' if btn and x.get('button') else ''
-        out.append(f'<a{cls} href="{attr(x["url"])}" target="_blank" rel="noopener" data-edit="{key}">{esc(content[main].get(key, label))}</a>')
+        ext = ' target="_blank" rel="noopener"' if re.match(r'https?://', x['url']) else ''         # a otra web, en otra pestaña
+        out.append(f'<a{cls} href="{attr(x["url"])}"{ext} data-edit="{key}">{esc(content[main].get(key, label))}</a>')
     return '\n      '.join(out)
 
 def langs_html():
@@ -212,11 +213,17 @@ def render_block(spec, page, n):
     prefix = spec.get('prefix') or (page['slug'] if spec['block'] in ('header', 'footer') else f"{page['slug']}_{spec['block'].replace('-', '_')}")
     if n > 1 and not spec.get('prefix'): prefix += f'_{n}'
     cookie_cats.update(b.get('cookies', []) if variant != 'nomap' else [])
-    # Textos por defecto: clave → {p}_clave; @clave → clave
+    # Textos por defecto: clave → {p}_clave; @clave → clave (solo los que usa la variante elegida)
     images = set(b.get('images', []))
+    h_variant = b['html']
+    for v in b.get('variants', []):
+        h_variant = re.sub(rf'<!--variant:{v}-->(.*?)<!--/variant:{v}-->\n?', (lambda m: m.group(1)) if v == variant else '', h_variant, flags=re.S)
+    ref = lambda k, h: re.search(r'\{\{(?:img:)?' + re.escape(k) + r'(?:\[|\}\})', h) is not None
+    def in_use(k): return ref(k, h_variant) or not ref(k, b['html'])     # fuera solo los de una variante que no se usa
     for l in langs:
         c = b['content'].get(l) or b['content'].get(main) or {}
         for k, v in c.items():
+            if not in_use(k): continue
             key = k[1:] if k.startswith('@') else f'{prefix}_{k}'
             if isinstance(v, list):
                 v = [{fk: (PLACEHOLDER if fv == 'IMG' else fv) for fk, fv in it.items()} for it in v]
@@ -234,6 +241,12 @@ def render_block(spec, page, n):
         h = if_blocks(h, col_name)
         h = h.replace('{collection}', col_name)
     h = h.replace('{variant}', variant).replace('{p}', prefix)
+    # "id" en la receta: el ancla de la sección (para el menú: "./#qui-som")
+    if spec.get('id') and re.fullmatch(r'[a-z][a-z0-9-]*', spec['id']):
+        h = re.sub(r'<(section|header|footer|div)\b(?![^>]*\bid=)', lambda m: f'<{m.group(1)} id="{spec["id"]}"', h, count=1)
+    # Los iconos de un bloque de accesos (shortcuts): "icons": ["food", "bed", "bag"] en la receta
+    for i, ic in enumerate(spec.get('icons', []), 1): h = h.replace(f'{{{{#icon{i}}}}}', ic)
+    h = re.sub(r'\{\{#icon\d\}\}', 'pin', h)
     specials = {'news_side': lambda: news_side(col_name),
                 'nav': lambda: nav_html(), 'nav_plain': lambda: nav_html(False), 'langs': langs_html, 'social': social_html,
                 'cta_href': lambda: cta_href, 'privacy_href': lambda: 'politica-de-privacitat.html', 'legal_links': lambda: '{{#legal_links}}',
@@ -401,6 +414,13 @@ for col_name, (c, b, from_page) in collections_out.items():
               'fields': [{'name': n, 'type': t, 'label': pick(lab)} for n, t, lab in c['fields']], 'translated': c.get('translated', ['title'])}
     if has_categories(col_name) and not any(f['type'] == 'category' for f in schema['fields']):      # el blog migrado tiene categorías
         schema['fields'].insert(2, {'name': 'category', 'type': 'category', 'label': {'ca': 'Categoria', 'es': 'Categoría'}.get(main, 'Category')})
+    if c.get('schema'): schema['schema'] = c['schema']                  # tipo de schema.org de cada ficha (lib/meta.php)
+    # Los campos «options» (características con icono): las opciones de site/<colección>/_features.json (tools/migrate.py)
+    ff = site / col_name / '_features.json'
+    feats = json.loads(ff.read_text()) if ff.exists() else []
+    for f in schema['fields']:
+        if f['type'] == 'options':
+            f['options'] = [{'id': x['id'], 'label': x['label'], **({'icon': f"site/assets/icons/{x['icon']}.svg"} if x.get('icon') else {})} for x in feats]
     write(f'{col_name}/_collection.json', json.dumps(schema, ensure_ascii=False, indent=2) + '\n')
     if c.get('item_page'):
         listing = next((p['href'] for p in pages if p['file'] == col_name), None) or from_page.get('href', './')
@@ -410,6 +430,15 @@ for col_name, (c, b, from_page) in collections_out.items():
                     if k.startswith('@'): put(l, k[1:], v)
             body = re.sub(r'\{\{@(\w+)\}\}', lambda m: esc(content[main].get(m.group(1), '')), if_blocks(b['item'], col_name).replace('{collection}', col_name))
             body = body.replace('{{#news_side}}', news_side(col_name))
+            # La ficha usa la galería (visor de fotos) o los vídeos con consentimiento: su CSS, su JS y sus textos
+            if 'b-albums__' in body: used.setdefault('albums', load_block('albums'))
+            if 'b-videos__' in body:
+                vb = used.setdefault('videos', load_block('videos'))
+                for l in langs:
+                    for k, v in (vb['content'].get(l) or vb['content'].get(main) or {}).items():
+                        if k.startswith('@'): put(l, k[1:], v)
+                cookie_cats.add('videos')
+                body = re.sub(r'\{\{@(\w+)\}\}', lambda m: esc(content[main].get(m.group(1), '')), body)
         else:
             body = generic_item(col_name, c, listing)
         write(f'{col_name}/_item.html', f'''<!DOCTYPE html>
@@ -473,6 +502,24 @@ for name, b in used.items():
     if b['css']: css.append(f'/* Bloque: {name} */\n' + b['css'])
     if b['js']: js.append(f'/* Bloque: {name} */\n' + b['js'])
 write('assets/site.css', '/* Generado por tools/compose.py: los cambios propios de esta web van en custom.css */\n' + '\n'.join(css))
+
+# Iconos de las plantillas (site/assets/icons/<nombre>.svg): de blocks/_icons/ui (de línea) o blocks/_icons (redes), con el
+# color del tema (en un <img> el SVG no hereda el color del texto)
+icon_color = theme.get('primary', '#333333')
+used_icons = set()
+for f in [site / 'template.html', *site.glob('pages/*.html'), *site.glob('partials/*.html'), *site.glob('*/_item.html')]:
+    if f.exists(): used_icons.update(re.findall(r'site/assets/icons/([\w-]+)\.svg', f.read_text()))
+for col_dir in site.iterdir():
+    ff = col_dir / '_features.json'
+    if col_dir.is_dir() and ff.exists(): used_icons.update(x['icon'] for x in json.loads(ff.read_text()) if x.get('icon'))
+for name in sorted(used_icons):
+    dest = site / 'assets' / 'icons' / f'{name}.svg'
+    src_ = next((x for x in (BLOCKS / '_icons' / 'ui' / f'{name}.svg', BLOCKS / '_icons' / f'{name}.svg') if x.exists()), None)
+    if src_ is None or dest.exists(): continue
+    svg = re.sub(r'<!--.*?-->', '', src_.read_text()).replace('currentColor', icon_color)
+    if 'stroke=' not in svg and 'fill=' not in svg: svg = svg.replace('<svg ', f'<svg fill="{icon_color}" ', 1)
+    dest.parent.mkdir(parents=True, exist_ok=True)
+    dest.write_text(svg)
 write('assets/site.js', '\n'.join(js))
 if not (site / 'assets' / 'custom.css').exists():
     write('assets/custom.css', '/* Diseño propio de esta web, encima de los bloques (tools/compose.py no lo toca) */\n')
