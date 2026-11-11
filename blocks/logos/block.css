@@ -1,0 +1,6 @@
+.b-logos--soft { background: var(--c-soft); }
+.b-logos__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 28px 56px; }
+.b-logos__list li { flex: 0 0 auto; }
+.b-logos__list img { max-height: 56px; max-width: 170px; width: auto; object-fit: contain; filter: grayscale(1); opacity: .75; transition: filter .3s, opacity .3s; }
+.b-logos__list li:hover img { filter: none; opacity: 1; }
+@media (max-width: 640px) { .b-logos__list { gap: 22px 32px; } .b-logos__list img { max-height: 42px; max-width: 120px; } }

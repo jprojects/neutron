@@ -1,0 +1,10 @@
+.b-banner { padding: 72px 0; }
+.b-banner--primary { background: var(--c-primary); color: var(--c-primary-ink); }
+.b-banner--dark { background: var(--c-dark); color: var(--c-dark-text); }
+.b-banner__in { display: flex; align-items: center; justify-content: space-between; gap: 32px 56px; flex-wrap: wrap; }
+.b-banner__text { max-width: 720px; }
+.b-banner .eyebrow { color: inherit; opacity: .8; }
+.b-banner h2 { color: #fff; font-size: clamp(30px, 4vw, 46px); margin-bottom: .3em; }
+.b-banner p { margin: 0; font-size: 18px; opacity: .92; }
+.b-banner__btn { flex: 0 0 auto; }
+@media (max-width: 640px) { .b-banner { padding: 56px 0; } .b-banner__btn { width: 100%; } }

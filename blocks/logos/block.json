@@ -1,0 +1,6 @@
+{
+  "name": "logos",
+  "description": "Franja de logotipos editable (marcas, clientes, certificaciones), en gris y en color al pasar por encima; sobre blanco (plain) o sobre el fondo suave (soft)",
+  "variants": ["plain", "soft"],
+  "images": []
+}

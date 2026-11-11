@@ -25,6 +25,9 @@ SKIP = {'script', 'style', 'noscript', 'svg', 'template', 'iframe', 'canvas', 's
 BLOCK = {'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'li', 'blockquote', 'figcaption', 'td', 'th', 'dt', 'dd', 'address'}
 FILES = re.compile(r'\.(pdf|jpe?g|png|gif|webp|svg|zip|rar|docx?|xlsx?|pptx?|mp4|mp3|webm|ico|css|js|xml|txt|exe)$', re.I)
 JUNK_Q = re.compile(r'(^|&)(format=feed|type=rss|print=1|tmpl=component|share=|replytocom=|utm_|fbclid=|gclid=|limitstart=0)', re.I)
+# Páginas de cuenta, carrito y acciones (no son contenido): no se rastrean
+NOT_CONTENT = re.compile(r'(^|/)(component/users|wp-login\.php|wp-admin|my-account|mi-cuenta|cart|carrito|checkout)(/|$|\?)'
+                         r'|[?&](view=(login|logout|register|registration|reset|remind|checkout|cart|history|favorites)|task=)', re.I)
 SOCIAL = {'instagram.com': 'Instagram', 'facebook.com': 'Facebook', 'fb.com': 'Facebook', 'twitter.com': 'X (Twitter)', 'x.com': 'X (Twitter)',
           'youtube.com': 'YouTube', 'youtu.be': 'YouTube', 'tiktok.com': 'TikTok', 'linkedin.com': 'LinkedIn', 'pinterest.': 'Pinterest',
           'wa.me': 'WhatsApp', 'api.whatsapp.com': 'WhatsApp', 'vimeo.com': 'Vimeo', 'tripadvisor.': 'TripAdvisor', 'g.page': 'Google (ficha)'}
@@ -50,6 +53,9 @@ ap.add_argument('install', help='carpeta de la instalación (tools/new-site.py)'
 ap.add_argument('--max', type=int, default=150, help='páginas como mucho (por defecto 150)')
 ap.add_argument('--render', action='store_true', help='descargar con Chromium (webs que montan el contenido con JavaScript)')
 ap.add_argument('--sin-imagenes', action='store_true', help='no descargar las imágenes')
+ap.add_argument('--excluir', action='append', default=[], metavar='REGEX',
+                help='no rastrear las URLs (ruta y consulta) que coinciden, p. ej. una tienda que no se migra: '
+                     "--excluir '^productes' --excluir 'option=com_botiga' (se puede repetir)")
 # Sin idioma preferido: cada URL se descarga en el suyo (con «ca» primero, un Joomla con filtro de idioma da el catalán
 # también en la portada del castellano y se pierde ese idioma)
 ap.add_argument('--idioma-navegador', default='', help='Accept-Language que se envía (por defecto, ninguno)')
@@ -179,10 +185,19 @@ log(f'Rastreando {a.url} …')
 start = norm(a.url, a.url) or a.url
 queue = collections.deque([start] + sitemap_urls())
 pages, seen_urls, final_seen = {}, set(), {}
+EXCLUDE = [re.compile(x, re.I) for x in a.excluir]
+excluded = collections.Counter()
+def skipped(url):
+    r = rel(url)
+    for x in EXCLUDE:
+        if x.search(r): excluded[x.pattern] += 1; return True
+    if NOT_CONTENT.search(r): excluded['(cuenta, carrito y acciones)'] += 1; return True
+    return False
 while queue and len(pages) < a.max:
     url = queue.popleft()
     if url in seen_urls: continue
     seen_urls.add(url)
+    if url != start and skipped(url): continue
     final, st, ctype, body = fetch(url)
     if st != 200 or 'html' not in ctype.lower(): continue
     final_n = norm(final, final) or final
@@ -592,6 +607,8 @@ L = []
 w = L.append
 w(f'# Migración de {a.url}\n')
 w(f"Fecha: {time.strftime('%Y-%m-%d %H:%M')} · CMS: **{cms}**{' (' + gen + ')' if gen else ''} · {len(pages)} páginas · {len(images)} imágenes\n")
+if excluded:
+    w('URLs no rastreadas: ' + ', '.join(f'{n} por `{pat}`' for pat, n in excluded.most_common()) + ' (`--excluir`).\n')
 if js_pages:
     w(f'> **Atención**: {len(js_pages)} páginas tienen muy poco texto en el HTML (el contenido se monta con JavaScript). '
       f'Vuelve a lanzar con `--render`. Ejemplos: ' + ', '.join(rel(u) or '/' for u in js_pages[:5]) + '\n')

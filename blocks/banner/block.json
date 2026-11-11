@@ -1,0 +1,6 @@
+{
+  "name": "banner",
+  "description": "Franja de color con título, texto y un botón a otra web (tienda online, reservas…): el enlace se edita (data-edit-href); en el color principal (primary) o en oscuro (dark)",
+  "variants": ["primary", "dark"],
+  "images": []
+}
