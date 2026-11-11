@@ -146,8 +146,10 @@ def retall(nom, sortida, marge=24, minw=0, maxh=None, sencer=False, alt=None, dr
         if dreta: x, y, w = W - dreta, 0, dreta    # el trozo de la derecha de la barra (los avisos)
         if w < minw: x -= (minw - w) / 2; w = minw
         x, y, w, h = x - marge, y - marge, w + 2 * marge, h + 2 * marge
+        if y < 0: h += y; y = 0              # un elemento más alto que la pantalla (una lista larga): desde arriba de lo que se ve
         if maxh and h > maxh: h = maxh
     x0, y0 = max(0, int(x)), max(0, int(y)); x1, y1 = min(W, int(x + w)), min(H, int(y + h))
+    if x1 <= x0 or y1 <= y0: return False
     out = im.crop((x0 * 2, y0 * 2, x1 * 2, y1 * 2))
     if out.width > 1800: out = out.resize((1800, round(out.height * 1800 / out.width)), Image.LANCZOS)
     out.save(treball / sortida, quality=86, optimize=True)
