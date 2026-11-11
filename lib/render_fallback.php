@@ -254,7 +254,9 @@ function neutron_fallback_apply_lang(object $root, array $l): void {
 // --- colecciones (ver lib/posts.php y render_dom.php) ---
 
 function neutron_fallback_fill_posts(object $root, array $opt): void {
-    foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-posts'])) as $list) {
+    $lists = neutron_find_all($root, fn($n) => isset($n->attrs['data-posts']));
+    $owner = neutron_posts_marker_owners(array_map(fn($l) => [(string)$l->attrs['data-posts'], (int)($l->attrs['data-posts-per-page'] ?? 0)], $lists));
+    foreach ($lists as $i => $list) {
         $collection = $list->attrs['data-posts'];
         $view = neutron_posts_view($collection, $opt, (int)($list->attrs['data-posts-limit'] ?? 0), (int)($list->attrs['data-posts-per-page'] ?? 0),
             (string)($list->attrs['data-posts-filter'] ?? ''));
@@ -264,6 +266,7 @@ function neutron_fallback_fill_posts(object $root, array $opt): void {
         } else {
             neutron_fallback_fill_items($list, $view['posts'], $opt);
         }
+        if (($owner[$collection] ?? null) !== $i) continue;          // como en render_dom.php
         foreach (['empty', 'prev', 'next'] as $kind) {
             neutron_fallback_filter($root, function (object $n) use ($kind, $collection, $view): bool {
                 if (($n->attrs['data-posts-' . $kind] ?? null) !== $collection) return true;
@@ -289,6 +292,50 @@ function neutron_fallback_fill_posts(object $root, array $opt): void {
                 $el->attrs[$tag === 'link' ? 'href' : 'content'] = $value;
             }
         }
+    }
+    neutron_fallback_fill_categories($root, $opt);
+}
+
+// Como neutron_dom_fill_categories()
+function neutron_fallback_fill_categories(object $root, array $opt): void {
+    foreach (neutron_find_all($root, fn($n) => isset($n->attrs['data-post-categories'])) as $list) {
+        $tpl = null;
+        foreach ($list->children ?? [] as $c) { if (($c->type ?? null) === 'element' && isset($c->attrs['data-post-category'])) { $tpl = $c; break; } }
+        if (!$tpl) continue;
+        $out = [];
+        foreach (neutron_categories_view((string)$list->attrs['data-post-categories'], $opt, isset($list->attrs['data-post-categories-empty'])) as $cat) {
+            $el = neutron_clone_node($tpl);
+            $el->attrs['data-post-category'] = $cat['id'];
+            foreach (['title' => $cat['title'], 'description' => $cat['description'], 'count' => (string)$cat['count']] as $k => $v) {
+                if ($v === '' && $k === 'description') {
+                    neutron_fallback_filter($el, fn($n) => !isset($n->attrs['data-post-category-description']));
+                    continue;
+                }
+                foreach (neutron_find_all($el, fn($n) => $n !== $el && isset($n->attrs['data-post-category-' . $k])) as $n) neutron_set_text($n, $v);
+            }
+            foreach (neutron_find_all($el, fn($n) => isset($n->attrs['data-post-category-link'])) as $a) {
+                $a->attrs['href'] = $cat['href'];
+                if ($cat['current']) $a->attrs['aria-current'] = 'page';
+            }
+            $out[] = $el;
+        }
+        $list->children = $out;
+    }
+    $cat = ($opt['category'] ?? '') !== '' ? neutron_category_get((string)$opt['collection'], (string)$opt['category']) : null;
+    foreach (['data-posts-category' => 'title', 'data-posts-category-description' => 'description'] as $attr => $k) {
+        neutron_fallback_filter($root, function (object $n) use ($attr, $k, $cat, $opt): bool {
+            if (!isset($n->attrs[$attr])) return true;
+            if ($cat === null || $cat[$k] === '' || $n->attrs[$attr] !== $opt['collection']) return false;
+            neutron_set_text($n, $cat[$k]);
+            return true;
+        });
+    }
+    if ($cat === null) return;
+    $head = neutron_find_first($root, fn($n) => ($n->tag ?? null) === 'head');
+    if (!$head) return;
+    foreach ($head->children as $c) {
+        if (($c->tag ?? null) === 'title') neutron_set_text($c, neutron_category_title_text(neutron_text_content($c), $cat['title']));
+        if (($c->tag ?? null) === 'meta' && ($c->attrs['name'] ?? '') === 'description' && $cat['description'] !== '') $c->attrs['content'] = $cat['description'];
     }
 }
 

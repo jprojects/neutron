@@ -304,6 +304,30 @@ Una galería por álbumes y vídeos con consentimiento:
 </article></div>
 ```
 
+**Páginas de categoría** (colecciones con página propia y un campo `category`): cada categoría tiene su página,
+`/<colección>/categoria/<id>` (la palabra se cambia con `"category_path"` en `_collection.json`), que es la del listado
+de la colección (`site/pages/<colección>.html`) con su listado paginado filtrado por esa categoría. El `<title>` lleva
+delante el nombre de la categoría y la descripción para buscadores es la de la categoría (si tiene). Las categorías con
+elementos salen en el sitemap, en `llms.txt` y en la ruta de navegación (JSON-LD). Una categoría que no existe da 404.
+
+| Atributo | Qué hace |
+|---|---|
+| `data-post-categories="blog"` | lista de categorías (una barra lateral): molde `data-post-category` con `data-post-category-title`, `-description`, `-count` (elementos publicados) y el enlace en `data-post-category-link` (la actual, con `aria-current="page"`). Solo las que tienen elementos; con `data-post-categories-empty`, todas |
+| `data-posts-category="blog"` | en la página de una categoría, su nombre (fuera de ella, el elemento se quita); `data-posts-category-description="blog"`, su descripción |
+| `data-post-href="category"` | en un elemento o su ficha, el enlace a la página de su categoría |
+
+Una barra lateral con las categorías y los últimos (en el listado y en la plantilla de la entrada, `_item.html`):
+
+```html
+<aside>
+  <ul data-post-categories="noticies"><li data-post-category><a data-post-category-link href="#"><span data-post-category-title>Categoria</span> (<span data-post-category-count>0</span>)</a></li></ul>
+  <ul data-posts="noticies" data-posts-limit="4"><li data-post-item><a data-post-link href="#" data-post="title">Entrada</a> <time data-post="date"></time></li></ul>
+</aside>
+```
+
+Los avisos de lista vacía y la paginación (`data-posts-empty`, `-prev`, `-next`) los decide el listado paginado de la
+colección (el primero con `data-posts-per-page`; si no hay, el primero): unos «últimos» en la misma página no los tocan.
+
 - **Descargas**: `download.php?c=coleccion&i=elemento&f=campo` suma una (los robots no cuentan) en `data/downloads.json`
   y lleva al fichero. Solo de elementos publicados y de `site/uploads/` o `site/assets/`.
 - **Panel**: una sección por colección con buscador, filtro por categoría, idioma, «+ Nuevo», la ficha con un control por

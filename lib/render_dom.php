@@ -207,7 +207,9 @@ function neutron_dom_apply_lang(DOMDocument $dom, DOMXPath $xpath, array $l): vo
 // --- colecciones (ver lib/posts.php) ---
 
 function neutron_dom_fill_posts(DOMDocument $dom, DOMXPath $xpath, array $opt): void {
-    foreach (iterator_to_array($xpath->query('//*[@data-posts]')) as $list) {
+    $lists = iterator_to_array($xpath->query('//*[@data-posts]'));
+    $owner = neutron_posts_marker_owners(array_map(fn($l) => [$l->getAttribute('data-posts'), (int)$l->getAttribute('data-posts-per-page')], $lists));
+    foreach ($lists as $i => $list) {
         $collection = $list->getAttribute('data-posts');
         $view = neutron_posts_view($collection, $opt, (int)$list->getAttribute('data-posts-limit'), (int)$list->getAttribute('data-posts-per-page'),
             $list->getAttribute('data-posts-filter'));
@@ -218,7 +220,9 @@ function neutron_dom_fill_posts(DOMDocument $dom, DOMXPath $xpath, array $opt): 
         } else {
             neutron_dom_fill_items($xpath, $list, $view['posts'], $opt);
         }
-        // Aviso de lista vacía y paginación (data-posts-empty / -prev / -next con el nombre de la colección)
+        // Aviso de lista vacía y paginación (data-posts-empty / -prev / -next con el nombre de la colección): los decide
+        // el listado paginado de la colección (no los «últimos» de una barra lateral)
+        if (($owner[$collection] ?? null) !== $i) continue;
         foreach (['empty', 'prev', 'next'] as $kind) {
             foreach (iterator_to_array($xpath->query('//*[@data-posts-' . $kind . '="' . $collection . '"]')) as $el) {
                 $href = $view[$kind];
@@ -234,6 +238,46 @@ function neutron_dom_fill_posts(DOMDocument $dom, DOMXPath $xpath, array $opt): 
         neutron_dom_fill_post($xpath, $dom->documentElement, $opt['post'], $opt, true);
         neutron_dom_post_meta($dom, $xpath, $opt['post'], $opt);
     }
+    neutron_dom_fill_categories($dom, $xpath, $opt);
+}
+
+// Categorías (lib/posts.php): las listas data-post-categories y, en la página de una categoría, su nombre y descripción
+// (data-posts-category, data-posts-category-description), el <title> y la descripción para buscadores
+function neutron_dom_fill_categories(DOMDocument $dom, DOMXPath $xpath, array $opt): void {
+    foreach (iterator_to_array($xpath->query('//*[@data-post-categories]')) as $list) {
+        $tpl = null;
+        foreach ($list->childNodes as $c) { if ($c instanceof DOMElement && $c->hasAttribute('data-post-category')) { $tpl = $c; break; } }
+        if (!$tpl) continue;
+        $mold = $tpl->cloneNode(true);
+        while ($list->firstChild) $list->removeChild($list->firstChild);
+        foreach (neutron_categories_view($list->getAttribute('data-post-categories'), $opt, $list->hasAttribute('data-post-categories-empty')) as $cat) {
+            $el = $mold->cloneNode(true);
+            $el->setAttribute('data-post-category', $cat['id']);
+            $list->appendChild($el);
+            foreach (['title' => $cat['title'], 'description' => $cat['description'], 'count' => (string)$cat['count']] as $k => $v) {
+                foreach (iterator_to_array($xpath->query('descendant::*[@data-post-category-' . $k . ']', $el)) as $n) {
+                    if ($v === '' && $k === 'description') { $n->parentNode->removeChild($n); continue; }
+                    neutron_dom_set_text($n, $v);
+                }
+            }
+            foreach (iterator_to_array($xpath->query('descendant-or-self::*[@data-post-category-link]', $el)) as $a) {
+                $a->setAttribute('href', $cat['href']);
+                if ($cat['current']) $a->setAttribute('aria-current', 'page');
+            }
+        }
+    }
+    $cat = ($opt['category'] ?? '') !== '' ? neutron_category_get((string)$opt['collection'], (string)$opt['category']) : null;
+    foreach (['data-posts-category' => 'title', 'data-posts-category-description' => 'description'] as $attr => $k) {
+        foreach (iterator_to_array($xpath->query('//*[@' . $attr . ']')) as $n) {
+            if ($cat === null || $cat[$k] === '' || $n->getAttribute($attr) !== $opt['collection']) { $n->parentNode->removeChild($n); continue; }
+            neutron_dom_set_text($n, $cat[$k]);
+        }
+    }
+    if ($cat === null) return;
+    $title = $xpath->query('//head/title')->item(0);
+    if ($title) neutron_dom_set_text($title, neutron_category_title_text($title->textContent, $cat['title']));
+    $desc = $xpath->query('//head/meta[@name="description"]')->item(0);
+    if ($desc && $cat['description'] !== '') $desc->setAttribute('content', $cat['description']);
 }
 
 // El molde (primer hijo con data-post-item) repetido para cada elemento

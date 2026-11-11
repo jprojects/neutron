@@ -2,6 +2,16 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.25.0 — 2026-11-11
+
+- **Páginas de categoría** en las colecciones con página propia: `/<colección>/categoria/<id>`, el listado filtrado por
+  esa categoría, con su título, descripción, paginación, canónica, ruta de navegación (JSON-LD), sitemap y `llms.txt`.
+  Atributos nuevos: `data-post-categories` (la lista de categorías con enlace y número de elementos, para una barra
+  lateral), `data-posts-category` y `data-posts-category-description`, y `data-post-href="category"`.
+- Los avisos de lista vacía y la paginación los decide el listado paginado de la colección: unos «últimos» de la misma
+  colección en la barra lateral ya no los quitan.
+- Los listados y las listas de categorías también funcionan si están en un parcial.
+
 ## 1.24.0 — 2026-11-10
 
 - **Cabeceras de seguridad** en todas las respuestas (`lib/security.php`, desde `bootstrap.php`, antes de servir la

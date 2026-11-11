@@ -280,7 +280,11 @@ function neutron_llms(): void {
                 $rows[] = '- ' . $post['title'] . $date . ($desc !== '' ? ': ' . $desc : '');
             }
         }
-        $out .= '## ' . $schema['label'] . "\n\n" . implode("\n", $rows) . "\n\n";
+        $out .= '## ' . $schema['label'] . "\n\n" . implode("\n", $rows) . "\n";
+        if ($schema['page']) {                                     // y sus categorías, con su página
+            foreach (neutron_categories_view($c, []) as $cat) $out .= $line($schema['label'] . ' · ' . $cat['title'], $site . $cat['href'], $cat['description']) . "\n";
+        }
+        $out .= "\n";
     }
 
     if ($langs !== null && count($langs['languages']) > 1) {

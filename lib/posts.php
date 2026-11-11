@@ -87,6 +87,8 @@ function neutron_collection_schema(string $name): array {
                 'help' => (string)($data['help'] ?? ''),
                 // Tipo de schema.org de cada elemento en su ficha (lib/meta.php): Article, Product, Event, Recipe…
                 'schema' => preg_match('/^[A-Za-z]{2,40}$/', (string)($data['schema'] ?? '')) ? (string)$data['schema'] : '',
+                // Las páginas de categoría: <colección>/<category_path>/<id> (por defecto «categoria»)
+                'category_path' => preg_match('/^[a-z0-9][a-z0-9-]{0,30}$/', (string)($data['category_path'] ?? '')) ? (string)$data['category_path'] : '',
             ];
         }
     }
@@ -119,6 +121,57 @@ function neutron_collection_categories(string $name, bool $raw = false): array {
             'description' => (string)(($t['description'] ?? '') !== '' ? $t['description'] : ($c['description'] ?? ''))];
     }
     return $out;
+}
+
+// --- páginas de categoría (/noticies/categoria/activitats) ---
+
+/** El campo de categoría de la colección (el primero de tipo «category»), o null */
+function neutron_collection_category_field(string $name): ?string {
+    foreach (neutron_collection_fields($name) as $f => $def) if ($def['type'] === 'category') return $f;
+    return null;
+}
+
+function neutron_collection_category_path(string $name): string {
+    return (string)(neutron_collection_schema($name)['category_path'] ?? '') ?: 'categoria';
+}
+
+/** Enlace a la página de una categoría (relativo a la instalación; sin idioma, que lo pone el núcleo) */
+function neutron_category_href(string $name, string $id): string {
+    return $name . '/' . neutron_collection_category_path($name) . '/' . $id;
+}
+
+/** Una categoría (en el idioma que se ve), o null si no existe */
+function neutron_category_get(string $name, string $id): ?array {
+    foreach (neutron_collection_categories($name) as $c) if ($c['id'] === $id) return $c;
+    return null;
+}
+
+/**
+ * Las categorías con su número de elementos publicados y su enlace, para data-post-categories. Sin $withEmpty, solo
+ * las que tienen alguno (las vacías no llevan a ningún sitio).
+ * @return list<array{id:string,title:string,description:string,count:int,href:string,current:bool}>
+ */
+function neutron_categories_view(string $name, array $opt, bool $withEmpty = false): array {
+    $field = neutron_collection_category_field($name);
+    if ($field === null) return [];
+    $counts = [];
+    foreach (neutron_posts_list($name) as $p) {
+        $id = is_string($p[$field] ?? null) ? $p[$field] : '';
+        if ($id !== '') $counts[$id] = ($counts[$id] ?? 0) + 1;
+    }
+    $current = ($opt['collection'] ?? null) === $name ? (string)($opt['category'] ?? '') : '';
+    $out = [];
+    foreach (neutron_collection_categories($name) as $c) {
+        $n = $counts[$c['id']] ?? 0;
+        if ($n === 0 && !$withEmpty) continue;
+        $out[] = $c + ['count' => $n, 'href' => neutron_category_href($name, $c['id']), 'current' => $c['id'] === $current];
+    }
+    return $out;
+}
+
+/** El <title> de una página de categoría: «Activitats · » delante del de la página del listado */
+function neutron_category_title_text(string $current, string $title): string {
+    return $title . ' · ' . $current;
 }
 
 function neutron_collection_categories_save(string $name, array $categories): bool {
@@ -334,6 +387,10 @@ function neutron_posts_view(string $collection, array $opt, int $limit, int $per
     if (!empty($opt['post']) && $opt['post']['collection'] === $collection) {
         $posts = array_values(array_filter($posts, fn($p) => $p['slug'] !== $opt['post']['slug']));
     }
+    // En la página de una categoría, su listado (el paginado de la propia colección) solo tiene los de esa categoría
+    if ($perPage > 0 && ($opt['category'] ?? '') !== '' && ($opt['collection'] ?? null) === $collection && ($field = neutron_collection_category_field($collection)) !== null) {
+        $posts = array_values(array_filter($posts, fn($p) => ($p[$field] ?? null) === $opt['category']));
+    }
     $view = ['posts' => $posts, 'empty' => $posts ? null : '', 'prev' => null, 'next' => null];
     if ($perPage > 0) {
         $pages = max(1, (int)ceil(count($posts) / $perPage));
@@ -347,6 +404,17 @@ function neutron_posts_view(string $collection, array $opt, int $limit, int $per
         $view['posts'] = array_slice($posts, 0, $limit);
     }
     return $view;
+}
+
+/**
+ * Qué listado de cada colección decide sus avisos (data-posts-empty, -prev, -next): el primero paginado o, si no hay
+ * ninguno, el primero. $lists: [[colección, por página], …] en el orden de la página. @return array<string,int>
+ */
+function neutron_posts_marker_owners(array $lists): array {
+    $owner = [];
+    foreach ($lists as $i => [$c, $perPage]) if ($perPage > 0 && !isset($owner[$c])) $owner[$c] = $i;
+    foreach ($lists as $i => [$c]) $owner[$c] ??= $i;
+    return $owner;
 }
 
 // data-posts-filter="category:marc-legal" (campo:valor; varios separados por comas, todos tienen que cumplirse)
@@ -430,6 +498,7 @@ function neutron_post_href_of(array $post, string $field): string {
     $value = $post[$field] ?? '';
     if (!is_string($value) || $value === '') return '';
     if ($type === 'file') return 'download.php?c=' . rawurlencode($post['collection']) . '&i=' . rawurlencode($post['slug']) . '&f=' . rawurlencode($field);
+    if ($type === 'category') return neutron_collection_has_page($post['collection']) && neutron_category_get($post['collection'], $value) !== null ? neutron_category_href($post['collection'], $value) : '';
     return $value;
 }
 

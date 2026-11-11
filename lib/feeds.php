@@ -52,6 +52,7 @@ function neutron_sitemap(): void {
             $urls[] = [$site . '/' . (neutron_collection_has_page($slug) ? $slug . '/' : $slug . '.html'), filemtime($file)];
         }
         foreach (array_filter(neutron_collections(), 'neutron_collection_has_page') as $collection) {
+            foreach (neutron_categories_view($collection, []) as $cat) $urls[] = [$site . '/' . $cat['href'], null];   // las que tienen elementos
             foreach (neutron_posts_list($collection) as $post) {
                 $urls[] = [$site . '/' . neutron_post_href($post), strtotime($post['updated'] ?: $post['date']) ?: null];
             }

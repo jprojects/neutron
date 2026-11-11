@@ -61,6 +61,7 @@ if ($page !== '' && !preg_match('/^[a-z0-9][a-z0-9-]{0,60}$/', $page)) {
 }
 $collection = null;
 $post = null;
+$category = null;
 // Índice del buscador (lib/search.php): /search.json y, en una web de varios idiomas, /ca/search.json…
 if ($page === '' && $route === 'search.json' && ($langs === null || neutron_lang() !== null)) {
     require_once __DIR__ . '/lib/search.php';
@@ -82,7 +83,16 @@ if ($page === '' && in_array($route, ['robots.txt', 'llms.txt'], true) && neutro
     $route === 'robots.txt' ? neutron_robots() : neutron_llms();
     exit;
 }
-if ($page === '' && preg_match('~^([a-z0-9][a-z0-9-]*)(?:/([a-z0-9][a-z0-9.-]*)?)?$~', $route, $m) && neutron_collection_has_page($m[1])) {
+// Página de una categoría: /noticies/categoria/activitats (el listado de la colección, solo con esa categoría)
+if ($page === '' && preg_match('~^([a-z0-9][a-z0-9-]*)/([a-z0-9][a-z0-9-]*)/([a-z0-9][a-z0-9-]*)/?$~', $route, $m)
+    && neutron_collection_has_page($m[1]) && $m[2] === neutron_collection_category_path($m[1])
+    && neutron_collection_category_field($m[1]) !== null && neutron_category_get($m[1], $m[3]) !== null) {
+    if ($langs !== null && neutron_lang() === null) neutron_redirect($langs['default'] . '/' . $route . $qs);
+    if (str_ends_with($route, '/')) neutron_redirect(neutron_lang_prefix() . rtrim($route, '/') . $qs);
+    $collection = $m[1];
+    $category = $m[3];
+    $page = $collection;
+} elseif ($page === '' && preg_match('~^([a-z0-9][a-z0-9-]*)(?:/([a-z0-9][a-z0-9.-]*)?)?$~', $route, $m) && neutron_collection_has_page($m[1])) {
     $rest = $m[2] ?? '';
     // Varios idiomas: /noticies/… sin idioma va al principal; si no existe, puede ser una URL antigua (redirects.json)
     if ($langs !== null && neutron_lang() === null) {
@@ -169,6 +179,7 @@ $template = file_get_contents($file);
 // Esta página dentro del idioma ("biomassa.html", "noticies/", "noticies/una-entrada"): para el selector de idioma
 $self = match (true) {
     $page === '@post' => $collection . '/' . $post['slug'],
+    $category !== null => neutron_category_href($collection, $category),
     $collection !== null => $collection . '/',
     $page === '' || $page === '404' => '',
     default => $page . '.html',
@@ -189,13 +200,17 @@ if ($lang !== null) {
         'site_url' => neutron_site_url(),
     ];
 }
-if ($post !== null || str_contains($template, 'data-posts')) {
+// Listados de colecciones y listas de categorías (también en los parciales: la barra lateral de un blog)
+$expanded = str_contains($template, 'data-include') ? neutron_include_partials($template) : $template;
+if ($post !== null || str_contains($expanded, 'data-posts') || str_contains($expanded, 'data-post-categories')) {
     $options['posts'] = [
         'lang' => $lang ?? (preg_match('~<html[^>]*\blang="([A-Za-z-]+)"~', $template, $lm) ? $lm[1] : 'es'),
         'page' => max(1, (int)($_GET['p'] ?? 1)),
-        'self' => $collection !== null ? $collection . '/' : ($page === '' ? '' : $page . '.html'),
+        'self' => $category !== null ? neutron_category_href($collection, $category) : ($collection !== null ? $collection . '/' : ($page === '' ? '' : $page . '.html')),
         'admin' => $editing,
         'post' => $post,
+        'collection' => $collection,
+        'category' => $category,
     ];
 }
 if (isset($_GET['admin'])) {
@@ -234,6 +249,7 @@ if ($page !== '404' && !$editing) {
     if ($collection !== null) $crumbs[] = [neutron_meta_page_title(NEUTRON_SITE . '/pages/' . $collection . '.html', $lang, neutron_collection_schema($collection)['label']), $siteUrl . $collection . '/'];
     elseif ($page !== '') $crumbs[] = [neutron_meta_page_title($file, $lang, $page), $siteUrl . $self];
     if ($post !== null) $crumbs[] = [(string)$post['title'], $siteUrl . $self];
+    if ($category !== null) $crumbs[] = [(string)(neutron_category_get($collection, $category)['title'] ?? $category), $siteUrl . $self];
     $options['meta'] = neutron_meta_context([
         'url' => $siteUrl . $self . ($pageNo > 1 && $post === null ? '?p=' . $pageNo : ''),
         'home' => $page === '',
