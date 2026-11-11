@@ -277,7 +277,7 @@ function neutron_dom_fill_categories(DOMDocument $dom, DOMXPath $xpath, array $o
     $title = $xpath->query('//head/title')->item(0);
     if ($title) neutron_dom_set_text($title, neutron_category_title_text($title->textContent, $cat['title']));
     $desc = $xpath->query('//head/meta[@name="description"]')->item(0);
-    if ($desc && $cat['description'] !== '') $desc->setAttribute('content', $cat['description']);
+    if ($desc) $desc->setAttribute('content', neutron_category_description($cat, $desc->getAttribute('content')));
 }
 
 // El molde (primer hijo con data-post-item) repetido para cada elemento
@@ -326,11 +326,20 @@ function neutron_dom_fill_groups(DOMXPath $xpath, DOMElement $list, array $group
 
 // Campos de una entrada dentro de $root. En la página de la entrada ($skipLists) no se tocan los listados.
 function neutron_dom_fill_post(DOMXPath $xpath, DOMElement $root, array $post, array $opt, bool $skipLists): void {
-    $nodes = $xpath->query('descendant-or-self::*[@data-post or @data-post-img or @data-post-html or @data-post-link or @data-post-href or @data-post-src or @data-post-images]', $root);
+    $nodes = $xpath->query('descendant-or-self::*[@data-post or @data-post-img or @data-post-html or @data-post-link or @data-post-href or @data-post-src or @data-post-images or @data-post-options or @data-post-if]', $root);
     foreach (iterator_to_array($nodes) as $node) {
+        if (!$node->parentNode) continue;                      // dentro de uno que ya se ha quitado
         if ($skipLists && $xpath->query('ancestor::*[@data-posts]', $node)->length) continue;
+        // data-post-if="campo": fuera si el campo está vacío (en el editor se queda, para poder rellenarlo)
+        if ($node->hasAttribute('data-post-if') && empty($opt['admin']) && neutron_post_is_empty($post, $node->getAttribute('data-post-if'))) {
+            $node->parentNode->removeChild($node);
+            continue;
+        }
         if ($node->hasAttribute('data-post-images')) {
             if (!neutron_dom_post_images($xpath, $node, $post, $opt)) continue;
+        }
+        if ($node->hasAttribute('data-post-options')) {
+            if (!neutron_dom_post_options($xpath, $node, $post, $opt)) continue;
         }
         foreach (['data-post-href' => 'href', 'data-post-src' => 'src'] as $attr => $target) {
             if (!$node->hasAttribute($attr)) continue;
@@ -368,6 +377,37 @@ function neutron_dom_fill_post(DOMXPath $xpath, DOMElement $root, array $post, a
             $node->setAttribute('href', neutron_post_href($post));
         }
     }
+}
+
+// data-post-options="campo": el primer hijo es el molde de cada opción marcada, con su icono (data-post-option-icon, un
+// <img>) y su texto (data-post-option-label); el molde lleva el texto en title. Sin ninguna, fuera (salvo en el editor).
+function neutron_dom_post_options(DOMXPath $xpath, DOMElement $node, array $post, array $opt): bool {
+    $name = $node->getAttribute('data-post-options');
+    $def = neutron_collection_fields($post['collection'])[$name] ?? null;
+    $options = $def ? neutron_post_options($def, (array)($post[$name] ?? [])) : [];
+    if (!$options && empty($opt['admin'])) {
+        if ($node->parentNode) { $node->parentNode->removeChild($node); return false; }
+        return true;
+    }
+    $tpl = null;
+    foreach ($node->childNodes as $c) { if ($c instanceof DOMElement) { $tpl = $c; break; } }
+    if (!$tpl || !$options) return true;
+    $mold = $tpl->cloneNode(true);
+    while ($node->firstChild) $node->removeChild($node->firstChild);
+    foreach ($options as $o) {
+        $label = neutron_option_label($o, $opt['lang'] ?? null);
+        $el = $mold->cloneNode(true);
+        $node->appendChild($el);
+        $el->setAttribute('data-post-option', $o['id']);
+        $el->setAttribute('title', $label);
+        foreach (iterator_to_array($xpath->query('descendant-or-self::*[@data-post-option-icon]', $el)) as $img) {
+            if ($o['icon'] === '') { $img->parentNode->removeChild($img); continue; }
+            $img->setAttribute('src', $o['icon']);
+            $img->setAttribute('alt', '');
+        }
+        foreach (iterator_to_array($xpath->query('descendant-or-self::*[@data-post-option-label]', $el)) as $n) neutron_dom_set_text($n, $label);
+    }
+    return true;
 }
 
 // data-post-images="campo": el primer hijo es el molde de cada imagen (un <img data-post-image>, o un enlace

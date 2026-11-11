@@ -695,6 +695,24 @@
         return h('div', { class: 'np-video' }, [h('input', { type: 'url', class: 'np-input', value: value || '', placeholder: 'https://www.youtube.com/watch?v=…',
           oninput: function (e) { onChange(e.target.value.trim()); showThumb(e.target.value); } }), thumb]);
       case 'url': return h('input', { type: 'url', class: 'np-input', value: value || '', placeholder: 'https://…', oninput: function (e) { onChange(e.target.value.trim()); } });
+      case 'tel': return h('input', { type: 'tel', class: 'np-input np-input-short', value: value || '', placeholder: '600 000 000', oninput: function (e) { onChange(e.target.value.trim()); } });
+      case 'email': return h('input', { type: 'email', class: 'np-input', value: value || '', placeholder: 'nom@exemple.cat', oninput: function (e) { onChange(e.target.value.trim()); } });
+      case 'options':
+        // Casillas con su icono; se guardan los id marcados
+        var chosen = Array.isArray(value) ? value.slice() : [];
+        var lang = (cfg.languages && (col.lang || cfg.languages.default)) || '';
+        return h('div', { class: 'np-options' }, (f.options || []).map(function (o) {
+          var label = typeof o.label === 'object' ? (o.label[lang] || o.label[Object.keys(o.label)[0]]) : o.label;
+          return h('label', { class: 'np-option' }, [
+            h('input', { type: 'checkbox', checked: chosen.indexOf(o.id) >= 0, onchange: function (e) {
+              chosen = chosen.filter(function (x) { return x !== o.id; });
+              if (e.target.checked) chosen.push(o.id);
+              onChange(chosen.slice());
+            } }),
+            o.icon ? h('img', { src: src(o.icon), alt: '' }) : null,
+            h('span', { text: label })
+          ]);
+        }));
       default: return control({ type: 'text', multiline: false }, value || '', onChange);
     }
   }

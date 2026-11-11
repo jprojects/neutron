@@ -132,6 +132,17 @@ function neutron_meta_jsonld(array $meta, string $title, string $desc, string $i
             $node['publisher'] = ['@type' => 'Organization', 'name' => neutron_site_name()];
         }
         if ($type === 'Event' && ($post['date'] ?? '') !== '') $node['startDate'] = (string)$post['date'];
+        // Un negocio o un lugar (LocalBusiness, Store, Restaurant…): teléfono, correo, dirección y sus webs y redes
+        if (!in_array($type, ['Article', 'BlogPosting', 'NewsArticle', 'Event', 'CreativeWork'], true)) {
+            foreach (neutron_collection_fields((string)$meta['collection']) as $name => $f) {
+                $v = $post[$name] ?? '';
+                if ($v === '' || $v === []) continue;
+                if ($f['type'] === 'tel') $node['telephone'] ??= (string)$v;
+                if ($f['type'] === 'email') $node['email'] ??= (string)$v;
+                if ($f['type'] === 'url' && is_string($v) && !str_contains($v, 'maps')) $node['sameAs'][] = $v;
+                if (in_array($name, ['address', 'adreca', 'direccion'], true) && is_string($v)) $node['address'] = $v;
+            }
+        }
         $graph[] = array_filter($node, fn($v) => $v !== '' && $v !== null);
     }
     if (count($meta['crumbs']) > 1) {

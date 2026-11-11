@@ -244,3 +244,9 @@ textarea.np-input { resize: vertical; min-height: 64px; }
 .np-bar-day.is-weekend { opacity: .5; }
 .np-top-pages li .np-muted { font-variant-numeric: tabular-nums; }
 .np-item.is-hidden { opacity: .6; }
+
+/* Campo «options»: casillas con icono */
+.np-options { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+.np-option { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--np-line); border-radius: 8px; cursor: pointer; }
+.np-option img { width: 22px; height: 22px; }
+.np-option:has(input:checked) { border-color: var(--np-primary); background: rgba(37, 99, 235, .06); }

@@ -67,8 +67,8 @@ function neutron_search_index(): array {
             $url = neutron_collection_has_page($c) ? $prefix . neutron_post_href($post) : '';
             foreach ($fields as $name => $f) {
                 if ($name === 'title') continue;
-                if (in_array($f['type'], ['text', 'textarea', 'html', 'category'], true)) {
-                    $v = $f['type'] === 'category' ? neutron_post_text($post, $name, (string)(neutron_lang() ?? 'ca')) : neutron_search_plain($post[$name] ?? '');
+                if (in_array($f['type'], ['text', 'textarea', 'html', 'category', 'options'], true)) {
+                    $v = in_array($f['type'], ['category', 'options'], true) ? neutron_post_text($post, $name, (string)(neutron_lang() ?? 'ca')) : neutron_search_plain($post[$name] ?? '');
                     if ($v !== '') $texts[] = $v;
                 }
                 if ($url === '' && in_array($f['type'], ['file', 'video', 'url'], true)) $url = neutron_post_href_of($post, $name);

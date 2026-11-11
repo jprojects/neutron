@@ -335,7 +335,7 @@ function neutron_fallback_fill_categories(object $root, array $opt): void {
     if (!$head) return;
     foreach ($head->children as $c) {
         if (($c->tag ?? null) === 'title') neutron_set_text($c, neutron_category_title_text(neutron_text_content($c), $cat['title']));
-        if (($c->tag ?? null) === 'meta' && ($c->attrs['name'] ?? '') === 'description' && $cat['description'] !== '') $c->attrs['content'] = $cat['description'];
+        if (($c->tag ?? null) === 'meta' && ($c->attrs['name'] ?? '') === 'description') $c->attrs['content'] = neutron_category_description($cat, (string)($c->attrs['content'] ?? ''));
     }
 }
 
@@ -409,6 +409,30 @@ function neutron_fallback_post_images(object $node, array $post, array $opt): bo
     return true;
 }
 
+// Como neutron_dom_post_options()
+function neutron_fallback_post_options(object $node, array $post, array $opt): bool {
+    $name = (string)$node->attrs['data-post-options'];
+    $def = neutron_collection_fields($post['collection'])[$name] ?? null;
+    $options = $def ? neutron_post_options($def, (array)($post[$name] ?? [])) : [];
+    if (!$options && empty($opt['admin'])) return false;
+    $tpl = null;
+    foreach ($node->children ?? [] as $c) { if (($c->type ?? null) === 'element') { $tpl = $c; break; } }
+    if (!$tpl || !$options) return true;
+    $out = [];
+    foreach ($options as $o) {
+        $label = neutron_option_label($o, $opt['lang'] ?? null);
+        $el = neutron_clone_node($tpl);
+        $el->attrs['data-post-option'] = $o['id'];
+        $el->attrs['title'] = $label;
+        if ($o['icon'] === '') neutron_fallback_filter($el, fn($n) => !isset($n->attrs['data-post-option-icon']));
+        foreach (neutron_find_all($el, fn($n) => isset($n->attrs['data-post-option-icon'])) as $img) { $img->attrs['src'] = $o['icon']; $img->attrs['alt'] = ''; }
+        foreach (neutron_find_all($el, fn($n) => isset($n->attrs['data-post-option-label'])) as $n) neutron_set_text($n, $label);
+        $out[] = $el;
+    }
+    $node->children = $out;
+    return true;
+}
+
 // Recorre los descendientes de $node aplicando los campos de la entrada; con $skipLists no entra en los listados.
 function neutron_fallback_post_walk(object $node, array $post, array $opt, bool $skipLists): void {
     $kept = [];
@@ -425,7 +449,9 @@ function neutron_fallback_post_walk(object $node, array $post, array $opt, bool 
 // Aplica los data-post* de un nodo. Devuelve false si hay que quitarlo (imagen vacía fuera del editor).
 function neutron_fallback_post_node(object $node, array $post, array $opt): bool {
     $a = $node->attrs ?? [];
+    if (isset($a['data-post-if']) && empty($opt['admin']) && neutron_post_is_empty($post, (string)$a['data-post-if'])) return false;   // como en render_dom.php
     if (isset($a['data-post-images']) && !neutron_fallback_post_images($node, $post, $opt)) return false;
+    if (isset($a['data-post-options']) && !neutron_fallback_post_options($node, $post, $opt)) return false;
     foreach (['data-post-href' => 'href', 'data-post-src' => 'src'] as $attr => $target) {
         if (!isset($a[$attr])) continue;
         $value = $attr === 'data-post-href' ? neutron_post_href_of($post, $a[$attr]) : neutron_post_src_of($post, $a[$attr]);

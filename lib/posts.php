@@ -14,7 +14,7 @@ require_once __DIR__ . '/sanitize.php';
 // página propia se abre en /blog/. Los borrados van a data/deleted/ (se pueden recuperar a mano).
 
 const NEUTRON_RESERVED_DIRS = ['assets', 'pages', 'partials', 'uploads'];
-const NEUTRON_FIELD_TYPES = ['text', 'textarea', 'html', 'date', 'image', 'images', 'file', 'category', 'url', 'video'];
+const NEUTRON_FIELD_TYPES = ['text', 'textarea', 'html', 'date', 'image', 'images', 'file', 'category', 'url', 'video', 'tel', 'email', 'options'];
 // La definición de un blog: la de las colecciones sin _collection.json (las webs de antes de la 1.18)
 const NEUTRON_BLOG_SCHEMA = [
     'fields' => [
@@ -74,6 +74,17 @@ function neutron_collection_schema(string $name): array {
                     || in_array($f['name'], ['status', 'created', 'updated', 'i18n', 'order', 'slug', 'collection'], true)) continue;
                 $f['type'] = in_array($f['type'] ?? '', NEUTRON_FIELD_TYPES, true) ? $f['type'] : 'text';
                 $f['label'] = (string)($f['label'] ?? ucfirst($f['name']));
+                // options: casillas para marcar, cada una con su id, su texto (o {idioma: texto}) y un icono opcional
+                if ($f['type'] === 'options') {
+                    $opts = [];
+                    foreach ((array)($f['options'] ?? []) as $o) {
+                        if (!is_array($o) || !preg_match('/^[a-z0-9][a-z0-9_-]{0,40}$/', (string)($o['id'] ?? ''))) continue;
+                        $icon = (string)($o['icon'] ?? '');
+                        $opts[] = ['id' => $o['id'], 'label' => is_array($o['label'] ?? null) ? array_map('strval', $o['label']) : (string)($o['label'] ?? $o['id']),
+                            'icon' => preg_match('~^site/(assets|uploads)/[^\s"\'<>]+$~', $icon) && !str_contains($icon, '..') ? $icon : ''];
+                    }
+                    $f['options'] = $opts;
+                }
                 $fields[] = $f;
             }
             if (!in_array('title', array_column($fields, 'name'), true)) array_unshift($fields, ['name' => 'title', 'type' => 'text', 'label' => 'Título']);
@@ -169,6 +180,12 @@ function neutron_categories_view(string $name, array $opt, bool $withEmpty = fal
     return $out;
 }
 
+/** La descripción para buscadores de una página de categoría: la suya o, si no tiene, su nombre delante de la del listado */
+function neutron_category_description(array $cat, string $listing): string {
+    if ($cat['description'] !== '') return $cat['description'];
+    return trim($cat['title'] . ($listing !== '' ? ': ' . $listing : ''));
+}
+
 /** El <title> de una página de categoría: «Activitats · » delante del de la página del listado */
 function neutron_category_title_text(string $current, string $title): string {
     return $title . ' · ' . $current;
@@ -203,7 +220,7 @@ function neutron_post_load(string $collection, string $slug): ?array {
 
 // Valor de un campo según su tipo: imágenes, una lista de rutas; lo demás, texto
 function neutron_post_value(array $field, mixed $value): string|array {
-    if ($field['type'] === 'images') {
+    if ($field['type'] === 'images' || $field['type'] === 'options') {
         return array_values(array_filter(array_map(fn($v) => is_string($v) ? $v : '', (array)$value), fn($v) => $v !== ''));
     }
     return is_string($value) ? $value : '';
@@ -272,6 +289,9 @@ function neutron_post_clean_value(string $collection, array $field, mixed $value
         'date' => preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', (string)$value, $m) && checkdate((int)$m[2], (int)$m[3], (int)$m[1]) ? (string)$value : '',
         'category' => in_array((string)$value, array_column(neutron_collection_categories($collection, true), 'id'), true) ? (string)$value : '',
         'url', 'video' => preg_match('~^(https?://|mailto:|tel:|site/)~i', trim((string)$value)) ? trim((string)$value) : '',
+        'tel' => trim(mb_substr(preg_replace('/[^0-9+().\s-]/', '', (string)$value), 0, 40)),
+        'email' => filter_var(trim((string)$value), FILTER_VALIDATE_EMAIL) ? trim((string)$value) : '',
+        'options' => array_values(array_intersect(array_column($field['options'] ?? [], 'id'), array_map('strval', (array)$value))),
         default => trim(mb_substr((string)$value, 0, (int)($field['max'] ?? 5000))),
     };
 }
@@ -478,7 +498,33 @@ function neutron_post_text(array $post, string $field, string $lang): string {
         };
     }
     if ($type === 'images') return $part === 'count' ? (string)count((array)$value) : '';
+    if ($type === 'options') {
+        $def = neutron_collection_fields($post['collection'])[$name];
+        return implode(', ', array_map(fn($o) => neutron_option_label($o, $lang), neutron_post_options($def, (array)$value)));
+    }
     return is_string($value) && $type !== 'html' ? $value : '';
+}
+
+/** ¿Está vacío el campo? (para data-post-if; varios separados por comas: vacío si lo están todos) */
+function neutron_post_is_empty(array $post, string $fields): bool {
+    foreach (array_filter(array_map('trim', explode(',', $fields))) as $f) {
+        $v = $post[$f] ?? '';
+        if (is_array($v) ? $v !== [] : trim(strip_tags((string)$v)) !== '') return false;
+    }
+    return true;
+}
+
+/** Las opciones marcadas de un campo «options», en el orden de su definición */
+function neutron_post_options(array $field, array $ids): array {
+    return array_values(array_filter($field['options'] ?? [], fn($o) => in_array($o['id'], $ids, true)));
+}
+
+/** El texto de una opción en el idioma que se ve (o el del principal, o el primero) */
+function neutron_option_label(array $option, ?string $lang = null): string {
+    $l = $option['label'];
+    if (!is_array($l)) return (string)$l;
+    $lang = substr((string)($lang ?? neutron_lang() ?? ''), 0, 2);
+    return (string)($l[$lang] ?? $l[neutron_languages()['default'] ?? ''] ?? reset($l) ?? '');
 }
 
 // 2081280 → «2 MB»; 768000 → «750 KB» (con coma decimal salvo en inglés)
@@ -498,6 +544,10 @@ function neutron_post_href_of(array $post, string $field): string {
     $value = $post[$field] ?? '';
     if (!is_string($value) || $value === '') return '';
     if ($type === 'file') return 'download.php?c=' . rawurlencode($post['collection']) . '&i=' . rawurlencode($post['slug']) . '&f=' . rawurlencode($field);
+    // Un enlace con acentos o espacios, codificado (como lo deja DOMDocument: los dos motores dan lo mismo)
+    if (in_array($type, ['url', 'video', 'text'], true)) $value = preg_replace_callback('/[^\x21-\x7e]/u', fn($m) => rawurlencode($m[0]), $value);
+    if ($type === 'tel') return 'tel:' . preg_replace('/[^0-9+]/', '', $value);
+    if ($type === 'email') return 'mailto:' . $value;
     if ($type === 'category') return neutron_collection_has_page($post['collection']) && neutron_category_get($post['collection'], $value) !== null ? neutron_category_href($post['collection'], $value) : '';
     return $value;
 }
@@ -553,6 +603,15 @@ function neutron_post_meta_tags(array $post): array {
         }
         if ($image === '' && $f['type'] === 'image' && is_string($v)) $image = $v;
         if ($image === '' && $f['type'] === 'images' && is_array($v) && $v) $image = (string)$v[0];
+    }
+    // Sin texto: el nombre, la categoría y la dirección (un establecimiento sin descripción)
+    if ($desc === '') {
+        $bits = [(string)($post['title'] ?? '')];
+        foreach (neutron_collection_fields($post['collection']) as $name => $f) {
+            if ($f['type'] === 'category' && ($t = neutron_post_text($post, $name, (string)(neutron_lang() ?? ''))) !== '') $bits[] = $t;
+            if (in_array($name, ['address', 'adreca', 'direccion'], true) && is_string($post[$name] ?? null) && $post[$name] !== '') $bits[] = $post[$name];
+        }
+        $desc = count($bits) > 1 ? implode(' · ', array_filter($bits)) : '';
     }
     $tags = [
         ['meta', 'name', 'description', $desc],

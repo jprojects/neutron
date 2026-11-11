@@ -2,6 +2,16 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.26.0 — 2026-11-11
+
+- Colecciones: campos **`tel`** y **`email`** (enlace `tel:` / `mailto:`) y **`options`** (casillas con icono: las
+  características de un establecimiento), con su control en el panel, `data-post-options` para pintarlas y en el
+  buscador. **`data-post-if="campo"`**: un elemento que solo sale si el campo tiene algo.
+- Fichas de negocios (`"schema": "LocalBusiness"`…): teléfono, correo, dirección y redes en el JSON-LD. Un elemento sin
+  texto tiene descripción (nombre, categoría, dirección); una categoría sin descripción, su nombre delante de la del
+  listado.
+- Los enlaces de los campos con acentos o espacios se codifican igual en los dos motores.
+
 ## 1.25.0 — 2026-11-11
 
 - **Páginas de categoría** en las colecciones con página propia: `/<colección>/categoria/<id>`, el listado filtrado por

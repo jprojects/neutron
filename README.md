@@ -246,7 +246,14 @@ propia: documentos, álbumes, vídeos, que solo salen en los listados).
 
 - Tipos de campo: `text`, `textarea`, `html` (texto con formato, por la lista blanca), `date`, `image`, `images` (un
   álbum), `file` (un documento: PDF, Word, Excel, PowerPoint, LibreOffice, texto, CSV o ZIP, en `site/uploads/docs/`),
-  `category` (de `_categories.json`), `url` y `video` (YouTube o Vimeo). `title` siempre está.
+  `category` (de `_categories.json`), `url`, `video` (YouTube o Vimeo), `tel` y `email` (con `data-post-href`, un enlace
+  `tel:` o `mailto:`) y `options` (casillas para marcar, con un icono cada una: las características de un establecimiento,
+  los servicios…). `title` siempre está.
+- Un campo `options` lleva sus opciones en la definición: `{"name": "features", "type": "options", "label": "Serveis",
+  "options": [{"id": "accessible", "label": "Sense barreres", "icon": "site/assets/icons/accessible.svg"}]}` (el texto
+  también puede ser `{"ca": …, "es": …}`). Se guardan los `id` marcados; en el panel salen como casillas con su icono.
+- `"schema"`: el tipo de schema.org de cada ficha (`Article`, `Product`, `Event`, `LocalBusiness`…). Con un tipo de
+  negocio o lugar, el JSON-LD lleva el teléfono, el correo, la dirección (campo `address`) y los enlaces (`sameAs`).
 - `sort`: `-date` (por defecto, el más nuevo primero), `date`, `title`, `-title` u `order` (orden manual, con flechas
   en el panel). `translated`: los campos que se traducen en una web de varios idiomas (por defecto, `title`).
 - Sin `_collection.json`, la de un blog: `title`, `date`, `image`, `summary`, `body` (html), con `title`, `image`,
@@ -276,6 +283,8 @@ propia: documentos, álbumes, vídeos, que solo salen en los listados).
 | `data-post-href="campo"` | `href` de un fichero (por `download.php`, que cuenta las descargas), un enlace o un vídeo; vacío = se quita |
 | `data-post-src="campo"` | `src` de una imagen o de un vídeo para insertar (`youtube-nocookie.com/embed/…`); en un iframe con `data-consent`, va a `data-consent-src`. `video.thumb`: la miniatura de YouTube |
 | `data-post-images="campo"` | un álbum: su primer hijo es el molde de cada foto, con `data-post-image` (`src`) y `data-post-image-link` (`href`); sin fotos, se quita |
+| `data-post-options="campo"` | las opciones marcadas de un campo `options`: su primer hijo es el molde, con `data-post-option-icon` (un `<img>`) y `data-post-option-label`; el molde lleva el texto en `title`. Sin ninguna, se quita |
+| `data-post-if="campo"` | el elemento solo sale si el campo tiene algo (varios con comas: si alguno lo tiene); para un bloque con su título («Horari» y el horario). En el editor se queda |
 | `data-posts-filter="category:marc-legal"` | solo los que cumplen (`campo:valor`, varios con comas) |
 | `data-posts-group="category"` | por categorías, en el orden de `_categories.json`: molde `data-post-group` con `data-post-group-title`, `-description`, `-count` y los elementos dentro de `data-post-group-items`; los que no tienen categoría, al final con el título de `data-posts-group-other` |
 
@@ -304,10 +313,13 @@ Una galería por álbumes y vídeos con consentimiento:
 </article></div>
 ```
 
+Un elemento sin texto (un establecimiento sin descripción) tiene como descripción para buscadores su nombre, su
+categoría y su dirección. Los enlaces de los campos con acentos o espacios se codifican (`Pla%C3%A7a`).
+
 **Páginas de categoría** (colecciones con página propia y un campo `category`): cada categoría tiene su página,
 `/<colección>/categoria/<id>` (la palabra se cambia con `"category_path"` en `_collection.json`), que es la del listado
 de la colección (`site/pages/<colección>.html`) con su listado paginado filtrado por esa categoría. El `<title>` lleva
-delante el nombre de la categoría y la descripción para buscadores es la de la categoría (si tiene). Las categorías con
+delante el nombre de la categoría y la descripción para buscadores es la de la categoría (si no tiene, su nombre delante de la del listado). Las categorías con
 elementos salen en el sitemap, en `llms.txt` y en la ruta de navegación (JSON-LD). Una categoría que no existe da 404.
 
 | Atributo | Qué hace |
