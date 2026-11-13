@@ -125,7 +125,7 @@
   function renderNav() {
     nav.innerHTML = '';
     var cols = (cfg.collections || []).map(function (c) { return ['col:' + c.name, c.label]; });
-    [['home', 'Inicio'], ['content', 'Contenido']].concat(cols, cfg.menu ? [['menu', 'Menú']] : [], [['messages', 'Mensajes'], ['history', 'Copias']], cfg.seo ? [['seo', 'SEO']] : []).forEach(function (item) {
+    [['home', 'Inicio'], ['content', 'Contenido']].concat(cols, cfg.menu ? [['menu', 'Menú']] : [], [['messages', 'Mensajes'], ['history', 'Copias'], ['chat', 'Chat']], cfg.seo ? [['seo', 'SEO']] : []).forEach(function (item) {
       nav.appendChild(h('button', { type: 'button', class: 'np-nav-item' + (state.view === item[0] ? ' is-active' : ''), onclick: function () { go(item[0]); } },
         [item[1], item[0] === 'messages' && state.unread ? h('span', { class: 'np-badge', text: String(state.unread) }) : null]));
     });
@@ -139,7 +139,7 @@
     renderNav();
     if (view.indexOf('col:') === 0) loadCollection(view.slice(4));
     else if (view === 'home') loadHome(); else if (view === 'seo') loadSeo(); else if (view === 'messages') loadMessages();
-    else if (view === 'history') loadHistory(); else if (view === 'menu') loadMenu(); else loadContent();
+    else if (view === 'history') loadHistory(); else if (view === 'menu') loadMenu(); else if (view === 'chat') loadChat(); else loadContent();
   }
 
   function confirmLeave() {
@@ -873,6 +873,40 @@
       }).catch(function () { saveBtn.disabled = false; status.textContent = t('No se ha podido guardar'); });
     }
     draw();
+  }
+
+  // ------------------------------------------------------------------ chat de Kepler (lib/kepler.php, data/kepler.json)
+  function loadChat() {
+    main.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
+    api('kepler').then(renderChat).catch(failed);
+  }
+
+  function renderChat(d) {
+    var status = h('span', { class: 'np-status' });
+    var enabled = h('input', { type: 'checkbox', checked: d.enabled });
+    var token = h('input', { class: 'np-input', value: d.token, placeholder: t('El valor de data-kepler'), spellcheck: 'false', autocomplete: 'off',
+      oninput: function () { var m = token.value.match(/data-kepler="([0-9a-fA-F]{32})"/); if (m) token.value = m[1]; changed(); } });
+    var saveBtn = h('button', { type: 'button', class: 'np-button', text: t('Guardar'), disabled: true, onclick: save });
+    function changed() { state.dirty = true; saveBtn.disabled = false; status.textContent = t('Cambios sin guardar'); }
+    enabled.addEventListener('change', changed);
+    main.innerHTML = '';
+    main.appendChild(h('header', { class: 'np-head np-sticky' }, [h('h1', { text: t('Chat') }), h('div', { class: 'np-actions' }, [status, saveBtn])]));
+    main.appendChild(h('p', { class: 'np-muted np-small', text: t('El asistente de Kepler contesta a los clientes en todas las páginas de la web. Copia el código de tu panel de Kepler (Ponerlo en tu web) y pégalo aquí: basta con el código entero o solo el valor de data-kepler.') }));
+    main.appendChild(h('section', { class: 'np-card' }, [
+      h('label', { class: 'np-field' }, [h('span', { class: 'np-label', text: t('Código del chat') }), token]),
+      h('label', { class: 'np-check' }, [enabled, ' ' + t('Mostrar el chat en la web')]),
+      d.source === 'config' ? h('p', { class: 'np-muted np-small', text: t('Ahora sale de la configuración del servidor; si lo guardas aquí, manda lo de aquí.') }) : null,
+      h('p', { class: 'np-small' }, [h('a', { class: 'np-link', href: d.url, target: '_blank', rel: 'noopener', text: t('Abrir el panel de Kepler ↗') })])
+    ]));
+    function save() {
+      var v = token.value.trim();
+      if (v && !/^[0-9a-fA-F]{32}$/.test(v)) { alert(t('El código no es válido: copia el valor de data-kepler del panel de Kepler')); return; }
+      saveBtn.disabled = true; status.textContent = t('Guardando…');
+      post('api.php?a=kepler-save', { token: v, enabled: enabled.checked }).then(function (r) {
+        if (!r.ok) { saveBtn.disabled = false; status.textContent = t(r.error || 'No se ha podido guardar'); return; }
+        state.dirty = false; status.textContent = t('Guardado');
+      }).catch(function () { saveBtn.disabled = false; status.textContent = t('No se ha podido guardar'); });
+    }
   }
 
   // ------------------------------------------------------------------ mensajes del formulario (lib/messages.php)

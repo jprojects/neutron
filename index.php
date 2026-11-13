@@ -30,6 +30,7 @@ require_once __DIR__ . '/lib/cookies.php';
 require_once __DIR__ . '/lib/posts.php';
 require_once __DIR__ . '/lib/feeds.php';
 require_once __DIR__ . '/lib/panel_lang.php';
+require_once __DIR__ . '/lib/kepler.php';
 
 // La sesión solo hace falta en el editor: así los visitantes no reciben la cookie de sesión
 if (isset($_GET['admin']) || isset($_COOKIE['neutron_admin_sid'])) {
@@ -275,6 +276,8 @@ if ($cookies !== null) {
 
 header('Content-Type: text/html; charset=utf-8');
 $html = neutron_render($template, $content, $options);
+// Chat de Kepler (lib/kepler.php): no en la edición en la propia página
+if (!$editing) $html = neutron_kepler_inject($html);
 neutron_cache_store($html);
 echo $html;
 // Visitas (lib/stats.php): las páginas vistas por personas, sin cookies

@@ -102,6 +102,13 @@ function neutron_config_defaults(): array {
             ],
         ],
 
+        // Chat de Kepler (asistente con IA de pelu.online) en todas las páginas (lib/kepler.php). El token sale del panel de
+        // Kepler; también se puede poner desde el panel de la web (/admin/ → Chat), que manda sobre este.
+        'kepler' => [
+            'url' => 'https://kepler.pelu.online',
+            'token' => '',
+        ],
+
         // Cabeceras de seguridad en todas las respuestas (lib/security.php): nosniff, X-Frame-Options,
         // Referrer-Policy, Permissions-Policy y HSTS (solo por HTTPS). Y /.well-known/security.txt.
         'security' => [

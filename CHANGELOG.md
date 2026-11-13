@@ -2,6 +2,15 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.27.0 — 2026-11-13
+
+- **Chat de Kepler** (el asistente con IA de pelu.online para peluquerías y centros de estética): con un token, el
+  script del chat se añade antes de `</body>` en todas las páginas (`lib/kepler.php`), salvo en la edición en la propia
+  página. El token se pone en el panel (**Chat**: se puede pegar el código entero que da Kepler), en
+  `config.local.php` (`kepler.token`) o desde Cosmo con la acción remota `kepler-set`. Se guarda en `data/kepler.json`,
+  fuera del núcleo: las actualizaciones no lo tocan. Al cambiarlo se vacía la caché de páginas. El estado remoto
+  (`status`) dice si está puesto (`kepler.enabled`, `kepler.source`).
+
 ## 1.26.0 — 2026-11-11
 
 - Colecciones: campos **`tel`** y **`email`** (enlace `tel:` / `mailto:`) y **`options`** (casillas con icono: las

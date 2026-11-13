@@ -689,6 +689,21 @@ del mes (consultas, errores, tokens y coste en dólares) está en `data/ai/usage
 la IA se para hasta el mes siguiente. El estado remoto (`status` → `ai`) da `month_cost_eur`, `monthly_limit_eur`,
 `limit_state` (`ok`, `warn` desde `warn_at`, `blocked`), `queries`, `errors` y tokens.
 
+### Chat de Kepler
+
+El asistente con IA de pelu.online (Kepler) en todas las páginas de la web: `lib/kepler.php` añade
+`<script src="https://kepler.pelu.online/widget.js" data-kepler="TOKEN" async></script>` antes de `</body>` (no en la
+edición en la propia página, ni si la plantilla ya lleva un `data-kepler`). El token lo da el panel de Kepler
+(*Ponerlo en tu web*). Se puede poner en:
+
+1. El panel de la web, sección **Chat** (se puede pegar el código entero) o Cosmo con la acción remota `kepler-set`
+   (`token`, `enabled`): se guarda en `data/kepler.json` y manda sobre lo demás.
+2. `config.local.php`: `'kepler' => ['token' => '…', 'url' => 'https://kepler.pelu.online']` (`url` solo si Kepler está
+   en otra dirección).
+
+Ninguno de los dos es del núcleo, así que una actualización no lo borra. Al guardarlo se vacía la caché de páginas.
+El `status` remoto lleva `kepler.enabled` y `kepler.source` (`panel`, `config` o vacío).
+
 ## Log
 
 `data/logs/neutron-AAAA-MM-DD.log`, con el mismo formato que Quasar:
@@ -728,6 +743,7 @@ sesión ni envían cookies. Úsala solo por HTTPS.
 | `maintenance` (`on=1\|0`) | POST | Modo mantenimiento: la web, el formulario y el editor responden 503 |
 | `announcements` | GET | Avisos de AFI del panel (`items`) y sus vistas y clics (`stats`: `{id: {views, clicks}}`) |
 | `announcements-set` (`items` = JSON) | POST | Sustituye los avisos por la lista enviada (`[]` los quita); responde como `announcements` |
+| `kepler-set` (`token`, `enabled` = 0/1) | POST | Pone o quita el chat de Kepler (`data/kepler.json`, como el panel); responde `{"ok": true, "kepler": {…}}` |
 
 ```bash
 curl -H "X-Quasar-Token: el-token" "https://cliente.example.com/index.php?r=remote&a=status"

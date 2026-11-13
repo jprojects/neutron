@@ -13,6 +13,7 @@
 //   POST admin/api.php?a=history-restore&id= vuelve a esa versión
 //   GET admin/api.php?a=menu                el menú editable (lib/menu.php): enlaces y páginas a las que puede ir
 //   POST admin/api.php?a=menu-save          {"items": [{href, label: {idioma: texto}, button, hidden}]} · {"reset": true}
+//   GET admin/api.php?a=kepler              chat de Kepler (lib/kepler.php) · POST ?a=kepler-save {"token": "…", "enabled": true}
 define('NEUTRON_APP', true);
 
 require_once __DIR__ . '/../lib/bootstrap.php';
@@ -27,6 +28,7 @@ require_once __DIR__ . '/../lib/history.php';
 require_once __DIR__ . '/../lib/stats.php';
 require_once __DIR__ . '/../lib/menu.php';
 require_once __DIR__ . '/../lib/meta.php';
+require_once __DIR__ . '/../lib/kepler.php';
 
 neutron_block_if_maintenance(true);
 neutron_start_session();
@@ -173,6 +175,21 @@ if ($action === 'menu') {
         'items' => $items ?? neutron_menu_from_template() ?? [], 'targets' => neutron_menu_targets()]);
     exit;
 }
+if ($action === 'kepler') {
+    $k = neutron_kepler_settings();
+    echo json_encode(['ok' => true, 'token' => $k['token'], 'enabled' => $k['enabled'], 'url' => $k['url'], 'source' => $k['source']]);
+    exit;
+}
+
+if ($action === 'kepler-save' && $post) {
+    neutron_require_csrf();
+    $in = json_decode((string)file_get_contents('php://input'), true) ?: [];
+    $ok = neutron_kepler_save((string)($in['token'] ?? ''), !empty($in['enabled']));
+    if (!$ok) http_response_code(422);
+    echo json_encode(['ok' => $ok, 'error' => $ok ? null : 'El código no es válido: copia el valor de data-kepler del panel de Kepler']);
+    exit;
+}
+
 if ($action === 'menu-save' && $post) {
     neutron_require_csrf();
     $in = json_decode((string)file_get_contents('php://input'), true) ?: [];

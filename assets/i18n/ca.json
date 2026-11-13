@@ -341,5 +341,13 @@
     "{} · {}": "{} · {}",
     "{} › {}": "{} › {}",
     "600 000 000": "600 000 000",
-    "nom@exemple.cat": "nom@exemple.cat"
+    "nom@exemple.cat": "nom@exemple.cat",
+    "Chat": "Xat",
+    "El valor de data-kepler": "El valor de data-kepler",
+    "El asistente de Kepler contesta a los clientes en todas las páginas de la web. Copia el código de tu panel de Kepler (Ponerlo en tu web) y pégalo aquí: basta con el código entero o solo el valor de data-kepler.": "L'assistent de Kepler contesta els clients a totes les pàgines de la web. Copia el codi del teu tauler de Kepler (Posar-lo a la teva web) i enganxa'l aquí: serveix el codi sencer o només el valor de data-kepler.",
+    "Código del chat": "Codi del xat",
+    "Mostrar el chat en la web": "Mostrar el xat a la web",
+    "Ahora sale de la configuración del servidor; si lo guardas aquí, manda lo de aquí.": "Ara surt de la configuració del servidor; si el deses aquí, mana el d'aquí.",
+    "Abrir el panel de Kepler ↗": "Obrir el tauler de Kepler ↗",
+    "El código no es válido: copia el valor de data-kepler del panel de Kepler": "El codi no és vàlid: copia el valor de data-kepler del tauler de Kepler"
 }

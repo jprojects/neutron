@@ -36,6 +36,7 @@ const NEUTRON_REMOTE_ACTIONS = [
     'maintenance' => ['POST', 'neutron_remote_maintenance'],
     'announcements' => ['GET', 'neutron_remote_announcements'],
     'announcements-set' => ['POST', 'neutron_remote_announcements_set'],
+    'kepler-set' => ['POST', 'neutron_remote_kepler_set'],
 ];
 
 function neutron_remote_handle(string $action): void {
@@ -155,6 +156,12 @@ function neutron_remote_status(): void {
             'languages' => array_keys(neutron_languages()['languages'] ?? []),
             'posts' => array_sum(array_map(fn($c) => count(glob(NEUTRON_SITE . '/' . $c . '/*.json') ?: []), neutron_collections())),
         ],
+        // Chat de Kepler (lib/kepler.php): si está puesto y desde dónde (panel o config.local.php)
+        'kepler' => (function () {
+            require_once NEUTRON_ROOT . '/lib/kepler.php';
+            $k = neutron_kepler_settings();
+            return ['enabled' => $k['enabled'] && neutron_kepler_valid_token($k['token']), 'source' => $k['source']];
+        })(),
         'recaptcha' => [
             'enabled' => neutron_recaptcha_enabled(),
             // Un formulario sin reCAPTCHA es un aviso para Cosmo: la regla es llevarlo siempre
@@ -319,6 +326,17 @@ function neutron_remote_announcements_set(): void {
     $saved = neutron_announcements_save($items);
     neutron_log('notice', 'Avisos de AFI actualizados desde Cosmo: {count}', ['count' => count($saved)]);
     neutron_json(['ok' => true, 'items' => $saved, 'stats' => neutron_announcements_stats() ?: new stdClass()]);
+}
+
+// Chat de Kepler: token (vacío = quitarlo) y enabled (0/1). Lo guarda como el panel de la web (lib/kepler.php).
+function neutron_remote_kepler_set(): void {
+    require_once NEUTRON_ROOT . '/lib/kepler.php';
+    $token = (string)($_POST['token'] ?? '');
+    if (!neutron_kepler_save($token, ($_POST['enabled'] ?? '1') !== '0')) {
+        neutron_remote_fail('token no válido (32 caracteres hexadecimales)', 422);
+        return;
+    }
+    neutron_json(['ok' => true, 'kepler' => neutron_kepler_settings()]);
 }
 
 // ------------------------------------------------------------------ utilidades
