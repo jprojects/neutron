@@ -189,7 +189,9 @@
       });
       main.appendChild(h('section', { class: 'np-card' }, [h('h2', { text: 'Últimos cambios' }),
         home.recent && home.recent.length ? list : h('p', { class: 'np-muted', text: 'Todavía no hay cambios guardados desde el editor.' })]));
-      main.appendChild(h('p', { class: 'np-version', text: 'Neutron ' + home.version }));
+      // La guía de edición de la web (site/guia-edicio.pdf, lib/guide.php), si la tiene: junto a la versión
+      main.appendChild(h('p', { class: 'np-version' }, [h('span', { text: 'Neutron ' + home.version }), home.guide ? h('span', { text: ' · ' }) : null,
+        home.guide ? h('a', { href: 'guide.php', target: '_blank', rel: 'noopener', text: t('Guía de edición (PDF)') }) : null]));
     }).catch(failed);
   }
   // Visitas de los últimos 30 días (lib/stats.php): totales, una barra por día y las páginas más vistas

@@ -6,7 +6,9 @@
 # Trabaja sobre una copia temporal de la instalación (con una contraseña de prueba): la web de verdad no se toca.
 # Los apartados que la web no tiene (blog, idiomas, formulario, varias páginas, redes sociales) no salen en la guía.
 # El PDF se guarda en la carpeta de la web, con la fecha en el nombre (guia-edicio-AAAA-MM-DD.pdf): así queda con la web y no
-# se pierde la anterior. Hace falta Node 22, Chromium (tools/cdp.mjs) y PIL.
+# se pierde la anterior, y como site/guia-edicio.pdf, que el panel de la web enlaza junto a la versión (solo con la sesión
+# abierta) y se publica con la web. Lleva la cabecera, el pie y la portada de AFI (docs/marca-afi).
+# Hace falta Node 22, Chromium (tools/cdp.mjs), PIL y pdfunite (poppler-utils).
 import argparse, datetime, html, json, os, re, shutil, socket, subprocess, sys, tempfile, time
 from pathlib import Path
 from PIL import Image
@@ -14,6 +16,8 @@ from PIL import Image
 AQUI = Path(__file__).resolve().parent
 REPO = AQUI.parent.parent
 CDP = REPO / 'tools' / 'cdp.mjs'
+sys.path.insert(0, str(AQUI.parent / 'marca-afi'))
+import marca                                               # cabecera, pie y portada con la marca de AFI
 IDIOMES = {'ca': 'català', 'es': 'castellà', 'en': 'anglès', 'fr': 'francès', 'de': 'alemany', 'it': 'italià', 'pt': 'portuguès'}
 MESOS = ['gener', 'febrer', 'març', 'abril', 'maig', 'juny', 'juliol', 'agost', 'setembre', 'octubre', 'novembre', 'desembre']
 PROVA = 'guia-prova-1234'
@@ -191,17 +195,29 @@ t = (t.replace('{{NOM}}', html.escape(a.nom)).replace('{{ADMIN_URL}}', html.esca
                else 'Les xarxes del peu de la web: feu clic en una icona per canviar-ne l\'adreça.'))
 index = ''.join(f'\n    <li>{html.escape(re.sub("<[^>]+>", "", m))}</li>' for m in re.findall(r'<h2 class="num"[^>]*>(.*?)</h2>', t))
 t = t.replace('{{INDEX}}', index + '\n  ')
+t = t.replace('{{MARGE}}', marca.MARGE_CSS).replace('{{AFI_CSS}}', marca.PORTADA_CSS).replace('{{AFI_PORTADA}}', marca.portada_html('afi-logo.png'))
+assert '{{' not in t, re.findall(r'\{\{\w+\}\}', t)
+shutil.copy(marca.LOGO, treball / 'afi-logo.png')
 (treball / 'guia.html').write_text(t)
 for f in AQUI.glob('*.woff2'): shutil.copy(f, treball / f.name)
 
 pdf = treball / 'pasos-pdf.mjs'
+# La portada se imprime aparte, sin la cabecera ni el pie de AFI (Chromium los pintaría encima aunque tenga margen 0), y se une
+# con el resto (pdfunite, de poppler-utils).
 pdf.write_text('''import { writeFileSync } from 'node:fs';
+const print = async (send, params, out) => {
+  const r = await send('Page.printToPDF', { printBackground: true, preferCSSPageSize: true, ...params });
+  if (!r.result) throw new Error(JSON.stringify(r)); writeFileSync(out, Buffer.from(r.result.data, 'base64')); };
 export default [['pdf', async ({ send, sleep }) => { await sleep(1500);
-  const r = await send('Page.printToPDF', { printBackground: true, preferCSSPageSize: true });
-  writeFileSync(%s, Buffer.from(r.result.data, 'base64')); return 'ok'; }]];
-''' % json.dumps(str(treball / 'guia.pdf')))
+  await print(send, { pageRanges: '1' }, %s);
+  await print(send, { pageRanges: '2-', ...%s }, %s); return 'ok'; }]];
+''' % (json.dumps(str(treball / 'portada.pdf')), json.dumps(marca.parametres_pdf()), json.dumps(str(treball / 'interior.pdf'))))
 subprocess.run(['node', str(CDP), 'file://' + str(treball / 'guia.html'), str(pdf)], check=True, capture_output=True, timeout=120)
+subprocess.run(['pdfunite', str(treball / 'portada.pdf'), str(treball / 'interior.pdf'), str(treball / 'guia.pdf')], check=True)
 sortida.parent.mkdir(parents=True, exist_ok=True)
 shutil.copy(treball / 'guia.pdf', sortida)
+if not a.sortida:   # la que enlaza el panel de la web (solo con la sesión abierta; lib/guide.php): va con la web al publicarla
+    shutil.copy(treball / 'guia.pdf', site / 'guia-edicio.pdf')
+    print('Panel:', site / 'guia-edicio.pdf')
 shutil.rmtree(cap, ignore_errors=True)
 print('PDF:', sortida)

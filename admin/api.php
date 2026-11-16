@@ -2,7 +2,7 @@
 // Datos del panel (admin/index.php), en JSON y con la sesión del editor. Solo lectura: se guarda con admin/save.php,
 // como en la edición en la propia página (así los avisos de conflicto valen para los dos).
 //
-//   GET admin/api.php?a=home                inicio: datos de la web, últimos cambios y avisos de AFI
+//   GET admin/api.php?a=home                inicio: datos de la web, últimos cambios, avisos de AFI y si hay guía (lib/guide.php)
 //   GET admin/api.php?a=content[&lang=es]   lo editable (lib/schema.php) con los valores de ese idioma
 //   POST admin/api.php?a=notice-click&id=…   clic en el botón de un aviso de AFI (estadística para Cosmo)
 //   GET admin/api.php?a=seo                 análisis con Pulsar: páginas, últimos informes, historial y los que quedan hoy
@@ -29,6 +29,7 @@ require_once __DIR__ . '/../lib/stats.php';
 require_once __DIR__ . '/../lib/menu.php';
 require_once __DIR__ . '/../lib/meta.php';
 require_once __DIR__ . '/../lib/kepler.php';
+require_once __DIR__ . '/../lib/guide.php';
 
 neutron_block_if_maintenance(true);
 neutron_start_session();
@@ -84,6 +85,7 @@ if ($action === 'home') {
         'ok' => true,
         'name' => neutron_site_name(),
         'version' => trim((string)@file_get_contents(NEUTRON_ROOT . '/VERSION')),
+        'guide' => neutron_guide_info(),
         'languages' => $langs,
         'pages' => count(neutron_site_pages()),
         'collections' => $cols,

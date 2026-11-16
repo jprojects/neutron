@@ -2,6 +2,15 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.28.0 — 2026-11-16
+
+- **Guía de edición en el panel**: si la web tiene `site/guia-edicio.pdf`, el inicio del panel la enlaza junto a la
+  versión. Solo se descarga con la sesión abierta (`admin/guide.php`, `lib/guide.php`); el `.htaccess` y `router.php`
+  prohíben pedirla directamente. El estado remoto dice si la hay (`site.guide`: `{size, modified}` o `null`).
+- Herramientas (no son del núcleo): la guía (`docs/guia-edicio/generar.py`) lleva la marca de AFI de
+  `docs/marca-afi/marca.py` (logo y direcciones arriba en la portada; cabecera y pie con la línea azul en las demás
+  páginas) y se guarda también en `site/guia-edicio.pdf`. `tools/check.py` avisa si la web aún no tiene guía.
+
 ## 1.27.0 — 2026-11-13
 
 - **Chat de Kepler** (el asistente con IA de pelu.online para peluquerías y centros de estética): con un token, el

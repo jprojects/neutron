@@ -103,6 +103,8 @@ if has_form:
 
 for f, link in [('favicon.ico', 'rel="icon"'), ('apple-touch-icon.png', 'rel="apple-touch-icon"')]:
     report('✓' if (site / f).exists() else '✗', f'site/{f}' + ('' if (site / f).exists() else ': falta'))
+if not (site / 'guia-edicio.pdf').exists() and not a.guia:
+    report('!', 'sin site/guia-edicio.pdf (la guía del panel): al terminar, --guia --nom … --url …')
 if not (site / 'cookies.json').exists(): report('✗', 'falta site/cookies.json (aunque no haya terceros: categories vacío)')
 for l in codes[1:]:
     if not (site / f'cookies.{l}.json').exists(): report('!', f'sin cookies.{l}.json: el faldón saldrá en el idioma principal')

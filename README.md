@@ -551,6 +551,10 @@ El cliente entra en `/admin/` con la misma contraseña que el editor (la sesión
   descarta (las traducciones se guardan en cada idioma al pulsar «Guardar las traducciones»). `lib/ai.php` y
   `admin/ai.php`; ver «IA» en Configuración.
 - **Editar en la web**: la edición sobre la propia página (`?admin`), que tiene un botón **Panel** para volver.
+- **Guía de edición**: si la web tiene `site/guia-edicio.pdf` (la guía del cliente que hace `docs/guia-edicio/generar.py`, que
+  la deja allí), el inicio del panel la enlaza junto a la versión («Guía de edición (PDF)»). Solo se descarga con la sesión
+  abierta (`admin/guide.php`, `lib/guide.php`): el `.htaccess` y `router.php` prohíben pedirla directamente. Es de la web,
+  no del núcleo: va con `site/` al publicarla y en sus copias, y las actualizaciones no la tocan.
 
 No hay que preparar nada en cada web: `lib/schema.php` saca los campos de las plantillas (sin DOMDocument). Las
 secciones son los `<section>`, `<header>`, `<footer>`, `<nav>`, `<aside>`, `<article>` y `<form>` con campos; un
@@ -731,7 +735,7 @@ sesión ni envían cookies. Úsala solo por HTTPS.
 
 | Acción `index.php?r=remote&a=` | Método | Qué hace |
 |---|---|---|
-| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon`, `cookies`, `posts` y `languages`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
+| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon`, `cookies`, `guide`, `posts` y `languages`; `guide` es `{size, modified}` o `null`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
 | `logs&level=warning&limit=100&days=7` | GET | Últimas entradas del log |
 | `integrity` | GET | Ficheros del núcleo cambiados a mano e historial de actualizaciones |
 | `backups` | GET | Copias de `data/backups` |
@@ -793,7 +797,7 @@ el navegador, Node 22 y Chromium.
 | `python3 tools/regresion.py [webs…]` | Antes de publicar una versión: cada web local (las instalaciones de `~/Projects`) con su núcleo y con el del repositorio, y los dos motores de render, comparando el HTML de su sitemap. Las webs no se tocan (copias temporales). Sale con 1 si hay diferencias. |
 | `python3 tools/compose.py <instalación>` | Monta el `site/` con los **bloques** de `blocks/` según la receta `site/compose.json`: plantilla, páginas, parciales, tema (colores y tipografías, que se alojan en la web), CSS y JS, cookies y formulario en cada idioma, y los textos por defecto que falten en `content*.json` (sin pisar los que hay). No reescribe una plantilla tocada a mano. Ver `blocks/README.md`. |
 | `python3 tools/legal.py <instalación> [--nif NIF]` | Aviso legal, privacidad y cookies en todos los idiomas: privacidad y cookies con Pulsar (`~/Projects/pulsar`), según lo que tiene la web (formulario, mapas, vídeos, redes). Datos del titular en `site/legal.json`: los fiscales (nombre, NIF, domicilio) de la ficha del cliente en Asteroid, buscado por el NIF (token del MCP de Asteroid en `~/.config/asteroid-mcp/token`; `--sin-asteroid` para no consultarlo), y el resto de la web antigua si `migrate.py` los encontró; lo que falte sale como «[PENDENT: …]». Respeta los textos editados a mano. |
-| `python3 docs/guia-edicio/generar.py <instalación> --nom "…" --url …` | Guía de edición en PDF (catalán) con capturas de la web del cliente, en su carpeta (`guia-edicio-AAAA-MM-DD.pdf`). |
+| `python3 docs/guia-edicio/generar.py <instalación> --nom "…" --url …` | Guía de edición en PDF (catalán) con capturas de la web del cliente, en su carpeta (`guia-edicio-AAAA-MM-DD.pdf`) y en `site/guia-edicio.pdf` (la que enlaza el panel), con la marca de AFI (`docs/marca-afi/marca.py`: logo arriba en la portada, cabecera y pie con la línea azul en las demás; para cualquier documento que se entregue al cliente). |
 | `node tools/cdp.mjs <url> <pasos.mjs>` | Chromium sin ventana por el protocolo de DevTools, para probar el editor y hacer capturas. |
 
 ## Versiones y publicación

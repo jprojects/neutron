@@ -10,7 +10,7 @@
 @font-face { font-family: Lora; font-weight: 600; src: url(lora-600.woff2) format("woff2"); }
 @font-face { font-family: Lora; font-style: italic; font-weight: 400; src: url(lora-400-italic.woff2) format("woff2"); }
 
-@page { size: A4; margin: 20mm 19mm 22mm; }
+@page { size: A4; margin: {{MARGE}}; }   /* la cabecera y el pie de AFI van en el margen (docs/marca-afi) */
 @page :first { margin: 0; }
 :root { --ink: #2c2a2e; --muted: #625d66; --accent: #2563eb; --soft: #eef3fd; --line: #e3e1e6; --warm: #fff6e5; }
 * { box-sizing: border-box; }
@@ -58,7 +58,7 @@ td:first-child { white-space: nowrap; width: 1%; }
   color: var(--accent); font: 700 9pt/6mm Lato, sans-serif; text-align: center; }
 
 /* Portada */
-.cover { height: 297mm; padding: 34mm 24mm 22mm; display: flex; flex-direction: column; color: #fff;
+.cover { height: 297mm; padding: 0 24mm 22mm; display: flex; flex-direction: column; color: #fff;
   background: radial-gradient(120mm 120mm at 100% 0, rgba(255,255,255,.12), transparent 70%), linear-gradient(160deg, #1e3a8a, #2563eb 55%, #3b82f6); }
 .cover .tag { font: 700 10pt Lato, sans-serif; letter-spacing: .25em; text-transform: uppercase; opacity: .8; }
 .cover h1 { color: #fff; font-size: 38pt; margin: 8mm 0 6mm; max-width: 140mm; }
@@ -66,10 +66,12 @@ td:first-child { white-space: nowrap; width: 1%; }
 .cover .shot { margin-top: auto; border-radius: 8px; overflow: hidden; box-shadow: 0 6mm 18mm rgba(0,0,0,.35); border: 2px solid rgba(255,255,255,.4); }
 .cover .shot img { width: 100%; display: block; }
 .cover .foot { margin-top: 10mm; display: flex; justify-content: space-between; font-size: 9.5pt; opacity: .85; }
+.cover .afi-portada { margin: 0 -24mm 24mm; }
+{{AFI_CSS}}
 
 /* Índex */
 .toc { list-style: none; padding: 0; margin: 6mm 0 0; columns: 2; column-gap: 10mm; }
-.toc li { break-inside: avoid; padding: 2.2mm 0; border-bottom: 1px solid var(--line); font-size: 10.5pt; }
+.toc li { break-inside: avoid; padding: 1.8mm 0; border-bottom: 1px solid var(--line); font-size: 10.5pt; }
 .lead { font: 12pt/1.6 Lora, serif; color: #3b3840; }
 .cards { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4mm; margin: 6mm 0; }
 .card { border: 1px solid var(--line); border-radius: 6px; padding: 4mm; break-inside: avoid; }
@@ -81,6 +83,7 @@ td:first-child { white-space: nowrap; width: 1%; }
 <body>
 
 <div class="cover">
+  {{AFI_PORTADA}}
   <div class="tag">Guia d'edició · Neutron</div>
   <h1>Com gestionar la web<br>{{NOM}}</h1>
   <p class="sub">Canviar textos, imatges i llistes, publicar notícies al blog i desar els canvis, directament des de la mateixa pàgina.</p>
