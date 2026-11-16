@@ -2,6 +2,17 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.30.0 — 2026-11-16
+
+- **La guía de edición explica el panel** (`/admin/`): apartado nuevo con capturas del inicio (y el enlace a la guía), de
+  *Contenido*, de las fichas de cada colección, del menú, de los mensajes y de la IA, solo con lo que tiene cada web. Los
+  botones y apartados salen en el idioma del panel (`assets/i18n`), no siempre en castellano. `generar.py` pone en la copia
+  el núcleo del repositorio, para que la guía sea la de la versión actual, y acepta `--seo` y `--ia` (lo que depende del
+  servidor).
+- **Edición de la guía** (`NEUTRON_GUIDE_EDITION` en `lib/guide.php`, ahora 2): `generar.py` la apunta en
+  `site/guia-edicio.json` y el estado remoto dice si la guía de la web es de una edición anterior (`site.guide.outdated`),
+  para que Cosmo avise y la regenere. El estado dice también si hay análisis SEO (`seo.enabled`).
+
 ## 1.29.0 — 2026-11-16
 
 - **Guía de edición regenerable desde Cosmo**: `generar.py` escribe junto a la guía `site/guia-edicio.json` (nombre y

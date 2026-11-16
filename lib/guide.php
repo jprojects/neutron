@@ -12,6 +12,12 @@ if (!defined('NEUTRON_APP')) { http_response_code(403); exit; }
 
 const NEUTRON_GUIDE_MAX_BYTES = 30 * 1024 * 1024;
 
+// Edición de la guía: se sube cuando un cambio del editor o del panel deja desfasadas las guías hechas antes (un apartado
+// nuevo, un botón que cambia). generar.py la apunta en site/guia-edicio.json (la lee de este fichero del repositorio), y
+// una web con una guía de una edición anterior lo dice en su estado (outdated), para que Cosmo la regenere.
+//   1: la edición en la propia página (hasta la 1.29.0) · 2: el panel (/admin/) y los botones en el idioma del panel (1.30.0)
+const NEUTRON_GUIDE_EDITION = 2;
+
 function neutron_guide_path(): string {
     return NEUTRON_SITE . '/guia-edicio.pdf';
 }
@@ -73,6 +79,9 @@ function neutron_guide_info(): ?array {
         // null: guía sin huella (hecha a mano o antes de la 1.29.0), no se sabe
         'structure_changed' => isset($meta['fingerprint']) ? !hash_equals((string)$meta['fingerprint'], neutron_guide_fingerprint()) : null,
         'edits_since' => $edits,
+        // Hecha con una edición anterior de la guía (sin edición apuntada: la 1)
+        'edition' => (int)($meta['edition'] ?? 1),
+        'outdated' => (int)($meta['edition'] ?? 1) < NEUTRON_GUIDE_EDITION,
     ];
 }
 
@@ -89,7 +98,7 @@ function neutron_guide_save(string $tmp, array $meta): void {
         @unlink($part);
         throw new RuntimeException('No se puede escribir en site/');
     }
-    $keep = array_intersect_key($meta, array_flip(['nom', 'url', 'generated', 'fingerprint']));
+    $keep = array_intersect_key($meta, array_flip(['nom', 'url', 'generated', 'fingerprint', 'edition']));
     $keep = array_map('strval', array_filter($keep, 'is_scalar'));
     require_once NEUTRON_ROOT . '/lib/remote/state.php';
     neutron_write_json(neutron_guide_meta_path(), $keep + ['generated' => date(DATE_ATOM)]);

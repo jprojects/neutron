@@ -13,6 +13,7 @@ require_once __DIR__ . '/../posts.php';
 require_once __DIR__ . '/../announcements.php';
 require_once __DIR__ . '/../ai.php';
 require_once __DIR__ . '/../guide.php';
+require_once __DIR__ . '/../seo.php';
 
 // API para el panel central de instalaciones (Cosmo): index.php?r=remote&a=acción (y ?r=status).
 // Mismas acciones y respuestas que la de Quasar, así Cosmo gestiona las dos igual.
@@ -171,6 +172,8 @@ function neutron_remote_status(): void {
             'missing' => str_contains($template, 'data-neutron-form') && !neutron_recaptcha_enabled(),
         ],
         'ai' => neutron_ai_status(),
+        // Análisis SEO/GEO con Pulsar en el panel (lib/seo.php): si está configurado (la guía de edición lo explica si lo hay)
+        'seo' => ['enabled' => neutron_seo_config() !== null],
         'maintenance' => neutron_maintenance(),
         'backups' => ['count' => count($backups), 'last' => $backups[0] ?? null],
         'logs' => neutron_logs_counts24h(),

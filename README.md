@@ -557,7 +557,9 @@ El cliente entra en `/admin/` con la misma contraseña que el editor (la sesión
   no del núcleo: va con `site/` al publicarla y en sus copias, y las actualizaciones no la tocan. Al lado, `site/guia-edicio.json`
   (lo escribe `generar.py`: nombre y dirección de la portada, fecha y huella de la estructura de la web). Con él, el estado
   remoto dice si la guía se ha quedado vieja: `structure_changed` (han cambiado la plantilla, las páginas, los parciales, la
-  plantilla de una colección o los idiomas) y `edits_since` (campos editados después). Cosmo lo avisa y la regenera con su
+  plantilla de una colección o los idiomas), `edits_since` (campos editados después) y `outdated` (se hizo con una edición
+  anterior de la guía: `NEUTRON_GUIDE_EDITION` en `lib/guide.php`, que se sube cuando un cambio del editor o del panel la deja
+  desfasada). Cosmo lo avisa y la regenera con su
   MCP (`cosmo_guia`, en el ordenador de quien lo usa, porque hace falta Chromium), que la sube con la acción remota `guide-set`.
 
 No hay que preparar nada en cada web: `lib/schema.php` saca los campos de las plantillas (sin DOMDocument). Las
@@ -739,7 +741,7 @@ sesión ni envían cookies. Úsala solo por HTTPS.
 
 | Acción `index.php?r=remote&a=` | Método | Qué hace |
 |---|---|---|
-| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon`, `cookies`, `guide`, `posts` y `languages`; `guide` es `{size, modified, nom, url, generated, structure_changed, edits_since}` o `null`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
+| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon`, `cookies`, `guide`, `posts` y `languages`; `guide` es `{size, modified, nom, url, generated, structure_changed, edits_since, edition, outdated}` o `null`), `seo.enabled`, reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
 | `logs&level=warning&limit=100&days=7` | GET | Últimas entradas del log |
 | `integrity` | GET | Ficheros del núcleo cambiados a mano e historial de actualizaciones |
 | `backups` | GET | Copias de `data/backups` |

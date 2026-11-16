@@ -49,6 +49,7 @@ figcaption { font-size: 8.8pt; color: var(--muted); margin-top: 2mm; text-align:
 .tip p:last-child, .warn p:last-child { margin: 0; }
 .tip b, .warn b { display: block; margin-bottom: 1mm; }
 table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 9.8pt; break-inside: avoid; }
+table.llarga { break-inside: auto; } table.llarga tr { break-inside: avoid; }
 th, td { text-align: left; vertical-align: top; padding: 2mm 2.6mm; border-bottom: 1px solid var(--line); }
 th { background: #f6f5f8; font-weight: 700; }
 td:first-child { white-space: nowrap; width: 1%; }
@@ -93,8 +94,9 @@ td:first-child { white-space: nowrap; width: 1%; }
 
 <section class="page">
   <h2>Abans de començar</h2>
-  <p class="lead">La vostra web funciona amb <strong>Neutron</strong>, un gestor de continguts senzill: no cal cap programa ni cap tauler a part. Els canvis es fan
-    <strong>sobre la mateixa pàgina</strong> que veuen els visitants: feu clic en un text, l'escriviu de nou i premeu <span class="btn">Guardar cambios</span>.</p>
+  <p class="lead">La vostra web funciona amb <strong>Neutron</strong>, un gestor de continguts senzill: no cal instal·lar cap programa. Els canvis es fan
+    <strong>sobre la mateixa pàgina</strong> que veuen els visitants: feu clic en un text, l'escriviu de nou i premeu <span class="btn">Guardar cambios</span>.
+    I a més teniu el <strong>tauler de la web</strong>, amb tot el contingut en formularis<!--if:form-->, els missatges del formulari<!--endif:form--> i les còpies dels canvis.</p>
   <div class="cards">
     <div class="card"><b>Textos</b><p>Títols, paràgrafs, telèfons, horaris, preus… qualsevol text marcat com a editable.</p></div>
     <div class="card"><b>Imatges</b><p>Feu clic en una foto per substituir-la per una altra del vostre ordinador.</p></div>
@@ -102,9 +104,10 @@ td:first-child { white-space: nowrap; width: 1%; }
   </div>
 <!--if:blog-->  <p>També hi podreu crear entrades noves al blog, desar-les com a esborrany i publicar-les quan vulgueu.</p>
 <!--endif:blog-->
-  <div class="tip"><b>Els botons de l'editor surten en castellà</b>
-    <p>Els textos de la vostra web són en el vostre idioma, però els botons de l'editor (<span class="btn">Guardar cambios</span>, <span class="btn">Salir</span>,
+<!--if:panel-es-->  <div class="tip"><b>Els botons de l'editor surten en castellà</b>
+    <p>Els textos de la vostra web són en el vostre idioma, però els botons de l'editor i del tauler (<span class="btn">Guardar cambios</span>, <span class="btn">Salir</span>,
     <span class="btn green">+ Nueva entrada</span>…) apareixen en castellà. En aquesta guia els escrivim tal com els veureu a la pantalla.</p></div>
+<!--endif:panel-es-->
   <div class="tip"><b>Millor des d'un ordinador</b>
     <p>L'editor funciona en qualsevol navegador actual (Chrome, Firefox, Safari, Edge). Es pot fer servir des del mòbil, però és més còmode amb pantalla gran i ratolí.</p></div>
 
@@ -232,7 +235,8 @@ td:first-child { white-space: nowrap; width: 1%; }
     <li>Cada pàgina es desa per separat: deseu <strong>abans</strong> de passar a una altra pàgina.</li>
     <li>Si apareix un error en desar, comproveu la connexió i torneu-ho a provar. Si continua, aviseu-nos: no tanqueu la pestanya, així no es perd el que heu escrit.</li>
   </ul>
-  <div class="tip"><b>Còpies de seguretat</b><p>Nosaltres podem fer i recuperar còpies de seguretat de la web. Si s'esborra alguna cosa per error, aviseu-nos com més aviat millor.</p></div>
+  <div class="tip"><b>Còpies de seguretat</b><p>Cada vegada que deseu, la web guarda com estava abans: si us equivoqueu, ho podeu recuperar vosaltres mateixos
+    des del tauler, a <span class="ui">Copias</span> (vegeu «El tauler de la web»). A més, nosaltres en fem còpies de seguretat completes.</p></div>
 
 <!--if:pages-->  <h2 class="num" style="margin-top:9mm">Diverses pàgines</h2>
   <p>La web té diverses pàgines: a la barra hi ha el desplegable <span class="ui">Página</span>: trieu-ne una i s'obre ja en mode d'edició.
@@ -290,7 +294,8 @@ td:first-child { white-space: nowrap; width: 1%; }
   </ul>
 <!--endif:langs-->
 <!--if:form-->  <h2 class="num" style="margin-top:9mm">Formulari de contacte</h2>
-  <p>Els missatges del formulari us arriben <strong>per correu electrònic</strong>, amb les dades que ha escrit la persona. Si responeu el correu, la resposta va directament a ella.</p>
+  <p>Els missatges del formulari us arriben <strong>per correu electrònic</strong>, amb les dades que ha escrit la persona. Si responeu el correu, la resposta va directament a ella.
+    També queden guardats al tauler, a <span class="ui">Mensajes</span>: així no se'n perd cap encara que el correu falli.</p>
   <ul>
     <li>El formulari està protegit contra el correu brossa amb <strong>Google reCAPTCHA</strong>, sense que els visitants hagin de resoldre cap prova.</li>
     <li>En mode d'edició el formulari no envia res: per provar-lo, sortiu de l'editor.</li>
@@ -298,14 +303,44 @@ td:first-child { white-space: nowrap; width: 1%; }
   </ul>
 <!--endif:form--></section>
 
+<section class="page">
+  <h2 class="num">El tauler de la web</h2>
+  <p>A més d'editar sobre la pàgina, la web té un <strong>tauler</strong> amb tot el contingut en formularis i les eines de la web. S'hi entra a
+    <code>{{PANEL_URL}}</code> amb la mateixa contrasenya, o des de l'editor amb el botó <span class="btn">Panel</span> de la barra. Del tauler a la pàgina,
+    amb <span class="ui">Editar en la web ↗</span>.</p>
+<!--if:shot-tauler-->  <figure class="mid"><img src="c-tauler.jpg" alt=""><figcaption>L'inici del tauler. Al peu, al costat de la versió, l'enllaç «{{GUIA_ENLLAC}}» obre aquesta guia.</figcaption></figure>
+<!--endif:shot-tauler-->  <table class="llarga">
+    <tr><th>Apartat</th><th>Per a què serveix</th></tr>
+    <tr><td><span class="ui">Inicio</span></td><td>El resum de la web: pàgines i elements, les <strong>visites</strong> dels últims 30 dies (es compten sense galetes), els darrers canvis i els avisos d'AFI.
+      Al peu hi ha l'enllaç a aquesta guia, per si la voleu tornar a consultar.</td></tr>
+    <tr><td><span class="ui">Contenido</span></td><td>Tots els textos, imatges i llistes de la web en formularis, per pàgina i secció. <span class="ui">Común a todas las páginas</span> són la capçalera i el peu.
+      <span class="ui">Ver en la web ↗</span> obre aquella secció a l'editor de la pàgina.</td></tr>
+{{FILES_COLLECCIONS}}<!--if:menu-->    <tr><td><span class="ui">Menú</span></td><td>Els enllaços del menú: afegir-ne, treure'n, ordenar-los, amagar-ne algun o destacar-ne un com a botó, amb el text en cada idioma.</td></tr>
+<!--endif:menu--><!--if:form-->    <tr><td><span class="ui">Mensajes</span></td><td>Els missatges del formulari de contacte, amb el nombre de no llegits al menú. <span class="ui">Responder</span> obre el vostre correu
+      per contestar. Es guarden un any.</td></tr>
+<!--endif:form-->    <tr><td><span class="ui">Copias</span></td><td>Abans de cada desat es guarda com estava: hi veureu què ha canviat, i podeu <span class="ui">Recuperar lo de antes</span> (un camp) o
+      <span class="ui">Volver a esta versión</span> (tots els d'aquell desat). També un element esborrat d'una llista o del blog.</td></tr>
+    <tr><td><span class="ui">Chat</span></td><td>L'assistent de <strong>Kepler</strong>, que respon els visitants a totes les pàgines, si el teniu contractat: s'hi enganxa el codi del vostre tauler de Kepler.</td></tr>
+<!--if:seo-->    <tr><td><span class="ui">SEO</span></td><td>Analitza qualsevol pàgina per a Google (<strong>SEO</strong>) i per als assistents d'IA com ChatGPT (<strong>GEO</strong>): la nota, què es pot millorar
+      i com. Els problemes del títol i la descripció tenen un botó que us porta al camp. Hi ha un nombre d'anàlisis al dia.</td></tr>
+<!--endif:seo-->  </table>
+<!--if:shot-contingut-->  <figure class="mid"><img src="c-contingut.jpg" alt=""><figcaption>Una secció a <span class="ui">Contenido</span>: cada camp de la pàgina, amb el seu text o la seva imatge. Es desa amb <span class="btn">Guardar cambios</span>.</figcaption></figure>
+<!--endif:shot-contingut--><!--if:ai-->  <h3>Ajuda de la IA</h3>
+  <p>Al costat de cada text del tauler hi ha el botó <span class="btn">✨ IA</span>: <strong>millorar</strong> el text, <strong>corregir-ne l'ortografia</strong><!--if:langs--> o
+    <strong>traduir-lo</strong> als altres idiomes<!--endif:langs-->, i al títol i la descripció per a Google, <strong>escriure'ls</strong> a partir del text de la pàgina.
+    La IA només proposa: la proposta surt a sota del camp, la podeu retocar i <span class="ui">Usar</span> o <span class="ui">Descartar</span>.</p>
+<!--if:shot-ia-->  <figure class="mid"><img src="c-ia.jpg" alt=""><figcaption>El botó «✨ IA» d'un text, amb el que pot fer.</figcaption></figure>
+<!--endif:shot-ia--><!--endif:ai--><!--if:shot-missatges-->  <figure class="mid"><img src="c-missatges.jpg" alt=""><figcaption>Els missatges del formulari (aquí, un d'exemple).</figcaption></figure>
+<!--endif:shot-missatges--></section>
+
 <section>
   <h2 class="num">Què no es pot fer des de l'editor</h2>
   <p>L'editor està pensat perquè el contingut el porteu vosaltres i el disseny es mantingui sempre correcte. Per això hi ha coses que no es poden canviar des de la pàgina;
     si en necessiteu alguna, demaneu-nos-la i la farem nosaltres:</p>
   <div class="cards" style="grid-template-columns: 1fr 1fr">
     <div class="card"><b>Disseny</b><p>Colors, tipus de lletra, mida dels elements, ordre de les seccions, logotip de la capçalera.</p></div>
-    <div class="card"><b>Estructura</b><p>Seccions o pàgines noves, opcions noves al menú, un formulari o un mapa nous.</p></div>
-    <div class="card"><b>Enllaços</b><p>Les adreces on porten els menús i els botons (sí que en podeu canviar el text). <!--if:social-->Les de les xarxes socials, sí: vegeu-ne l'apartat.<!--endif:social--></p></div>
+    <div class="card"><b>Estructura</b><p>Seccions o pàgines noves<!--if:nomenu-->, opcions noves al menú<!--endif:nomenu-->, un formulari o un mapa nous.</p></div>
+    <div class="card"><b>Enllaços</b><p>Les adreces on porten <!--if:nomenu-->els menús i <!--endif:nomenu-->els botons (sí que en podeu canviar el text). <!--if:menu-->Les del menú, sí: des del tauler.<!--endif:menu--> <!--if:social-->Les de les xarxes socials, també: vegeu-ne l'apartat.<!--endif:social--></p></div>
     <div class="card"><b>Textos legals i accés</b><p>Avís legal, privacitat i cookies; contrasenya oblidada; correu on arriben els missatges.</p></div>
   </div>
 
@@ -320,6 +355,8 @@ td:first-child { white-space: nowrap; width: 1%; }
 <!--endif:pages-->
 <!--if:blog-->    <tr><td>Escriure al blog</td><td><span class="btn green">+ Nueva entrada</span>, títol, escriure, <span class="btn">Publicar</span>.</td></tr>
 <!--endif:blog-->
+    <tr><td>Desfer un canvi</td><td>Tauler → <span class="ui">Copias</span>: <span class="ui">Recuperar lo de antes</span>.</td></tr>
+    <tr><td>Consultar aquesta guia</td><td>Tauler → <span class="ui">Inicio</span>, a baix de tot.</td></tr>
     <tr><td>Acabar</td><td><span class="btn">Cerrar sesión</span>.</td></tr>
   </table>
   <div class="tip"><b>Bons hàbits</b>

@@ -29,6 +29,10 @@ ap.add_argument('web', help='carpeta de la instalación (p. ej. ~/Projects/neutr
 ap.add_argument('--nom', required=True, help='nombre de la web para la portada')
 ap.add_argument('--url', required=True, help='adreça pública, p. ex. https://www.pepgallifa.com')
 ap.add_argument('--sortida', help='PDF de salida (por defecto <web>/guia-edicio-<fecha>.pdf)')
+# Lo que depende de la configuración del servidor (config.local.php): por defecto, el de la carpeta; el MCP de Cosmo lo pasa
+# con lo que dice el estado de la web, porque la copia de site/ no lo lleva
+ap.add_argument('--seo', choices=['si', 'no'], help='la web tiene el análisis SEO de Pulsar en el panel')
+ap.add_argument('--ia', choices=['si', 'no'], help='la web tiene la IA del panel activada')
 a = ap.parse_args()
 web = Path(a.web).expanduser().resolve()
 slug = web.name
@@ -45,7 +49,10 @@ def huella(site):
         + list(site.glob('*/_item.html'))
     rows = sorted((str(f.relative_to(site)), hashlib.sha1(f.read_bytes()).hexdigest()) for f in fs if f.is_file())
     return hashlib.sha1(''.join(f'{p}\0{h}\n' for p, h in rows).encode()).hexdigest()
-meta = {'nom': a.nom, 'url': a.url, 'generated': datetime.datetime.now().astimezone().isoformat(timespec='seconds'), 'fingerprint': huella(site)}
+# La edición de la guía (NEUTRON_GUIDE_EDITION en lib/guide.php de este repositorio): la web avisa si su guía es de una anterior
+edicio = int(re.search(r'NEUTRON_GUIDE_EDITION\s*=\s*(\d+)', (REPO / 'lib' / 'guide.php').read_text()).group(1))
+meta = {'nom': a.nom, 'url': a.url, 'generated': datetime.datetime.now().astimezone().isoformat(timespec='seconds'), 'fingerprint': huella(site),
+        'edition': edicio}
 htmls = [site / 'template.html'] + sorted((site / 'pages').glob('*.html')) + sorted((site / 'partials').glob('*.html'))
 tot = '\n'.join(p.read_text(errors='replace') for p in htmls if p.exists())
 legals = {'404', 'avis-legal', 'politica-de-privacitat', 'politica-de-cookies', 'aviso-legal', 'politica-de-privacidad'}
@@ -59,17 +66,53 @@ te = {
     'pages': len(pagines) >= 1,
     'social': 'data-edit-href' in tot,
 }
-print('La web tiene:', ', '.join(k for k, v in te.items() if v) or 'solo lo básico')
+# Configuración de la instalación (si la carpeta la tiene): SEO, IA e idioma del panel
+cfg_local = {}
+if (web / 'config.local.php').exists():
+    r = subprocess.run(['php', '-r', 'define("NEUTRON_APP", 1); echo json_encode(require $argv[1]);', str(web / 'config.local.php')], capture_output=True, text=True)
+    try: cfg_local = json.loads(r.stdout) or {}
+    except ValueError: cfg_local = {}
+pulsar, ai = cfg_local.get('pulsar') or {}, cfg_local.get('ai') or {}
+te['seo'] = a.seo == 'si' if a.seo else bool(str(pulsar.get('url', '')).strip() and str(pulsar.get('token', '')).strip())
+te['ai'] = a.ia == 'si' if a.ia else bool(ai.get('enabled') and str(ai.get('api_key', '')).strip())
+te['menu'] = 'data-menu' in tot
+# Idioma del panel y de la barra del editor, como neutron_panel_lang() (lib/panel_lang.php): los botones de la guía, en ese idioma
+plang = str((cfg_local.get('panel') or {}).get('lang') or (langs or {}).get('default') or '')
+if not plang:
+    m = re.search(r'<html[^>]*\blang="([A-Za-z]{2})', (site / 'template.html').read_text(errors='replace')[:4096])
+    plang = m.group(1) if m else ''
+plang = plang[:2].lower() if plang[:2].lower() in ('es', 'ca') else 'es'
+print('La web tiene:', ', '.join(k for k, v in te.items() if v) or 'solo lo básico', '· panel en', plang)
 
 # ---------------------------------------------------------------- copia temporal y servidor
 tmp = Path(tempfile.mkdtemp(prefix='neutron-guia-'))
 copia = tmp / 'web'
 shutil.copytree(web, copia, ignore=shutil.ignore_patterns('data', '.git'))
 (copia / 'data').mkdir()
+# El núcleo de este repositorio (core.json) encima del de la web: la guía explica el editor y el panel de la versión actual
+for pat in json.loads((REPO / 'core.json').read_text())['core']:
+    src = REPO / pat.rstrip('/*')
+    if pat.startswith('data/'): continue
+    if pat.endswith('/**') and src.is_dir(): shutil.copytree(src, copia / pat.rstrip('/*'), dirs_exist_ok=True)
+    elif src.is_file(): shutil.copy(src, copia / pat)
 if (web / 'data' / '.htaccess').exists(): shutil.copy(web / 'data' / '.htaccess', copia / 'data' / '.htaccess')
 hash_ = subprocess.run(['php', '-r', 'echo password_hash($argv[1], PASSWORD_DEFAULT);', PROVA], capture_output=True, text=True, check=True).stdout
+# Con SEO o IA, una configuración de mentira para que el panel enseñe sus apartados (no se llama a Pulsar ni a la IA)
+extra = ("'pulsar' => ['url' => 'https://pulsar.invalid', 'token' => 'guia'], " if te['seo'] else '') + \
+        ("'ai' => ['enabled' => true, 'api_key' => 'guia'], " if te['ai'] else '')
 (copia / 'config.local.php').write_text("<?php\nif (!defined('NEUTRON_APP')) { http_response_code(403); exit; }\n"
-                                        f"return ['admin_password_hash' => '{hash_}'];\n")
+                                        f"return ['admin_password_hash' => '{hash_}', 'panel' => ['lang' => '{plang}'], {extra}];\n")
+# Para las capturas del panel: una guía (el enlace del inicio) y, si hay formulario, un mensaje de ejemplo
+if not (copia / 'site' / 'guia-edicio.pdf').exists(): (copia / 'site' / 'guia-edicio.pdf').write_bytes(b'%PDF-1.4\n')
+if te['form']:
+    (copia / 'data' / 'messages').mkdir(parents=True)
+    ara = datetime.datetime.now().astimezone()
+    (copia / 'data' / 'messages' / (ara.strftime('%Y%m%d-%H%M%S') + '-000001.json')).write_text(json.dumps({
+        'id': ara.strftime('%Y%m%d-%H%M%S') + '-000001', 'at': ara.isoformat(timespec='seconds'), 'lang': None, 'page': '',
+        'fields': [{'name': 'name', 'label': 'Nom', 'value': 'Marta Puig', 'type': 'text'},
+                   {'name': 'email', 'label': 'Correu', 'value': 'marta@exemple.cat', 'type': 'email'},
+                   {'name': 'message', 'label': 'Missatge', 'value': 'Hola! Voldria més informació. Gràcies!', 'type': 'textarea'}],
+        'read': False, 'mailed': True}, ensure_ascii=False))
 with socket.socket() as s:
     s.bind(('127.0.0.1', 0)); port = s.getsockname()[1]
 base = f'http://127.0.0.1:{port}'
@@ -87,6 +130,7 @@ const R = {};
 // Rectángulo de un elemento en la pantalla (coordenadas del viewport) en el momento de la captura
 const rect = sel => `(() => { const e = ${sel}; if (!e) return null; const r = e.getBoundingClientRect(); return [r.x, r.y, r.width, r.height]; })()`;
 const quiet = "document.documentElement.style.scrollBehavior='auto'; document.querySelectorAll('.nc-banner, [class*=neutron-cookie]').forEach(e => e.remove())";
+const NAV = labels => `[...document.querySelectorAll('.np-nav-item')].find(b => ${labels}.includes(b.firstChild.textContent))`;
 async function snap(c, name, sel) { await c.sleep(400); R[name] = await c.evalJs(rect(sel)); await c.shot('guia/' + name); }
 export default [
   ['login', async c => { await c.go(B + '/' + P + '?admin'); await c.evalJs(quiet); await snap(c, 'login', "document.querySelector('.neutron-login-box')"); return R.login; }],
@@ -134,6 +178,31 @@ export default [
       await snap(c, 'cos', "document.querySelector('.neutron-rich-tools')");
     }
     return link; }],
+  // El panel (/admin/), con la misma sesión. Los apartados se buscan por su texto en castellano o en catalán
+  ['tauler', async c => {
+    await c.go(B + '/admin/'); if (!await c.waitFor('.np-version a', 10000)) return null;
+    await c.sleep(600); await snap(c, 'tauler', "document.querySelector('.np-app')");
+    R.nav = await c.evalJs("[...document.querySelectorAll('.np-nav-item')].map(b => b.firstChild.textContent)");
+    R.guia = await c.evalJs("document.querySelector('.np-version a').textContent"); return R.nav; }],
+  ['contingut', async c => {
+    if (!R.tauler) return null;
+    await c.evalJs(NAV("['Contenido', 'Contingut']") + '.click()'); if (!await c.waitFor('.np-main .np-field', 10000)) return null;
+    await c.sleep(500);
+    // La primera secció amb uns quants camps (no «Dades de la pàgina»)
+    const sec = "[...document.querySelectorAll('.np-main .np-card')].find(s => s.querySelectorAll('.np-field').length >= 3) || document.querySelector('.np-main .np-card')";
+    await c.evalJs(`(${sec}).scrollIntoView({block: 'start'}); window.scrollBy(0, -20)`); await c.sleep(300);
+    await snap(c, 'contingut', sec);
+    const ai = `((${sec}).querySelector('.np-ai') || document.querySelector('.np-main .np-ai'))`;
+    if (await c.evalJs(`!!${ai}`)) {
+      await c.evalJs(`(${ai}).scrollIntoView({block: 'center'}); (${ai}).click()`); await c.sleep(400);
+      await snap(c, 'ia', `(${ai}).closest('.np-field')`);
+    }
+    return R.contingut; }],
+  ['missatges', async c => {
+    if (!R.tauler || !await c.evalJs(`!!${NAV("['Mensajes', 'Missatges']")}`)) return null;
+    await c.evalJs(NAV("['Mensajes', 'Missatges']") + '.click()'); if (!await c.waitFor('.np-msg', 8000)) return null;
+    await c.evalJs("document.querySelector('.np-msg').click()"); await c.sleep(800);
+    await snap(c, 'missatges', "document.querySelector('.np-msg-wrap') || document.querySelector('.np-main')"); return R.missatges; }],
   ['fi', async () => { writeFileSync(OUT, JSON.stringify(R)); return Object.keys(R).length; }],
 ];
 ''' % {'base': json.dumps(base), 'prefix': json.dumps(prefix), 'cols': cols, 'pw': json.dumps(PROVA), 'out': json.dumps(str(rects))})
@@ -181,12 +250,19 @@ fets = {
     'nova': retall('nova', 'c-nova.jpg', marge=30),
     'entrada': retall('entrada', 'c-entrada.jpg', sencer=True, maxh=760) if R.get('entrada') else False,
     'shot-cos': retall('cos', 'c-cos.jpg', marge=16, alt=300),
+    'shot-tauler': retall('tauler', 'c-tauler.jpg', marge=0, maxh=760),
+    'shot-contingut': retall('contingut', 'c-contingut.jpg', marge=12, maxh=640),
+    'shot-ia': retall('ia', 'c-ia.jpg', marge=14, alt=150),   # el campo y el menú que se abre debajo
+    'shot-missatges': retall('missatges', 'c-missatges.jpg', marge=0, maxh=560),
 }
 
 # ---------------------------------------------------------------- plantilla de la guía
 t = (AQUI / 'guia.template.html').read_text()
 cond = {**te, 'blog': te['blog'] and fets['nova'], 'social': te['social'] and fets['xarxes'], 'shot-galeria': fets['shot-galeria'],
-        'shot-llista': fets['shot-llista'], 'shot-cos': fets['shot-cos']}
+        'shot-llista': fets['shot-llista'], 'shot-cos': fets['shot-cos'], 'nomenu': not te['menu'], 'panel-es': plang == 'es',
+        'shot-tauler': fets['shot-tauler'], 'shot-contingut': fets['shot-contingut'], 'shot-ia': te['ai'] and fets['shot-ia'],
+        'shot-missatges': te['form'] and fets['shot-missatges']}
+if not R.get('tauler'): print('Aviso: no se ha podido capturar el panel (/admin/)', file=sys.stderr)
 for k, v in cond.items():
     t = re.sub(rf'<!--if:{re.escape(k)}-->(.*?)<!--endif:{re.escape(k)}-->', (lambda m: m.group(1)) if v else '', t, flags=re.S)
 if not fets['entrada']:
@@ -203,6 +279,19 @@ t = (t.replace('{{NOM}}', html.escape(a.nom)).replace('{{ADMIN_URL}}', html.esca
                else 'Les fotos que es poden canviar tenen una vora de punts: feu-hi clic i trieu-ne una altra.')
       .replace('{{CAPCIO_XARXES}}', 'Les xarxes del peu de la web. Les atenuades no hi surten fins que no tenen adreça.' if R.get('buides')
                else 'Les xarxes del peu de la web: feu clic en una icona per canviar-ne l\'adreça.'))
+# Una fila por colección en la tabla del panel: los apartados del menú del panel que no son los de siempre
+fixos = {'Inicio', 'Inici', 'Contenido', 'Contingut', 'Menú', 'Mensajes', 'Missatges', 'Copias', 'Còpies', 'Chat', 'Xat', 'SEO'}
+files = ''.join(f'    <tr><td><span class="ui">{html.escape(n)}</span></td><td>Els elements de «{html.escape(n)}» en fitxes: crear-ne, editar-los amb tots els seus camps, '
+                'ordenar-los i esborrar-los.</td></tr>\n' for n in (R.get('nav') or []) if n not in fixos)
+t = t.replace('{{FILES_COLLECCIONS}}', files).replace('{{PANEL_URL}}', html.escape(a.url.rstrip('/') + '/admin/')) \
+     .replace('{{GUIA_ENLLAC}}', html.escape(R.get('guia') or 'Guía de edición (PDF)'))
+# Los botones y apartados, como los verá en la pantalla: en el idioma del panel (assets/i18n/<idioma>.json, el del núcleo)
+if plang != 'es':
+    tr = json.loads((REPO / 'assets' / 'i18n' / f'{plang}.json').read_text())
+    def tradueix(m):
+        s = html.unescape(m.group(2)); return m.group(1) + html.escape(tr.get(s, s), quote=False) + m.group(3)
+    t = re.sub(r'(<span class="(?:btn[^"]*|ui|k)"[^>]*>)([^<]+)(</span>)', tradueix, t)
+    t = re.sub(r'(«)([^»<]+)(»)', lambda m: m.group(1) + tr.get(m.group(2), m.group(2)) + m.group(3), t)
 index = ''.join(f'\n    <li>{html.escape(re.sub("<[^>]+>", "", m))}</li>' for m in re.findall(r'<h2 class="num"[^>]*>(.*?)</h2>', t))
 t = t.replace('{{INDEX}}', index + '\n  ')
 t = t.replace('{{MARGE}}', marca.MARGE_CSS).replace('{{AFI_CSS}}', marca.PORTADA_CSS).replace('{{AFI_PORTADA}}', marca.portada_html('afi-logo.png'))

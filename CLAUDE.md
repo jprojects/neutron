@@ -109,9 +109,12 @@ actualízalo con cada función nueva.
   protocolo de DevTools, sin dependencias; ver la cabecera del fichero). Perfil y capturas en `~/cdp-tmp`, porque
   Chromium es un snap y no ve /tmp.
 - **Cada web nueva lleva su guía** (PDF en catalán, con capturas de su web y solo los apartados que tiene):
-  `python3 docs/guia-edicio/generar.py ~/Projects/neutron-<cliente> --nom "…" --url https://…`. Se guarda en la carpeta de
-  la web (`guia-edicio-AAAA-MM-DD.pdf`), no en este repo, para tenerla con la web y no perder la anterior. No es para subirla
-  al servidor. Todo documento que se genere para un cliente lleva la marca de AFI de `docs/marca-afi/marca.py` (logo
-  arriba en la portada; cabecera y pie con la línea azul en las demás páginas), como la guía.
+  `python3 docs/guia-edicio/generar.py ~/Projects/neutron-<cliente> --nom "…" --url https://…`. Deja la copia con fecha en la
+  carpeta de la web (`guia-edicio-AAAA-MM-DD.pdf`, no se sube al servidor) y `site/guia-edicio.pdf` + `.json`, que sí se
+  suben: el panel la enlaza solo con sesión. **Si un cambio del editor o del panel deja la guía desfasada** (un apartado
+  nuevo, un botón que cambia), actualiza `docs/guia-edicio/guia.template.html` y sube `NEUTRON_GUIDE_EDITION`
+  (`lib/guide.php`): Cosmo avisará de las guías viejas y `cosmo_guia` las regenera. Todo documento que se genere para un
+  cliente lleva la marca de AFI de `docs/marca-afi/marca.py` (logo arriba en la portada; cabecera y pie con la línea azul en
+  las demás páginas), como la guía.
 - Antes de dar algo por terminado, pruébalo en el navegador (también en modo `?admin`). Limpia después lo que
   generen las pruebas en `data/`.
