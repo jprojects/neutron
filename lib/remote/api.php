@@ -38,6 +38,7 @@ const NEUTRON_REMOTE_ACTIONS = [
     'announcements' => ['GET', 'neutron_remote_announcements'],
     'announcements-set' => ['POST', 'neutron_remote_announcements_set'],
     'kepler-set' => ['POST', 'neutron_remote_kepler_set'],
+    'guide-set' => ['POST', 'neutron_remote_guide_set'],
 ];
 
 function neutron_remote_handle(string $action): void {
@@ -339,6 +340,31 @@ function neutron_remote_kepler_set(): void {
         return;
     }
     neutron_json(['ok' => true, 'kepler' => neutron_kepler_settings()]);
+}
+
+// Guía de edición (lib/guide.php): file = el PDF (multipart) y meta = JSON {nom, url, generated, fingerprint} de
+// generar.py; delete=1 la quita. Responde {"ok": true, "guide": {…} | null}.
+function neutron_remote_guide_set(): void {
+    if (($_POST['delete'] ?? '') === '1') {
+        neutron_guide_delete();
+        neutron_log('notice', 'Guía de edición quitada desde Cosmo');
+        neutron_json(['ok' => true, 'guide' => null]);
+        return;
+    }
+    $f = $_FILES['file'] ?? null;
+    if (!is_array($f) || ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string)$f['tmp_name'])) {
+        neutron_remote_fail('falta el PDF (file) o no se ha podido subir', 422);
+        return;
+    }
+    $meta = json_decode((string)($_POST['meta'] ?? '{}'), true);
+    try {
+        neutron_guide_save((string)$f['tmp_name'], is_array($meta) ? $meta : []);
+    } catch (RuntimeException $e) {
+        neutron_remote_fail($e->getMessage(), 422);
+        return;
+    }
+    neutron_log('notice', 'Guía de edición puesta desde Cosmo ({bytes} bytes)', ['bytes' => (int)$f['size']]);
+    neutron_json(['ok' => true, 'guide' => neutron_guide_info()]);
 }
 
 // ------------------------------------------------------------------ utilidades

@@ -554,7 +554,11 @@ El cliente entra en `/admin/` con la misma contraseña que el editor (la sesión
 - **Guía de edición**: si la web tiene `site/guia-edicio.pdf` (la guía del cliente que hace `docs/guia-edicio/generar.py`, que
   la deja allí), el inicio del panel la enlaza junto a la versión («Guía de edición (PDF)»). Solo se descarga con la sesión
   abierta (`admin/guide.php`, `lib/guide.php`): el `.htaccess` y `router.php` prohíben pedirla directamente. Es de la web,
-  no del núcleo: va con `site/` al publicarla y en sus copias, y las actualizaciones no la tocan.
+  no del núcleo: va con `site/` al publicarla y en sus copias, y las actualizaciones no la tocan. Al lado, `site/guia-edicio.json`
+  (lo escribe `generar.py`: nombre y dirección de la portada, fecha y huella de la estructura de la web). Con él, el estado
+  remoto dice si la guía se ha quedado vieja: `structure_changed` (han cambiado la plantilla, las páginas, los parciales, la
+  plantilla de una colección o los idiomas) y `edits_since` (campos editados después). Cosmo lo avisa y la regenera con su
+  MCP (`cosmo_guia`, en el ordenador de quien lo usa, porque hace falta Chromium), que la sube con la acción remota `guide-set`.
 
 No hay que preparar nada en cada web: `lib/schema.php` saca los campos de las plantillas (sin DOMDocument). Las
 secciones son los `<section>`, `<header>`, `<footer>`, `<nav>`, `<aside>`, `<article>` y `<form>` con campos; un
@@ -735,7 +739,7 @@ sesión ni envían cookies. Úsala solo por HTTPS.
 
 | Acción `index.php?r=remote&a=` | Método | Qué hace |
 |---|---|---|
-| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon`, `cookies`, `guide`, `posts` y `languages`; `guide` es `{size, modified}` o `null`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
+| `status` (también `?r=status`) | GET | `app: "neutron"`, versión, PHP, disco, extensiones, sitio (con `favicon`, `cookies`, `guide`, `posts` y `languages`; `guide` es `{size, modified, nom, url, generated, structure_changed, edits_since}` o `null`), reCAPTCHA, errores del log en 24 h, última copia, integridad, mantenimiento |
 | `logs&level=warning&limit=100&days=7` | GET | Últimas entradas del log |
 | `integrity` | GET | Ficheros del núcleo cambiados a mano e historial de actualizaciones |
 | `backups` | GET | Copias de `data/backups` |
@@ -747,6 +751,7 @@ sesión ni envían cookies. Úsala solo por HTTPS.
 | `maintenance` (`on=1\|0`) | POST | Modo mantenimiento: la web, el formulario y el editor responden 503 |
 | `announcements` | GET | Avisos de AFI del panel (`items`) y sus vistas y clics (`stats`: `{id: {views, clicks}}`) |
 | `announcements-set` (`items` = JSON) | POST | Sustituye los avisos por la lista enviada (`[]` los quita); responde como `announcements` |
+| `guide-set` (`file` = PDF en multipart, `meta` = JSON de `generar.py`; o `delete=1`) | POST | Pone (o quita) la guía de edición del panel (`site/guia-edicio.pdf` y `.json`); responde `{"ok": true, "guide": {…} \| null}` |
 | `kepler-set` (`token`, `enabled` = 0/1) | POST | Pone o quita el chat de Kepler (`data/kepler.json`, como el panel); responde `{"ok": true, "kepler": {…}}` |
 
 ```bash

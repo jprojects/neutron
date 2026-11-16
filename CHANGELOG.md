@@ -2,6 +2,14 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.29.0 — 2026-11-16
+
+- **Guía de edición regenerable desde Cosmo**: `generar.py` escribe junto a la guía `site/guia-edicio.json` (nombre y
+  dirección de la portada, fecha y huella de la estructura de la web: plantilla, páginas, parciales, plantillas de las
+  colecciones e idiomas). El estado remoto (`site.guide`) dice si la estructura ha cambiado desde entonces
+  (`structure_changed`) y cuántos campos se han editado después (`edits_since`). Acción remota nueva `guide-set`
+  (el PDF en multipart y su `meta`; `delete=1` la quita), con la que el MCP de Cosmo (`cosmo_guia`) la sube.
+
 ## 1.28.0 — 2026-11-16
 
 - **Guía de edición en el panel**: si la web tiene `site/guia-edicio.pdf`, el inicio del panel la enlaza junto a la

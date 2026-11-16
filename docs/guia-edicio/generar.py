@@ -8,8 +8,10 @@
 # El PDF se guarda en la carpeta de la web, con la fecha en el nombre (guia-edicio-AAAA-MM-DD.pdf): así queda con la web y no
 # se pierde la anterior, y como site/guia-edicio.pdf, que el panel de la web enlaza junto a la versión (solo con la sesión
 # abierta) y se publica con la web. Lleva la cabecera, el pie y la portada de AFI (docs/marca-afi).
+# Al lado de cada PDF para el panel se escribe su .json (nombre, dirección, fecha y huella de la estructura de la web):
+# con él la web dice a Cosmo si la guía se ha quedado vieja (lib/guide.php), y el MCP de Cosmo (cosmo_guia) la regenera.
 # Hace falta Node 22, Chromium (tools/cdp.mjs), PIL y pdfunite (poppler-utils).
-import argparse, datetime, html, json, os, re, shutil, socket, subprocess, sys, tempfile, time
+import argparse, datetime, hashlib, html, json, os, re, shutil, socket, subprocess, sys, tempfile, time
 from pathlib import Path
 from PIL import Image
 
@@ -36,6 +38,14 @@ shutil.rmtree(treball, ignore_errors=True); treball.mkdir(parents=True)
 
 # ---------------------------------------------------------------- qué tiene la web
 site = web / 'site'
+
+def huella(site):
+    # La misma cuenta que neutron_guide_fingerprint() (lib/guide.php): la estructura de la web, no los textos
+    fs = [site / 'template.html', site / 'languages.json'] + list((site / 'pages').glob('*.html')) + list((site / 'partials').glob('*.html')) \
+        + list(site.glob('*/_item.html'))
+    rows = sorted((str(f.relative_to(site)), hashlib.sha1(f.read_bytes()).hexdigest()) for f in fs if f.is_file())
+    return hashlib.sha1(''.join(f'{p}\0{h}\n' for p, h in rows).encode()).hexdigest()
+meta = {'nom': a.nom, 'url': a.url, 'generated': datetime.datetime.now().astimezone().isoformat(timespec='seconds'), 'fingerprint': huella(site)}
 htmls = [site / 'template.html'] + sorted((site / 'pages').glob('*.html')) + sorted((site / 'partials').glob('*.html'))
 tot = '\n'.join(p.read_text(errors='replace') for p in htmls if p.exists())
 legals = {'404', 'avis-legal', 'politica-de-privacitat', 'politica-de-cookies', 'aviso-legal', 'politica-de-privacidad'}
@@ -218,6 +228,9 @@ sortida.parent.mkdir(parents=True, exist_ok=True)
 shutil.copy(treball / 'guia.pdf', sortida)
 if not a.sortida:   # la que enlaza el panel de la web (solo con la sesión abierta; lib/guide.php): va con la web al publicarla
     shutil.copy(treball / 'guia.pdf', site / 'guia-edicio.pdf')
+    (site / 'guia-edicio.json').write_text(json.dumps(meta, ensure_ascii=False, indent=2) + '\n')
     print('Panel:', site / 'guia-edicio.pdf')
+else:               # p. ej. el MCP de Cosmo, que la sube con su .json
+    sortida.with_suffix('.json').write_text(json.dumps(meta, ensure_ascii=False, indent=2) + '\n')
 shutil.rmtree(cap, ignore_errors=True)
 print('PDF:', sortida)
