@@ -39,6 +39,12 @@ function neutron_base_path(): string {
     return '';
 }
 
+// La consulta de la URL que se pidió. No QUERY_STRING: en Apache, el .htaccess le añade page=… (avis-legal.html →
+// index.php?page=avis-legal), y no debe pasar a una redirección ni impedir que coincida una entrada de redirects.json.
+function neutron_request_query(): string {
+    return (string)parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_QUERY);
+}
+
 // Destino para la ruta pedida, o null si no hay redirección. Con $withQueryOnly solo vale una entrada que
 // incluya la consulta (en la portada: "index.php?option=…" sí, "index.php" a secas nunca).
 function neutron_redirect_target(string $path, bool $withQueryOnly = false): ?string {
@@ -49,7 +55,7 @@ function neutron_redirect_target(string $path, bool $withQueryOnly = false): ?st
         neutron_log('error', 'site/redirects.json no es un JSON válido');
         return null;
     }
-    $query = (string)($_SERVER['QUERY_STRING'] ?? '');
+    $query = neutron_request_query();
     $candidates = $query !== '' ? [$path . '?' . $query, $path] : [$path];
     if ($withQueryOnly) {
         if ($query === '') return null;

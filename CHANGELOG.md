@@ -2,6 +2,14 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.31.1 — 2026-11-17
+
+- Corregido: en Apache, la redirección de una página sin idioma a la del idioma principal arrastraba el `page=` que
+  añade el `.htaccess` (`/avis-legal.html` → `/ca/avis-legal.html?page=avis-legal`). Las redirecciones usan ahora la
+  consulta de la URL pedida (`neutron_request_query()`, de `REQUEST_URI`), no `QUERY_STRING`.
+- Corregido por lo mismo: en Apache, una URL antigua acabada en `.html` y con consulta (`vell.html?id=3`) no
+  encontraba su entrada en `site/redirects.json` y daba 404.
+
 ## 1.31.0 — 2026-11-17
 
 - **Vídeos de YouTube (o Vimeo) y pases de fotos en el cuerpo de las entradas** (y en cualquier `data-edit-html`): botones

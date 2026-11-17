@@ -45,7 +45,8 @@ $editing = isset($_GET['admin']) && neutron_is_logged_in();
 $page = is_string($_GET['page'] ?? null) ? $_GET['page'] : '';
 $route = $path;
 $langs = neutron_languages();
-$qs = ($_SERVER['QUERY_STRING'] ?? '') !== '' ? '?' . $_SERVER['QUERY_STRING'] : '';
+$qs = neutron_request_query();
+$qs = $qs !== '' ? '?' . $qs : '';
 $hasSlash = str_ends_with((string)parse_url((string)($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH), '/');
 if ($langs !== null) {
     if (preg_match('~^([a-z]{2}(?:-[a-z]{2})?)(?:/(.*))?$~', $path, $lm) && isset($langs['languages'][$lm[1]])) {
