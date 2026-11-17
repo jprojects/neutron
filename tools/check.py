@@ -264,6 +264,14 @@ try:
             if 'data-edit-href' not in tag and 'data-post-href' not in tag and not re.search(r'share|sharer|intent', tag): socials.add(re.search(r'href="([^"]+)"', tag).group(1))
     if unconsented: report('✗', f'servicios de terceros que se cargan sin consentimiento: {", ".join(sorted(unconsented))}')
     else: report('✓', 'ningún tercero se carga sin consentimiento')
+    # Vídeos dentro del texto (<figure data-embed="video">, lib/embeds.php): necesitan una categoría de cookies de vídeos
+    for u, body in pages.items():
+        if 'data-embed="video"' not in body: continue
+        m = re.search(r'id="neutron-embeds-config">(.*?)</script>', body)
+        consent = (json.loads(m.group(1)).get('consent') if m else None) or {}
+        if not re.search(r'v[ií]d[eé]o|youtube|vimeo|media|multim', f"{consent.get('id', '')} {consent.get('name', '')}", re.I):
+            report('✗', f'{u} tiene vídeos en el texto y cookies.json no tiene una categoría para ellos ("videos", «Vídeos (YouTube)»)')
+        break
     if socials: report('!', f'redes sociales sin data-edit-href (el cliente no las podrá cambiar): {", ".join(sorted(socials)[:4])}')
 
     # Enlaces internos

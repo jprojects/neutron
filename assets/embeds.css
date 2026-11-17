@@ -1,0 +1,38 @@
+/* Vídeos y pases de fotos del texto con formato (assets/embeds.js). Cada sitio puede ajustarlos con variables:
+   --ne-radius, --ne-bg (fondo del vídeo y del pase), --ne-accent (botón del aviso), --ne-ratio (proporción del pase) */
+figure[data-embed] { margin: 1.5em 0; padding: 0; max-width: 100%; }
+
+.ne-video { position: relative; aspect-ratio: 16 / 9; background: var(--ne-bg, #111); border-radius: var(--ne-radius, 6px); overflow: hidden; }
+.ne-video iframe, .ne-video__thumb { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; object-fit: cover; }
+.ne-video__thumb { opacity: .45; }
+.ne-video__consent {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+  padding: 16px; text-align: center; color: #fff; font-size: 15px; line-height: 1.45;
+}
+.ne-video__consent p { margin: 0; max-width: 34em; text-shadow: 0 1px 3px rgba(0,0,0,.6); }
+.ne-video__accept {
+  font: inherit; font-weight: 600; cursor: pointer; border: 0; border-radius: 4px; padding: 10px 18px;
+  background: var(--ne-accent, var(--nc-accent, #fff)); color: var(--nc-accent-text, #111);
+}
+.ne-video.is-loaded .ne-video__consent, .ne-video.is-loaded .ne-video__thumb { display: none; }
+
+figure[data-embed="slider"] { position: relative; }
+.ne-slider__track {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  background: var(--ne-bg, #111); border-radius: var(--ne-radius, 6px);
+}
+.ne-slider__track::-webkit-scrollbar { display: none; }
+.ne-slider__track:focus-visible { outline: 3px solid var(--ne-accent, #3b82f6); outline-offset: 2px; }
+.ne-slider__slide { flex: 0 0 100%; scroll-snap-align: start; aspect-ratio: var(--ne-ratio, 3 / 2); display: flex; }
+.ne-slider__slide img { width: 100%; height: 100%; object-fit: contain; margin: 0; border-radius: 0; }
+.ne-slider__btn {
+  position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border: 0; border-radius: 50%;
+  background: rgba(0,0,0,.45); color: #fff; font-size: 30px; line-height: 1; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.ne-slider__btn:hover, .ne-slider__btn:focus-visible { background: rgba(0,0,0,.7); }
+.ne-slider__btn--prev { left: 10px; }
+.ne-slider__btn--next { right: 10px; }
+.ne-slider__count {
+  position: absolute; right: 10px; bottom: 10px; padding: 2px 10px; border-radius: 999px;
+  background: rgba(0,0,0,.55); color: #fff; font-size: 13px;
+}

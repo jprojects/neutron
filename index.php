@@ -278,6 +278,11 @@ header('Content-Type: text/html; charset=utf-8');
 $html = neutron_render($template, $content, $options);
 // Chat de Kepler (lib/kepler.php): no en la edición en la propia página
 if (!$editing) $html = neutron_kepler_inject($html);
+// Vídeos y pases de fotos del texto con formato (lib/embeds.php); en el editor se ven como bloques (assets/editor.js)
+if (!$editing && str_contains($html, 'data-embed="')) {
+    require_once __DIR__ . '/lib/embeds.php';
+    $html = neutron_embeds_inject($html, (string)(neutron_lang() ?? (preg_match('~<html[^>]*\blang="([A-Za-z-]+)"~', $html, $hm) ? $hm[1] : 'es')));
+}
 neutron_cache_store($html);
 echo $html;
 // Visitas (lib/stats.php): las páginas vistas por personas, sin cookies

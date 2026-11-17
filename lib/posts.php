@@ -552,16 +552,6 @@ function neutron_post_href_of(array $post, string $field): string {
     return $value;
 }
 
-// https://www.youtube.com/watch?v=ID, youtu.be/ID… → https://www.youtube-nocookie.com/embed/ID (Vimeo, igual). Si no
-// se reconoce, null.
-function neutron_video_embed(string $url): ?string {
-    if (preg_match('~(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/|live/)|youtu\.be/)([\w-]{11})~', $url, $m)) {
-        return 'https://www.youtube-nocookie.com/embed/' . $m[1];
-    }
-    if (preg_match('~vimeo\.com/(?:video/)?(\d+)~', $url, $m)) return 'https://player.vimeo.com/video/' . $m[1];
-    return null;
-}
-
 // Imagen de vista previa de un vídeo de YouTube (para listados sin cargar el reproductor)
 function neutron_video_thumb(string $url): string {
     return preg_match('~(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/|live/)|youtu\.be/)([\w-]{11})~', $url, $m)

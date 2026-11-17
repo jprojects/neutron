@@ -54,7 +54,8 @@ actualízalo con cada función nueva.
 - **Blog**: colección en `site/blog/` (`_item.html` + JSON por entrada) y listado en `site/pages/blog.html`; enlaces
   como `blog/` y `blog/<slug>` (nunca `blog.html`). El cuerpo es HTML limpio por `lib/sanitize.php`: si un sitio
   necesita otra etiqueta, se amplía la lista blanca en el núcleo (y su versión simple en `editor.js`), nunca se
-  salta. La plantilla de la entrada lleva `data-post*` y su `<title data-post="title">… · Web</title>`.
+  salta. Vídeos de YouTube y pases de fotos en el cuerpo: con los botones del editor (`<figure data-embed>`); una web con
+  vídeos necesita en `cookies.json` una categoría de vídeos (`"id": "videos"`). La plantilla de la entrada lleva `data-post*` y su `<title data-post="title">… · Web</title>`.
 - **Varios idiomas**: `site/languages.json` y los textos en `site/content.<idioma>.json` (en `content.json` solo
   imágenes y lo común); misma plantilla y mismos nombres de página para todos; enlaces internos sin idioma (los pone
   el núcleo); selector con `data-lang-link`; `contact.<idioma>.json` y `cookies.<idioma>.json`; entradas traducidas

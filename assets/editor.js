@@ -377,7 +377,7 @@
       });
       var img = postEls('[data-post-img]')[0];
       if (img) fields[img.getAttribute('data-post-img')] = img.hasAttribute('data-post-empty') ? '' : (img.getAttribute('src') || '');
-      if (rich) fields[rich.getAttribute('data-post-html')] = rich.innerHTML;
+      if (rich) fields[rich.getAttribute('data-post-html')] = richValue(rich);
       fields.date = bar.querySelector('.neutron-post-tools input').value;
       return fields;
     }
@@ -549,7 +549,8 @@
       tools.className = 'neutron-rich-tools';
       [['bold', '<b>N</b>', 'Negrita'], ['italic', '<i>C</i>', 'Cursiva'], ['h2', 'Título', 'Subtítulo'], ['h3', 'Subtít.', 'Subtítulo pequeño'],
        ['p', '¶', 'Párrafo normal'], ['ul', '• Lista', 'Lista'], ['ol', '1. Lista', 'Lista numerada'], ['quote', '❝', 'Cita'],
-       ['link', 'Enlace', 'Enlace'], ['unlink', 'Quitar enlace', 'Quitar enlace'], ['image', 'Imagen', 'Insertar imagen']
+       ['link', 'Enlace', 'Enlace'], ['unlink', 'Quitar enlace', 'Quitar enlace'], ['image', 'Imagen', 'Insertar imagen'],
+       ['video', '▶ Vídeo', 'Insertar un vídeo de YouTube o Vimeo'], ['slider', 'Pase de fotos', 'Insertar un pase de fotos (varias fotos que se van pasando)']
       ].forEach(function (t) {
         var b = document.createElement('button');
         b.type = 'button';
@@ -576,8 +577,11 @@
           var url = prompt('Dirección del enlace (https://…, mailto:… o una página de la web)');
           if (url) document.execCommand('createLink', false, url.trim());
         } else if (cmd === 'image') insertImage(el);
+        else if (cmd === 'video') insertVideo(el);
+        else if (cmd === 'slider') insertSlider(el);
         markDirty();
       });
+      el.querySelectorAll('figure[data-embed]').forEach(prepareEmbed);
       // Al pegar: solo el formato permitido (el servidor vuelve a limpiarlo al guardar)
       el.addEventListener('paste', function (e) {
         e.preventDefault();
@@ -604,6 +608,138 @@
         });
       });
       input.click();
+    }
+
+    // Vídeos y pases de fotos (<figure data-embed>, ver lib/embeds.php): en el editor son bloques que no se escriben, con
+    // sus botones en una barra (.neutron-embed-ui) que richValue() quita al guardar
+    var VIDEO_RE = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})|vimeo\.com\/(?:video\/)?(\d+)/;
+    function videoEmbed(url) {
+      var m = VIDEO_RE.exec(url || '');
+      if (!m) return null;
+      return m[1] ? 'https://www.youtube-nocookie.com/embed/' + m[1] : 'https://player.vimeo.com/video/' + m[2];
+    }
+    function askVideo(current) {
+      var url = prompt('Dirección del vídeo de YouTube o Vimeo (https://www.youtube.com/watch?v=…)', current || '');
+      if (url === null) return null;
+      var src = videoEmbed(url.trim());
+      if (!src) alert('No es una dirección de YouTube ni de Vimeo.');
+      return src;
+    }
+
+    // El bloque de la raíz donde está el cursor (para poner el vídeo o el pase detrás, nunca dentro de un párrafo)
+    function insertBlock(el, fig, range) {
+      var node = range ? range.startContainer : null;
+      while (node && node.parentNode !== el) node = node.parentNode;
+      el.insertBefore(fig, node ? node.nextSibling : null);
+      if (!fig.nextSibling) { var p = document.createElement('p'); p.appendChild(document.createElement('br')); el.appendChild(p); }
+      prepareEmbed(fig);
+      markDirty();
+    }
+    function currentRange(el) {
+      var sel = window.getSelection();
+      return sel.rangeCount && el.contains(sel.getRangeAt(0).startContainer) ? sel.getRangeAt(0) : null;
+    }
+
+    function insertVideo(el) {
+      var range = currentRange(el);
+      var src = askVideo('');
+      if (!src) return;
+      var fig = document.createElement('figure');
+      fig.setAttribute('data-embed', 'video');
+      fig.setAttribute('data-src', src);
+      insertBlock(el, fig, range);
+    }
+
+    function insertSlider(el) {
+      var range = currentRange(el);
+      pickImages(function (urls) {
+        var fig = document.createElement('figure');
+        fig.setAttribute('data-embed', 'slider');
+        urls.forEach(function (url) { fig.appendChild(sliderImg(url)); });
+        insertBlock(el, fig, range);
+      });
+    }
+    function sliderImg(url) {
+      var img = document.createElement('img');
+      img.src = url;
+      img.alt = '';
+      return img;
+    }
+
+    // Varias fotos a la vez: se suben una tras otra
+    function pickImages(done) {
+      var input = document.createElement('input');
+      input.type = 'file';
+      input.multiple = true;
+      input.accept = 'image/png,image/jpeg,image/gif,image/webp';
+      input.addEventListener('change', function () {
+        var files = Array.prototype.slice.call(input.files || []);
+        var urls = [];
+        (function next() {
+          if (!files.length) { if (urls.length) done(urls); return; }
+          upload(files.shift(), function (url) { urls.push(url); next(); });
+        })();
+      });
+      input.click();
+    }
+
+    function prepareEmbed(fig) {
+      fig.setAttribute('contenteditable', 'false');
+      fig.classList.add('neutron-embed');
+      var old = fig.querySelector('.neutron-embed-ui');
+      if (old) old.remove();
+      var video = fig.getAttribute('data-embed') === 'video';
+      var ui = document.createElement('span');
+      ui.className = 'neutron-embed-ui';
+      var label = document.createElement('span');
+      label.className = 'neutron-embed-label';
+      if (video) {
+        var yt = /youtube-nocookie\.com\/embed\/([\w-]{11})/.exec(fig.getAttribute('data-src') || '');
+        fig.style.backgroundImage = yt ? 'url("https://i.ytimg.com/vi/' + yt[1] + '/hqdefault.jpg")' : '';
+        label.textContent = '▶ ' + tr('Vídeo') + ' · ' + (fig.getAttribute('data-src') || '').replace(/^https:\/\//, '');
+      } else {
+        label.textContent = tr('Pase de fotos (' + fig.querySelectorAll('img').length + ')');
+      }
+      ui.appendChild(label);
+      var buttons = video
+        ? [['Cambiar vídeo', function () { var src = askVideo(fig.getAttribute('data-src')); if (src) { fig.setAttribute('data-src', src); prepareEmbed(fig); markDirty(); } }]]
+        : [['+ Fotos', function () { pickImages(function (urls) { urls.forEach(function (u) { fig.appendChild(sliderImg(u)); }); prepareEmbed(fig); markDirty(); }); }]];
+      buttons.push([video ? 'Quitar vídeo' : 'Quitar pase', function () {
+        if (!confirm(video ? '¿Quitar este vídeo?' : '¿Quitar este pase de fotos?')) return;
+        fig.remove();
+        markDirty();
+      }]);
+      buttons.forEach(function (b) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = tr(b[0]);
+        btn.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); b[1](); });
+        ui.appendChild(btn);
+      });
+      fig.insertBefore(ui, fig.firstChild);
+      if (!video && !fig._neutronClicks) {
+        fig._neutronClicks = true;
+        // Una foto del pase: se quita con un clic (si es la última, el pase entero)
+        fig.addEventListener('click', function (e) {
+          var img = e.target.closest('img');
+          if (!img || !confirm('¿Quitar esta foto del pase?')) return;
+          img.remove();
+          if (!fig.querySelector('img')) fig.remove(); else prepareEmbed(fig);
+          markDirty();
+        });
+      }
+    }
+
+    // El HTML del texto con formato sin lo que añade el editor
+    function richValue(el) {
+      var copy = el.cloneNode(true);
+      copy.querySelectorAll('.neutron-embed-ui').forEach(function (n) { n.remove(); });
+      copy.querySelectorAll('figure[data-embed]').forEach(function (f) {
+        f.removeAttribute('contenteditable');
+        f.removeAttribute('class');
+        f.removeAttribute('style');
+      });
+      return copy.innerHTML.trim();
     }
 
     // Misma lista blanca que lib/sanitize.php (versión simple para que lo pegado se vea ya limpio)
@@ -729,7 +865,7 @@
       });
 
       document.querySelectorAll('[data-edit-html]').forEach(function (el) {
-        fields[el.getAttribute('data-edit-html')] = el.innerHTML.trim();
+        fields[el.getAttribute('data-edit-html')] = richValue(el);
       });
 
       // Direcciones de los enlaces editables (vacía = el enlace no sale)

@@ -168,6 +168,23 @@ body.neutron-post-draft::before {
 }
 .neutron-rich-tools button:hover { background: #3b82f6; }
 
+/* Vídeos y pases de fotos dentro del texto con formato: bloques con su barra (en la web los monta assets/embeds.js) */
+.neutron-embed {
+  position: relative; display: block; margin: 1.5em 0; padding: 44px 8px 8px; min-height: 120px;
+  background: #1f2933 center / cover no-repeat; border-radius: 6px; outline: 2px dashed #3b82f6; outline-offset: 2px; user-select: none;
+}
+.neutron-embed[data-embed="video"] { aspect-ratio: 16 / 9; min-height: 0; }
+.neutron-embed[data-embed="slider"] { display: flex; flex-wrap: wrap; gap: 6px; }
+.neutron-embed[data-embed="slider"] img { width: 120px; height: 90px; object-fit: cover; margin: 0; border-radius: 4px; cursor: pointer; }
+.neutron-embed[data-embed="slider"] img:hover { outline: 3px solid #ef4444; }
+.neutron-embed-ui {
+  position: absolute; top: 6px; left: 6px; right: 6px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px;
+  font: 13px system-ui, sans-serif; color: #fff;
+}
+.neutron-embed-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 4px 8px; background: rgba(0,0,0,.6); border-radius: 4px; }
+.neutron-embed-ui button { background: #374151; color: #fff; border: 0; border-radius: 4px; padding: 5px 10px; font: inherit; cursor: pointer; }
+.neutron-embed-ui button:hover { background: #3b82f6; }
+
 /* Enlaces editables (data-edit-href): vacíos, se ven atenuados (en la web no salen) */
 .neutron-href { outline: 1px dashed rgba(59, 130, 246, .7); outline-offset: 2px; cursor: pointer; }
 .neutron-href-empty { opacity: .35; filter: grayscale(1); }

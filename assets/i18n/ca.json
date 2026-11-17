@@ -350,5 +350,20 @@
     "Ahora sale de la configuración del servidor; si lo guardas aquí, manda lo de aquí.": "Ara surt de la configuració del servidor; si el deses aquí, mana el d'aquí.",
     "Abrir el panel de Kepler ↗": "Obrir el tauler de Kepler ↗",
     "El código no es válido: copia el valor de data-kepler del panel de Kepler": "El codi no és vàlid: copia el valor de data-kepler del tauler de Kepler",
-    "Guía de edición (PDF)": "Guia d'edició (PDF)"
+    "Guía de edición (PDF)": "Guia d'edició (PDF)",
+    "▶ Vídeo": "▶ Vídeo",
+    "Vídeo": "Vídeo",
+    "Insertar un vídeo de YouTube o Vimeo": "Insereix un vídeo de YouTube o Vimeo",
+    "Pase de fotos": "Passi de fotos",
+    "Insertar un pase de fotos (varias fotos que se van pasando)": "Insereix un passi de fotos (unes quantes fotos que van passant)",
+    "Pase de fotos ({})": "Passi de fotos ({})",
+    "Dirección del vídeo de YouTube o Vimeo (https://www.youtube.com/watch?v=…)": "Adreça del vídeo de YouTube o Vimeo (https://www.youtube.com/watch?v=…)",
+    "No es una dirección de YouTube ni de Vimeo.": "No és una adreça de YouTube ni de Vimeo.",
+    "Cambiar vídeo": "Canvia el vídeo",
+    "+ Fotos": "+ Fotos",
+    "Quitar vídeo": "Treu el vídeo",
+    "Quitar pase": "Treu el passi",
+    "¿Quitar este vídeo?": "Vols treure aquest vídeo?",
+    "¿Quitar este pase de fotos?": "Vols treure aquest passi de fotos?",
+    "¿Quitar esta foto del pase?": "Vols treure aquesta foto del passi?"
 }

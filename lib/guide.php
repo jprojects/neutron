@@ -16,7 +16,8 @@ const NEUTRON_GUIDE_MAX_BYTES = 30 * 1024 * 1024;
 // nuevo, un botón que cambia). generar.py la apunta en site/guia-edicio.json (la lee de este fichero del repositorio), y
 // una web con una guía de una edición anterior lo dice en su estado (outdated), para que Cosmo la regenere.
 //   1: la edición en la propia página (hasta la 1.29.0) · 2: el panel (/admin/) y los botones en el idioma del panel (1.30.0)
-const NEUTRON_GUIDE_EDITION = 2;
+//   3: vídeos y pases de fotos en el cuerpo de las entradas (1.31.0)
+const NEUTRON_GUIDE_EDITION = 3;
 
 function neutron_guide_path(): string {
     return NEUTRON_SITE . '/guia-edicio.pdf';

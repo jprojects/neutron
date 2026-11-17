@@ -2,6 +2,19 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.31.0 — 2026-11-17
+
+- **Vídeos de YouTube (o Vimeo) y pases de fotos en el cuerpo de las entradas** (y en cualquier `data-edit-html`): botones
+  **▶ Vídeo** y **Pase de fotos** en la barra de formato del editor. Se guardan como `<figure data-embed="video|slider">`,
+  que valida la lista blanca de `lib/sanitize.php` (el vídeo, solo YouTube o Vimeo, normalizado a
+  `youtube-nocookie.com`/`player.vimeo.com`; el pase, solo sus imágenes del sitio). En la web los monta
+  `assets/embeds.js` (`lib/embeds.php` lo inyecta solo donde hace falta): el vídeo espera el consentimiento de la
+  categoría de cookies de vídeos, con un aviso en el idioma de la página; el pase lleva flechas, contador, teclado y
+  deslizamiento. En el editor son bloques con su barra (cambiar, añadir fotos, quitar). `neutron_video_embed` pasa de
+  `lib/posts.php` a `lib/sanitize.php`.
+- `tools/check.py` marca las webs con vídeos en el texto y sin categoría de cookies para ellos.
+- Guía de edición: los dos botones nuevos (`NEUTRON_GUIDE_EDITION` 3).
+
 ## 1.30.0 — 2026-11-16
 
 - **La guía de edición explica el panel** (`/admin/`): apartado nuevo con capturas del inicio (y el enlace a la guía), de

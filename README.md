@@ -357,6 +357,17 @@ colección (el primero con `data-posts-per-page`; si no hay, el primero): unos �
   pintar: `p`, `h2`, `h3`, `strong`, `em`, `a` (http, https, mailto, tel o rutas relativas), `ul`, `ol`, `li`,
   `blockquote`, `br`, tablas, `code` e `img` solo de `site/uploads/` o `site/assets/`. Ningún script, estilo, `on…`,
   iframe ni enlace `javascript:`. Lo que se pega (Word, otra web) se limpia ya en el navegador.
+- **Vídeos y pases de fotos en el texto** (el cuerpo de las entradas y cualquier `data-edit-html`): botones
+  **▶ Vídeo** (una dirección de YouTube o Vimeo) y **Pase de fotos** (varias fotos a la vez) en la barra de formato.
+  Se guardan como bloques en la raíz del texto, que la lista blanca valida:
+  `<figure data-embed="video" data-src="https://www.youtube-nocookie.com/embed/ID"></figure>` (la dirección se normaliza;
+  otra que no sea de YouTube o Vimeo se quita) y `<figure data-embed="slider">` con sus `<img>` del sitio. En la web los
+  monta `assets/embeds.js` (+ `embeds.css`), que `lib/embeds.php` inyecta solo en las páginas que tienen alguno: el vídeo
+  en 16:9 con el aviso de cookies hasta que se acepta su categoría (la de `cookies.json` cuyo id o nombre habla de
+  vídeos, YouTube o multimedia; **hay que tenerla**, `check.py` lo comprueba) y el pase con flechas, contador, teclado y
+  deslizamiento en el móvil. Los textos (aviso, flechas) salen en el idioma de la página (ca, es, en, fr). Cada sitio
+  puede ajustarlos con `--ne-radius`, `--ne-bg`, `--ne-accent` y `--ne-ratio` (proporción del pase, por defecto `3 / 2`).
+  En el editor son bloques con su barra: cambiar el vídeo, añadir fotos, quitar una foto (clic) o el bloque entero.
 - La dirección de un elemento sale del título al crearlo y no cambia aunque se edite el título.
 
 ### Varios idiomas

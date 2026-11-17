@@ -13,6 +13,11 @@ require_once __DIR__ . '/render.php';
 // - Atributos: solo href en <a> (http, https, mailto, tel o rutas relativas) y src + alt en <img> (solo imágenes
 //   del propio sitio: site/uploads/… o site/assets/…). Ningún style, class ni on….
 // - El texto suelto en la raíz se mete en párrafos.
+// - Bloques (solo en la raíz; los monta assets/embeds.js en la web):
+//     <figure data-embed="video" data-src="https://www.youtube-nocookie.com/embed/ID"></figure>   un vídeo de YouTube o Vimeo
+//     <figure data-embed="slider"><img src="site/uploads/…" alt="…">…</figure>                     un pase de fotos
+//   Del vídeo solo cuenta la dirección (se normaliza con neutron_video_embed); del pase, sus imágenes (las de dentro, a
+//   cualquier profundidad: lo que añade el editor alrededor se descarta).
 
 const NEUTRON_SANITIZE_ALLOWED = ['p', 'h2', 'h3', 'strong', 'em', 'a', 'ul', 'ol', 'li', 'blockquote', 'img', 'br', 'code',
     'table', 'thead', 'tbody', 'tr', 'th', 'td'];
@@ -26,7 +31,7 @@ const NEUTRON_SANITIZE_MAX = 200000;
 function neutron_sanitize_html(string $html): string {
     $html = substr($html, 0, NEUTRON_SANITIZE_MAX);
     $root = neutron_parse_html($html);
-    $clean = neutron_sanitize_children($root->children ?? []);
+    $clean = neutron_sanitize_children($root->children ?? [], true);
 
     // Texto e inline sueltos en la raíz → párrafos
     $out = '';
@@ -46,7 +51,7 @@ function neutron_sanitize_html(string $html): string {
 }
 
 /** @return list<object> nodos limpios (texto y elementos permitidos) */
-function neutron_sanitize_children(array $children): array {
+function neutron_sanitize_children(array $children, bool $root = false): array {
     $out = [];
     foreach ($children as $node) {
         $type = $node->type ?? '';
@@ -57,6 +62,13 @@ function neutron_sanitize_children(array $children): array {
         if ($type !== 'element') continue; // comentarios, doctype, contenido de script/style
         $tag = strtolower((string)$node->tag);
         if (in_array($tag, NEUTRON_SANITIZE_DROP, true)) continue;
+        if ($tag === 'figure') {
+            // Solo los bloques conocidos y en la raíz; una figura cualquiera deja su contenido
+            $embed = $root ? neutron_sanitize_embed($node) : null;
+            if ($embed !== null) $out[] = $embed;
+            elseif (!isset($node->attrs['data-embed'])) array_push($out, ...neutron_sanitize_children($node->children ?? []));
+            continue;
+        }
         $tag = NEUTRON_SANITIZE_RENAME[$tag] ?? $tag;
         $kids = neutron_sanitize_children($node->children ?? []);
         // Un <div> que envuelve bloques (una tabla, párrafos) se quita; el que solo lleva texto pasa a <p>
@@ -86,6 +98,41 @@ function neutron_sanitize_children(array $children): array {
     return $out;
 }
 
+// Bloque de vídeo o pase de fotos limpio, o null si no es válido
+function neutron_sanitize_embed(object $node): ?object {
+    $kind = (string)($node->attrs['data-embed'] ?? '');
+    if ($kind === 'video') {
+        $src = neutron_video_embed((string)($node->attrs['data-src'] ?? ''));
+        return $src === null ? null : (object)['type' => 'element', 'tag' => 'figure', 'attrs' => ['data-embed' => 'video', 'data-src' => $src], 'children' => []];
+    }
+    if ($kind === 'slider') {
+        $imgs = array_values(array_filter(neutron_sanitize_children(neutron_sanitize_find_imgs($node)), fn($n) => ($n->tag ?? '') === 'img'));
+        return $imgs ? (object)['type' => 'element', 'tag' => 'figure', 'attrs' => ['data-embed' => 'slider'], 'children' => $imgs] : null;
+    }
+    return null;
+}
+
+/** @return list<object> las <img> de dentro de un nodo, a cualquier profundidad */
+function neutron_sanitize_find_imgs(object $node): array {
+    $out = [];
+    foreach ($node->children ?? [] as $child) {
+        if (($child->type ?? '') !== 'element') continue;
+        if (strtolower((string)$child->tag) === 'img') $out[] = $child;
+        else array_push($out, ...neutron_sanitize_find_imgs($child));
+    }
+    return $out;
+}
+
+// https://www.youtube.com/watch?v=ID, youtu.be/ID… → https://www.youtube-nocookie.com/embed/ID (Vimeo, igual). Si no
+// se reconoce, null.
+function neutron_video_embed(string $url): ?string {
+    if (preg_match('~(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/|live/)|youtu\.be/)([\w-]{11})~', $url, $m)) {
+        return 'https://www.youtube-nocookie.com/embed/' . $m[1];
+    }
+    if (preg_match('~vimeo\.com/(?:video/)?(\d+)~', $url, $m)) return 'https://player.vimeo.com/video/' . $m[1];
+    return null;
+}
+
 // Enlace permitido o null. Se quitan espacios y caracteres de control antes de mirar el esquema
 // ("java\tscript:" sigue siendo javascript:).
 function neutron_sanitize_href(string $href): ?string {
@@ -108,6 +155,7 @@ function neutron_sanitize_serialize(object $node): string {
         $attrs .= ' ' . $k . '="' . htmlspecialchars((string)$v, ENT_QUOTES | ENT_HTML5, 'UTF-8') . '"';
     }
     if ($node->tag === 'img' || $node->tag === 'br') return '<' . $node->tag . $attrs . '>';
+    if ($node->tag === 'figure' && ($node->attrs['data-embed'] ?? '') === 'video') return '<figure' . $attrs . '></figure>';
     $inner = '';
     foreach ($node->children as $child) $inner .= neutron_sanitize_serialize($child);
     // Elementos vacíos que solo ensucian (un <strong></strong> que deja el editor); las celdas vacías se quedan

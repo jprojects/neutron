@@ -467,6 +467,8 @@
 
   function richControl(value, onChange) {
     var area = h('div', { class: 'np-rich', contenteditable: 'true', html: value || '' });
+    // Los vídeos y pases de fotos no se escriben aquí (se editan en la página); el servidor quita el contenteditable
+    area.querySelectorAll('figure[data-embed]').forEach(function (f) { f.setAttribute('contenteditable', 'false'); });
     var emit = function () { onChange(area.innerHTML.trim()); };
     area.addEventListener('input', emit);
     var tools = h('div', { class: 'np-rich-tools' });
