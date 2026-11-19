@@ -22,6 +22,12 @@ function neutron_version(): string {
     return $v !== '' ? $v : '0.0.0';
 }
 
+// Dirección de un fichero del núcleo (assets/…) con la versión: los hostings los guardan en la caché del navegador
+// hasta un año, y sin ?v= una actualización no llegaría a quien ya ha visitado la web (el editor viejo, por ejemplo)
+function neutron_asset_url(string $path): string {
+    return $path . '?v=' . rawurlencode(neutron_version());
+}
+
 function neutron_data_dir(string $sub = ''): string {
     $dir = NEUTRON_DATA . ($sub !== '' ? '/' . $sub : '');
     if (!is_dir($dir) && !@mkdir($dir, 0775, true) && !is_dir($dir)) {

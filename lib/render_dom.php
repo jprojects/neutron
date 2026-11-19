@@ -469,7 +469,7 @@ function neutron_dom_inject_admin_bootstrap(DOMDocument $dom, array $config): vo
 
     $css = $dom->createElement('link');
     $css->setAttribute('rel', 'stylesheet');
-    $css->setAttribute('href', 'assets/editor.css');
+    $css->setAttribute('href', neutron_asset_url('assets/editor.css'));
     $head->appendChild($css);
 
     neutron_dom_inject_script($dom, 'neutron-config', $config, 'assets/editor.js');
@@ -483,7 +483,7 @@ function neutron_dom_inject_script(DOMDocument $dom, string $id, array $config, 
     if ($css !== null) {
         $link = $dom->createElement('link');
         $link->setAttribute('rel', 'stylesheet');
-        $link->setAttribute('href', $css);
+        $link->setAttribute('href', neutron_asset_url($css));
         $head->appendChild($link);
     }
 
@@ -500,7 +500,7 @@ function neutron_dom_inject_script(DOMDocument $dom, string $id, array $config, 
     $body = $dom->getElementsByTagName('body')->item(0);
     if ($body) {
         $js = $dom->createElement('script');
-        $js->setAttribute('src', $src);
+        $js->setAttribute('src', neutron_asset_url($src));
         $js->setAttribute('defer', 'defer');
         $body->appendChild($js);
     }

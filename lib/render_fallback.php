@@ -182,7 +182,7 @@ function neutron_fallback_inject_admin_bootstrap(object $root, array $config): v
     if ($head) {
         $head->children[] = (object)[
             'type' => 'element', 'tag' => 'link',
-            'attrs' => ['rel' => 'stylesheet', 'href' => 'assets/editor.css'],
+            'attrs' => ['rel' => 'stylesheet', 'href' => neutron_asset_url('assets/editor.css')],
             'children' => [],
         ];
     }
@@ -196,7 +196,7 @@ function neutron_fallback_inject_script(object $root, string $id, array $config,
     if ($head && $css !== null) {
         $head->children[] = (object)[
             'type' => 'element', 'tag' => 'link',
-            'attrs' => ['rel' => 'stylesheet', 'href' => $css],
+            'attrs' => ['rel' => 'stylesheet', 'href' => neutron_asset_url($css)],
             'children' => [],
         ];
     }
@@ -216,7 +216,7 @@ function neutron_fallback_inject_script(object $root, string $id, array $config,
     if ($body) {
         $body->children[] = (object)[
             'type' => 'element', 'tag' => 'script',
-            'attrs' => ['src' => $src, 'defer' => ''],
+            'attrs' => ['src' => neutron_asset_url($src), 'defer' => ''],
             'children' => [],
         ];
     }

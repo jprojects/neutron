@@ -16,11 +16,11 @@ require_once __DIR__ . '/cookies.php';
 function neutron_embeds_inject(string $html, string $lang): string {
     if (!str_contains($html, 'data-embed="')) return $html;
     $json = str_replace('</script', '<\/script', (string)json_encode(neutron_embeds_client_config($lang)));
-    $head = '<link rel="stylesheet" href="assets/embeds.css">'
+    $head = '<link rel="stylesheet" href="' . neutron_asset_url('assets/embeds.css') . '">'
         . '<script type="application/json" id="neutron-embeds-config">' . $json . '</script>';
     $pos = stripos($html, '</head>');
     if ($pos !== false) $html = substr($html, 0, $pos) . $head . substr($html, $pos);
-    $js = '<script src="assets/embeds.js" defer></script>';
+    $js = '<script src="' . neutron_asset_url('assets/embeds.js') . '" defer></script>';
     $pos = strripos($html, '</body>');
     return $pos === false ? $html . $js : substr($html, 0, $pos) . $js . substr($html, $pos);
 }

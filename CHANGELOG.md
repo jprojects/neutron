@@ -2,6 +2,13 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.31.2 — 2026-11-19
+
+- **Los ficheros del núcleo que se inyectan en la página llevan la versión** (`assets/editor.js?v=1.31.2`, también
+  `editor.css`, `cookies`, `form.js`, `search` y `embeds`; `neutron_asset_url` en `lib/bootstrap.php`), como ya hacía el
+  panel. Los hostings los guardan en la caché del navegador hasta un año: después de una actualización, quien ya había
+  entrado seguía con el editor viejo (sin los botones de vídeo y pase de fotos de la 1.31.0).
+
 ## 1.31.1 — 2026-11-17
 
 - Corregido: en Apache, la redirección de una página sin idioma a la del idioma principal arrastraba el `page=` que
