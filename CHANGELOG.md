@@ -2,6 +2,14 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.31.3 — 2026-11-19
+
+- **Vídeos y pases de fotos también desde el panel**: el texto con formato de las fichas (el cuerpo de una entrada) y
+  de *Contenido* tiene los botones **▶ Vídeo** y **Pase de fotos**, y muestra los bloques con su barra (cambiar,
+  añadir fotos, quitar), como el editor de la página. En la 1.31.0 solo estaban en la edición en la propia página.
+- Corregido: en el panel no se veían las imágenes del texto con formato (rutas `site/…` desde `admin/`); se ven con
+  `../` y se guardan como siempre.
+
 ## 1.31.2 — 2026-11-19
 
 - **Los ficheros del núcleo que se inyectan en la página llevan la versión** (`assets/editor.js?v=1.31.2`, también

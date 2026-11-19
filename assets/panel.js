@@ -465,19 +465,112 @@
     ])]);
   }
 
+  // Texto con formato. Los vídeos y pases de fotos (<figure data-embed>, ver lib/embeds.php) son bloques que no se
+  // escriben, con sus botones; las imágenes del sitio se ven con ../ (el panel está en admin/) y se guardan sin él.
+  var VIDEO_RE = /(?:youtube(?:-nocookie)?\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([\w-]{11})|vimeo\.com\/(?:video\/)?(\d+)/;
+  function videoEmbed(url) {
+    var m = VIDEO_RE.exec(url || '');
+    return !m ? null : m[1] ? 'https://www.youtube-nocookie.com/embed/' + m[1] : 'https://player.vimeo.com/video/' + m[2];
+  }
   function richControl(value, onChange) {
     var area = h('div', { class: 'np-rich', contenteditable: 'true', html: value || '' });
-    // Los vídeos y pases de fotos no se escriben aquí (se editan en la página); el servidor quita el contenteditable
-    area.querySelectorAll('figure[data-embed]').forEach(function (f) { f.setAttribute('contenteditable', 'false'); });
-    var emit = function () { onChange(area.innerHTML.trim()); };
+    area.querySelectorAll('img').forEach(function (img) { img.setAttribute('src', src(img.getAttribute('src'))); });
+    var emit = function () {
+      var copy = area.cloneNode(true);
+      copy.querySelectorAll('.np-embed-ui').forEach(function (n) { n.remove(); });
+      copy.querySelectorAll('img').forEach(function (img) { img.setAttribute('src', (img.getAttribute('src') || '').replace(/^\.\.\/(?=site\/)/, '')); });
+      copy.querySelectorAll('figure[data-embed]').forEach(function (f) { f.removeAttribute('contenteditable'); f.removeAttribute('style'); });
+      onChange(copy.innerHTML.trim());
+    };
     area.addEventListener('input', emit);
+    var range = null; // dónde estaba el cursor (al pulsar un botón se pierde)
+    document.addEventListener('selectionchange', function track() {
+      // Cuando se cierra la ficha, el control deja de escuchar
+      if (!area.isConnected) { if (area._shown) document.removeEventListener('selectionchange', track); return; }
+      area._shown = true;
+      var sel = window.getSelection();
+      if (sel.rangeCount && area.contains(sel.getRangeAt(0).startContainer)) range = sel.getRangeAt(0).cloneRange();
+    });
+
+    function pickImages(done) {
+      var input = h('input', { type: 'file', multiple: true, accept: 'image/png,image/jpeg,image/gif,image/webp' });
+      input.addEventListener('change', function () {
+        var files = Array.prototype.slice.call(input.files || []), urls = [];
+        (function next() {
+          if (!files.length) { if (urls.length) done(urls); return; }
+          upload(files.shift()).then(function (u) { urls.push(u); next(); }).catch(function (err) { alert(err.message || 'No se ha podido subir'); if (urls.length) done(urls); });
+        })();
+      });
+      input.click();
+    }
+    function sliderImg(url) { return h('img', { src: src(url), alt: '' }); }
+    function askVideo(current) {
+      var url = prompt('Dirección del vídeo de YouTube o Vimeo (https://www.youtube.com/watch?v=…)', current || '');
+      if (url === null) return null;
+      var v = videoEmbed(url.trim());
+      if (!v) alert('No es una dirección de YouTube ni de Vimeo.');
+      return v;
+    }
+    // Detrás del bloque de la raíz donde está el cursor, nunca dentro de un párrafo
+    function insertBlock(fig) {
+      var node = range ? range.startContainer : null;
+      while (node && node.parentNode !== area) node = node.parentNode;
+      area.insertBefore(fig, node ? node.nextSibling : null);
+      if (!fig.nextSibling) area.appendChild(h('p', {}, [h('br')]));
+      prepare(fig);
+      emit();
+    }
+    function prepare(fig) {
+      fig.setAttribute('contenteditable', 'false');
+      var old = fig.querySelector('.np-embed-ui');
+      if (old) old.remove();
+      var video = fig.getAttribute('data-embed') === 'video';
+      var yt = /youtube-nocookie\.com\/embed\/([\w-]{11})/.exec(fig.getAttribute('data-src') || '');
+      if (video) fig.style.backgroundImage = yt ? 'url("https://i.ytimg.com/vi/' + yt[1] + '/hqdefault.jpg")' : '';
+      var label = video ? '▶ ' + t('Vídeo') : t('Pase de fotos (' + fig.querySelectorAll('img').length + ')');
+      var ui = h('span', { class: 'np-embed-ui' }, [h('span', { class: 'np-embed-label' }, [document.createTextNode(label)])]);
+      var buttons = video
+        ? [['Cambiar vídeo', function () { var v = askVideo(fig.getAttribute('data-src')); if (v) { fig.setAttribute('data-src', v); prepare(fig); emit(); } }]]
+        : [['+ Fotos', function () { pickImages(function (urls) { urls.forEach(function (u) { fig.appendChild(sliderImg(u)); }); prepare(fig); emit(); }); }]];
+      buttons.push([video ? 'Quitar vídeo' : 'Quitar pase', function () {
+        if (!confirm(video ? '¿Quitar este vídeo?' : '¿Quitar este pase de fotos?')) return;
+        fig.remove(); emit();
+      }]);
+      buttons.forEach(function (b) {
+        ui.appendChild(h('button', { type: 'button', text: b[0], onclick: function (e) { e.preventDefault(); e.stopPropagation(); b[1](); } }));
+      });
+      fig.insertBefore(ui, fig.firstChild);
+      if (!video && !fig._npClicks) {
+        fig._npClicks = true;
+        // Una foto del pase se quita con un clic (si es la última, el pase entero)
+        fig.addEventListener('click', function (e) {
+          var img = e.target.closest('img');
+          if (!img || !confirm('¿Quitar esta foto del pase?')) return;
+          img.remove();
+          if (!fig.querySelector('img')) fig.remove(); else prepare(fig);
+          emit();
+        });
+      }
+    }
+    area.querySelectorAll('figure[data-embed]').forEach(prepare);
+
     var tools = h('div', { class: 'np-rich-tools' });
     [['bold', 'N', 'Negrita'], ['italic', 'C', 'Cursiva'], ['h2', 'T2', 'Título'], ['h3', 'T3', 'Subtítulo'],
-      ['insertUnorderedList', '• Lista', 'Lista'], ['createLink', 'Enlace', 'Enlace'], ['p', 'Párrafo', 'Texto normal']].forEach(function (t) {
-      tools.appendChild(h('button', { type: 'button', title: t[2], text: t[1], onmousedown: function (e) { e.preventDefault(); }, onclick: function () {
-        if (t[0] === 'h2' || t[0] === 'h3' || t[0] === 'p') document.execCommand('formatBlock', false, t[0]);
-        else if (t[0] === 'createLink') { var url = prompt('Dirección del enlace (https://…)'); if (url) document.execCommand('createLink', false, url); }
-        else document.execCommand(t[0]);
+      ['insertUnorderedList', '• Lista', 'Lista'], ['createLink', 'Enlace', 'Enlace'], ['p', 'Párrafo', 'Texto normal'],
+      ['video', '▶ Vídeo', 'Insertar un vídeo de YouTube o Vimeo'], ['slider', 'Pase de fotos', 'Insertar un pase de fotos (varias fotos que se van pasando)']].forEach(function (b) {
+      tools.appendChild(h('button', { type: 'button', title: b[2], text: b[1], onmousedown: function (e) { e.preventDefault(); }, onclick: function () {
+        if (b[0] === 'video') {
+          var v = askVideo('');
+          if (v) insertBlock(h('figure', { 'data-embed': 'video', 'data-src': v }));
+          return;
+        }
+        if (b[0] === 'slider') {
+          pickImages(function (urls) { insertBlock(h('figure', { 'data-embed': 'slider' }, urls.map(sliderImg))); });
+          return;
+        }
+        if (b[0] === 'h2' || b[0] === 'h3' || b[0] === 'p') document.execCommand('formatBlock', false, b[0]);
+        else if (b[0] === 'createLink') { var url = prompt('Dirección del enlace (https://…)'); if (url) document.execCommand('createLink', false, url); }
+        else document.execCommand(b[0]);
         emit();
       } }));
     });

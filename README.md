@@ -367,7 +367,8 @@ colección (el primero con `data-posts-per-page`; si no hay, el primero): unos �
   vídeos, YouTube o multimedia; **hay que tenerla**, `check.py` lo comprueba) y el pase con flechas, contador, teclado y
   deslizamiento en el móvil. Los textos (aviso, flechas) salen en el idioma de la página (ca, es, en, fr). Cada sitio
   puede ajustarlos con `--ne-radius`, `--ne-bg`, `--ne-accent` y `--ne-ratio` (proporción del pase, por defecto `3 / 2`).
-  En el editor son bloques con su barra: cambiar el vídeo, añadir fotos, quitar una foto (clic) o el bloque entero.
+  En el editor de la página y en el del panel (las fichas de las colecciones y *Contenido*) son bloques con su barra:
+  cambiar el vídeo, añadir fotos, quitar una foto (clic) o el bloque entero.
 - La dirección de un elemento sale del título al crearlo y no cambia aunque se edite el título.
 
 ### Varios idiomas
