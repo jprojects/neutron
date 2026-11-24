@@ -1,0 +1,3 @@
+Base de países de las visitas del panel (lib/geoip.php). La genera tools/geoip.py.
+Datos: IP to Country Lite de DB-IP (2026-11), https://db-ip.com, con licencia CC BY 4.0
+(https://creativecommons.org/licenses/by/4.0/). Convertidos a un formato binario compacto.

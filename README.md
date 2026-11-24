@@ -608,12 +608,29 @@ salen de ahí (en los dos motores, antes de marcar la página actual y de poner 
 ### Visitas
 
 Sin cookies ni servicios externos (no piden consentimiento): cada página que sirve Neutron con un 200 a una persona (no
-a robots, al editor con sesión ni a las precargas del navegador) es una línea en `data/stats/AAAA-MM-DD.log` con la
-página y una huella del visitante de ese día (`sha1` de una sal al azar del día + IP + navegador; la IP no se guarda y
-la sal se borra al terminar el día, así que no se puede seguir a nadie de un día a otro). Al día siguiente se resume en
-`data/stats/days.json` (vistas, visitantes, páginas más vistas; 400 días) y el registro se borra. Cuenta también las
-páginas servidas desde la caché. Config `stats.enabled` (true). Son cifras orientativas: no ven las visitas que se
-quedan en la caché de un proxy ni distinguen dos personas detrás de la misma IP con el mismo navegador.
+a robots, al editor con sesión ni a las precargas del navegador) es una línea en `data/stats/AAAA-MM-DD.log` con:
+
+- la página y la hora;
+- una huella del visitante de ese día (`sha1` de una sal al azar del día + IP + navegador). La sal se borra al terminar
+  el día, así que no se puede seguir a nadie de un día a otro;
+- el **país**, sacado de la IP en el propio servidor (`lib/geoip.php`, con la base de `lib/geoip/`: *IP to Country Lite*
+  de DB-IP, CC BY 4.0, que el panel cita). La IP no sale del servidor;
+- el **navegador** (Chrome, Safari, Firefox, Edge, Samsung Internet, Opera u otro) y el **dispositivo** (móvil, tableta u
+  ordenador), por el User-Agent. Los iPad recientes se presentan como un Mac y cuentan como ordenador;
+- la **IP anonimizada**, sin el último bloque (`83.45.120.0`; en IPv6, los primeros 48 bits: `2a01:4f8:1::`). La IP
+  completa no se guarda nunca.
+
+Al día siguiente se resume en `data/stats/days.json` (vistas, visitantes, páginas más vistas y, contando visitantes,
+países, navegadores y dispositivos; 400 días). El registro pasa a `AAAA-MM-DD.visits` y se borra a los 30 días. El
+inicio del panel enseña los últimos 30 días: totales, una barra por día, páginas más vistas, países, dispositivos,
+navegadores y las **últimas visitas** una a una (hora, página, país, navegador, dispositivo e IP anonimizada; *Ver más*
+las carga de 50 en 50, `admin/api.php?a=visits&offset=`). Los días anteriores a la 1.33.0 solo tienen vistas,
+visitantes y páginas. Cuenta también las páginas servidas desde la caché. Config `stats.enabled` (true). Son cifras
+orientativas: no ven las visitas que se quedan en la caché de un proxy ni distinguen dos personas detrás de la misma IP
+con el mismo navegador, y el país se resuelve por bloques (/24 en IPv4, /40 en IPv6).
+
+La base de países se regenera con `python3 tools/geoip.py` (descarga la del mes de DB-IP) cada pocos meses, y se
+publica con una versión. Ocupa unos 2,2 MB.
 
 ### Idioma del panel
 
@@ -832,6 +849,7 @@ el navegador, Node 22 y Chromium.
 | `python3 tools/new-site.py <cliente> --nom "…" [--idiomes ca,es,en] [--migrar URL]` | Crea `~/Projects/neutron-<cliente>`: núcleo de la última etiqueta, `site/` básico (carpetas, `languages.json`, `cookies.json` en cada idioma), `config.local.php` con contraseña aleatoria y token de Cosmo, y la contraseña en `credencials.local.md`. |
 | `python3 tools/migrate.py URL <instalación> [--render] [--max 150] [--excluir REGEX…]` | Rastrea la web antigua y deja en `_migracio/` el contenido por páginas e idiomas (`contenido.json`, sin el menú ni el pie), una propuesta de `redirects.json` y un `informe.md` (CMS, idiomas, menú, contacto, redes, terceros → cookies, formularios, tipografías, colores, logo, blog). Descarga las imágenes en WebP (2000 px como mucho) a `site/assets/img/` y hace el favicon. `--render` usa Chromium para las webs que montan el contenido con JavaScript. `--excluir` deja fuera las URLs que coinciden (ruta y consulta), p. ej. una tienda que no se migra; las de cuenta, carrito y acciones (`component/users`, `view=login`, `task=`…) no se rastrean nunca. **Colecciones** (`tools/migrate_collections.py`): noticias (el blog de Joomla y los artículos), documentos (los descarga, con categoría, fecha y descargas), galería por álbumes y vídeos de YouTube o Vimeo, directamente en `site/<colección>/`, y el cuerpo limpio de cada página (`body_html`) para el bloque `richtext`. |
 | `python3 tools/check.py <instalación> [--guia --nom "…" --url …]` | Antes de entregar: núcleo sin tocar, contraseña, token, reCAPTCHA, favicon, cookies, páginas legales, textos `[PENDENT]`, imágenes, traducciones y, sobre una copia servida con `php -S`, todas las páginas (título, descripción, h1), enlaces internos, redirecciones, URLs de la web antigua, terceros sin consentimiento y los dos motores. Con `--guia`, si no hay errores, genera la guía. |
+| `python3 tools/geoip.py [fichero.csv.gz]` | Regenera la base de países de las visitas (`lib/geoip/`) a partir de *IP to Country Lite* de DB-IP (la descarga si no se le pasa). Hacerlo cada pocos meses y publicar una versión. |
 | `python3 tools/regresion.py [webs…]` | Antes de publicar una versión: cada web local (las instalaciones de `~/Projects`) con su núcleo y con el del repositorio, y los dos motores de render, comparando el HTML de su sitemap. Las webs no se tocan (copias temporales). Sale con 1 si hay diferencias. |
 | `python3 tools/compose.py <instalación>` | Monta el `site/` con los **bloques** de `blocks/` según la receta `site/compose.json`: plantilla, páginas, parciales, tema (colores y tipografías, que se alojan en la web), CSS y JS, cookies y formulario en cada idioma, y los textos por defecto que falten en `content*.json` (sin pisar los que hay). No reescribe una plantilla tocada a mano. Ver `blocks/README.md`. |
 | `python3 tools/legal.py <instalación> [--nif NIF]` | Aviso legal, privacidad y cookies en todos los idiomas: privacidad y cookies con Pulsar (`~/Projects/pulsar`), según lo que tiene la web (formulario, mapas, vídeos, redes). Datos del titular en `site/legal.json`: los fiscales (nombre, NIF, domicilio) de la ficha del cliente en Asteroid, buscado por el NIF (token del MCP de Asteroid en `~/.config/asteroid-mcp/token`; `--sin-asteroid` para no consultarlo), y el resto de la web antigua si `migrate.py` los encontró; lo que falte sale como «[PENDENT: …]». Respeta los textos editados a mano. |

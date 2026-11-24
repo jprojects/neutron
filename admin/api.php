@@ -4,6 +4,7 @@
 //
 //   GET admin/api.php?a=home                inicio: datos de la web, últimos cambios, avisos de AFI y si hay guía (lib/guide.php)
 //   GET admin/api.php?a=content[&lang=es]   lo editable (lib/schema.php) con los valores de ese idioma
+//   GET admin/api.php?a=visits[&offset=]   las visitas una a una, de 50 en 50 (lib/stats.php)
 //   POST admin/api.php?a=notice-click&id=…   clic en el botón de un aviso de AFI (estadística para Cosmo)
 //   GET admin/api.php?a=seo                 análisis con Pulsar: páginas, últimos informes, historial y los que quedan hoy
 //   POST admin/api.php?a=seo-run            {"type": "seo"|"geo", "page": ""|slug}: analiza con Pulsar (lib/seo.php)
@@ -96,6 +97,12 @@ if ($action === 'home') {
         'unread' => neutron_messages_unread(),
         'stats' => neutron_stats_enabled() ? neutron_stats_summary(30) : null,
     ]);
+    exit;
+}
+
+if ($action === 'visits') {
+    if (!neutron_stats_enabled()) { echo json_encode(['ok' => true, 'items' => [], 'more' => false]); exit; }
+    echo json_encode(['ok' => true] + neutron_stats_visits(max(0, (int)($_GET['offset'] ?? 0)), 50));
     exit;
 }
 

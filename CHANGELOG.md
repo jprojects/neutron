@@ -2,6 +2,16 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.33.0 — 2026-11-24
+
+- **Visitas más completas**: además de vistas, visitantes y páginas, el inicio del panel enseña los **países**, los
+  **navegadores** y los **dispositivos** (móvil, tableta u ordenador) de los visitantes de los últimos 30 días, y las
+  **últimas visitas** una a una (hora, página, país, navegador, dispositivo e IP anonimizada, sin el último bloque),
+  con *Ver más* de 50 en 50 (`admin/api.php?a=visits`). Sigue sin cookies: el país se saca de la IP en el propio
+  servidor con una base local (`lib/geoip.php` y `lib/geoip/`, de *IP to Country Lite* de DB-IP, CC BY 4.0; se
+  regenera con `tools/geoip.py`), y la IP completa no se guarda nunca. Las visitas una a una se borran a los 30 días
+  (`data/stats/AAAA-MM-DD.visits`); los días anteriores a esta versión solo tienen vistas, visitantes y páginas.
+
 ## 1.32.0 — 2026-11-24
 
 - **Chat web de Asteroid**: además del de Kepler, la web puede llevar el chat web de Asteroid (el gestor de incidencias

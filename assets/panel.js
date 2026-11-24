@@ -194,7 +194,36 @@
         home.guide ? h('a', { href: 'guide.php', target: '_blank', rel: 'noopener', text: t('Guía de edición (PDF)') }) : null]));
     }).catch(failed);
   }
-  // Visitas de los últimos 30 días (lib/stats.php): totales, una barra por día y las páginas más vistas
+  // Visitas de los últimos 30 días (lib/stats.php): totales, una barra por día, páginas más vistas, países, navegadores,
+  // dispositivos y las últimas visitas una a una (país e IP anonimizada; más con «Ver más», de 50 en 50)
+  var DEVICES = { mobile: 'Móvil', tablet: 'Tableta', desktop: 'Ordenador' };
+  function countryName(cc) {
+    if (!cc || cc === '??') return t('Desconocido');
+    try { return new Intl.DisplayNames([LOCALE], { type: 'region' }).of(cc) || cc; } catch (e) { return cc; }
+  }
+  function flag(cc) {
+    return /^[A-Z]{2}$/.test(cc || '') ? String.fromCodePoint.apply(null, cc.split('').map(function (c) { return 127397 + c.charCodeAt(0); })) + ' ' : '';
+  }
+  function pct(n, total) { return total ? Math.round(n * 100 / total) : 0; }
+  // Lista con una barra de proporción detrás de cada fila
+  function shareList(obj, label) {
+    var keys = Object.keys(obj || {}), total = keys.reduce(function (s, k) { return s + obj[k]; }, 0);
+    return h('ul', { class: 'np-share' }, keys.map(function (k) {
+      var p = pct(obj[k], total);
+      return h('li', { style: '--np-share:' + p + '%', title: obj[k] + ' ' + t('visitantes') }, [h('span', { text: label(k) }), h('span', { class: 'np-muted', text: p + '%' })]);
+    }));
+  }
+  function visitRow(v) {
+    var day = new Date(v.date + 'T' + v.time), today = new Date().toDateString() === day.toDateString();
+    var when = today ? v.time.slice(0, 5) : day.toLocaleDateString(LOCALE, { day: 'numeric', month: 'short' }) + ' ' + v.time.slice(0, 5);
+    return h('li', {}, [
+      h('span', { class: 'np-visit-when', text: when }),
+      h('span', { class: 'np-visit-page', text: v.path === '/' || v.path === '' ? t('Portada') : decodeURIComponent(v.path) }),
+      h('span', { class: 'np-visit-meta', title: v.ip ? 'IP ' + v.ip : null },
+        [flag(v.country) + countryName(v.country || '??') + ' · ' + v.browser + ' · ' + t(DEVICES[v.device] || v.device)]),
+      h('span', { class: 'np-visit-ip', text: v.ip || '' })
+    ]);
+  }
   function statsCard(st) {
     var days = Object.keys(st.days), max = Math.max.apply(null, days.map(function (d) { return st.days[d].views; }).concat([1]));
     var chart = h('div', { class: 'np-chart', role: 'img', 'aria-label': 'Visitas por día' }, days.map(function (d) {
@@ -203,6 +232,33 @@
         title: day.toLocaleDateString(LOCALE, { weekday: 'short', day: 'numeric', month: 'short' }) + ': ' + v.views + ' páginas vistas, ' + v.visitors + ' visitantes' });
     }));
     var pages = Object.keys(st.pages);
+    if (!pages.length) {
+      return h('section', { class: 'np-card' }, [
+        h('div', { class: 'np-card-head' }, [h('h2', { text: 'Visitas' }), h('span', { class: 'np-muted np-small', text: 'Últimos 30 días · sin cookies' })]),
+        h('p', { class: 'np-muted np-small', text: 'Todavía no hay visitas contadas.' })]);
+    }
+    var hasDetail = Object.keys(st.devices || {}).length > 0;
+    // Dispositivos: una barra partida (móvil, tableta, ordenador)
+    var devTotal = Object.keys(st.devices || {}).reduce(function (s, k) { return s + st.devices[k]; }, 0);
+    var devOrder = ['mobile', 'tablet', 'desktop'].filter(function (k) { return st.devices && st.devices[k]; });
+    var devices = h('div', {}, [
+      h('div', { class: 'np-devices-bar', role: 'img', 'aria-label': devOrder.map(function (k) { return t(DEVICES[k]) + ' ' + pct(st.devices[k], devTotal) + '%'; }).join(', ') },
+        devOrder.map(function (k) { return h('span', { class: 'is-' + k, style: 'width:' + pct(st.devices[k], devTotal) + '%' }); })),
+      h('ul', { class: 'np-devices-legend' }, devOrder.map(function (k) {
+        return h('li', { class: 'is-' + k }, [h('strong', { text: pct(st.devices[k], devTotal) + '%' }), ' ' + t(DEVICES[k])]);
+      }))
+    ]);
+    var recent = h('ul', { class: 'np-visits-list' }, (st.recent || []).map(visitRow));
+    var offset = (st.recent || []).length;
+    var moreBtn = h('button', { type: 'button', class: 'np-button np-secondary np-small-button', text: 'Ver más visitas', onclick: function () {
+      moreBtn.disabled = true;
+      api('visits', { offset: offset }).then(function (d) {
+        d.items.forEach(function (v) { recent.appendChild(visitRow(v)); });
+        offset += d.items.length;
+        moreBtn.disabled = false;
+        if (!d.more) moreBtn.remove();
+      }).catch(function () { moreBtn.disabled = false; });
+    } });
     return h('section', { class: 'np-card' }, [
       h('div', { class: 'np-card-head' }, [h('h2', { text: 'Visitas' }), h('span', { class: 'np-muted np-small', text: 'Últimos 30 días · sin cookies' })]),
       h('div', { class: 'np-visits' }, [
@@ -210,9 +266,17 @@
         h('div', {}, [h('strong', { text: st.views.toLocaleString(LOCALE) }), h('span', { text: 'páginas vistas' })])
       ]),
       chart,
-      pages.length ? h('ul', { class: 'np-recent np-top-pages' }, pages.map(function (p) {
-        return h('li', {}, [h('span', { text: p === '/' || p === '' ? 'Portada' : decodeURIComponent(p) }), h('span', { class: 'np-muted', text: String(st.pages[p]) })]);
-      })) : h('p', { class: 'np-muted np-small', text: 'Todavía no hay visitas contadas.' })
+      h('div', { class: 'np-stats-grid' }, [
+        h('div', {}, [h('h3', { text: 'Páginas más vistas' }), h('ul', { class: 'np-recent np-top-pages' }, pages.map(function (p) {
+          return h('li', {}, [h('span', { text: p === '/' || p === '' ? 'Portada' : decodeURIComponent(p) }), h('span', { class: 'np-muted', text: String(st.pages[p]) })]);
+        }))]),
+        hasDetail ? h('div', {}, [h('h3', { text: 'Países' }), shareList(st.countries, function (cc) { return flag(cc === '??' ? '' : cc) + countryName(cc); })]) : null,
+        hasDetail ? h('div', {}, [h('h3', { text: 'Dispositivos' }), devices]) : null,
+        hasDetail ? h('div', {}, [h('h3', { text: 'Navegadores' }), shareList(st.browsers, function (b) { return t(b); })]) : null
+      ]),
+      offset ? h('div', { class: 'np-visits-recent' }, [h('h3', { text: 'Últimas visitas' }), recent, offset >= 10 ? moreBtn : null,
+        h('p', { class: 'np-muted np-small' }, [t('IP sin el último bloque; se borran a los 30 días. Países: '),
+          h('a', { href: 'https://db-ip.com', target: '_blank', rel: 'noopener', text: 'IP Geolocation by DB-IP' })])]) : null
     ]);
   }
 

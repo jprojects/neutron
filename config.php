@@ -63,7 +63,8 @@ function neutron_config_defaults(): array {
             'lang' => null,
         ],
 
-        // Visitas en el inicio del panel, sin cookies (data/stats/; lib/stats.php)
+        // Visitas en el inicio del panel, sin cookies: páginas, países, navegadores, dispositivos e IP anonimizada
+        // (data/stats/; lib/stats.php)
         'stats' => [
             'enabled' => true,
         ],
