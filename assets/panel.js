@@ -972,35 +972,62 @@
     draw();
   }
 
-  // ------------------------------------------------------------------ chat de Kepler (lib/kepler.php, data/kepler.json)
+  // ------------------------------------------------------------------ chats de Kepler (lib/kepler.php) y Asteroid (lib/asteroid.php)
   function loadChat() {
     main.innerHTML = '<p class="np-muted">' + t('Cargando…') + '</p>';
-    api('kepler').then(renderChat).catch(failed);
+    Promise.all([api('kepler'), api('asteroid')]).then(function (r) { renderChat(r[0], r[1]); }).catch(failed);
   }
 
-  function renderChat(d) {
+  function renderChat(k, a) {
     var status = h('span', { class: 'np-status' });
-    var enabled = h('input', { type: 'checkbox', checked: d.enabled });
-    var token = h('input', { class: 'np-input', value: d.token, placeholder: t('El valor de data-kepler'), spellcheck: 'false', autocomplete: 'off',
-      oninput: function () { var m = token.value.match(/data-kepler="([0-9a-fA-F]{32})"/); if (m) token.value = m[1]; changed(); } });
     var saveBtn = h('button', { type: 'button', class: 'np-button', text: t('Guardar'), disabled: true, onclick: save });
-    function changed() { state.dirty = true; saveBtn.disabled = false; status.textContent = t('Cambios sin guardar'); }
-    enabled.addEventListener('change', changed);
+    var dirty = { kepler: false, asteroid: false };
+    function changed(which) { dirty[which] = true; state.dirty = true; saveBtn.disabled = false; status.textContent = t('Cambios sin guardar'); }
+
+    // Kepler: el valor de data-kepler (32 hexadecimales); se puede pegar el código entero
+    var kEnabled = h('input', { type: 'checkbox', checked: k.enabled, onchange: function () { changed('kepler'); } });
+    var kToken = h('input', { class: 'np-input', value: k.token, placeholder: t('El valor de data-kepler'), spellcheck: 'false', autocomplete: 'off',
+      oninput: function () { var m = kToken.value.match(/data-kepler="([0-9a-fA-F]{32})"/); if (m) kToken.value = m[1]; changed('kepler'); } });
+    // Asteroid: la clave k= del código (24 hexadecimales); se puede pegar el código entero
+    var aEnabled = h('input', { type: 'checkbox', checked: a.enabled, onchange: function () { changed('asteroid'); } });
+    var aKey = h('input', { class: 'np-input', value: a.key, placeholder: t('El código del xat web de Asteroid'), spellcheck: 'false', autocomplete: 'off',
+      oninput: function () { var m = aKey.value.match(/[?&;]k=([0-9a-fA-F]{24})\b/); if (m) aKey.value = m[1]; changed('asteroid'); } });
+    var both = h('p', { class: 'np-muted np-small', text: t('Con los dos chats activos, pon el botón de Asteroid a la izquierda (Suport → El meu xat web → Posició) para que no se tapen.') });
+    function showBoth() { both.style.display = kEnabled.checked && aEnabled.checked ? '' : 'none'; }
+    kEnabled.addEventListener('change', showBoth); aEnabled.addEventListener('change', showBoth); showBoth();
+
     main.innerHTML = '';
     main.appendChild(h('header', { class: 'np-head np-sticky' }, [h('h1', { text: t('Chat') }), h('div', { class: 'np-actions' }, [status, saveBtn])]));
-    main.appendChild(h('p', { class: 'np-muted np-small', text: t('El asistente de Kepler contesta a los clientes en todas las páginas de la web. Copia el código de tu panel de Kepler (Ponerlo en tu web) y pégalo aquí: basta con el código entero o solo el valor de data-kepler.') }));
+    main.appendChild(h('p', { class: 'np-muted np-small', text: t('Un chat en todas las páginas de la web. Puede ser el asistente con IA de Kepler, el chat web de Asteroid (contestáis vosotros) o los dos.') }));
     main.appendChild(h('section', { class: 'np-card' }, [
-      h('label', { class: 'np-field' }, [h('span', { class: 'np-label', text: t('Código del chat') }), token]),
-      h('label', { class: 'np-check' }, [enabled, ' ' + t('Mostrar el chat en la web')]),
-      d.source === 'config' ? h('p', { class: 'np-muted np-small', text: t('Ahora sale de la configuración del servidor; si lo guardas aquí, manda lo de aquí.') }) : null,
-      h('p', { class: 'np-small' }, [h('a', { class: 'np-link', href: d.url, target: '_blank', rel: 'noopener', text: t('Abrir el panel de Kepler ↗') })])
+      h('h2', { text: 'Kepler' }),
+      h('p', { class: 'np-muted np-small', text: t('El asistente de Kepler contesta a los clientes en todas las páginas de la web. Copia el código de tu panel de Kepler (Ponerlo en tu web) y pégalo aquí: basta con el código entero o solo el valor de data-kepler.') }),
+      h('label', { class: 'np-field' }, [h('span', { class: 'np-label', text: t('Código del chat') }), kToken]),
+      h('label', { class: 'np-check' }, [kEnabled, ' ' + t('Mostrar el chat en la web')]),
+      k.source === 'config' ? h('p', { class: 'np-muted np-small', text: t('Ahora sale de la configuración del servidor; si lo guardas aquí, manda lo de aquí.') }) : null,
+      h('p', { class: 'np-small' }, [h('a', { class: 'np-link', href: k.url, target: '_blank', rel: 'noopener', text: t('Abrir el panel de Kepler ↗') })])
     ]));
+    main.appendChild(h('section', { class: 'np-card' }, [
+      h('h2', { text: 'Asteroid' }),
+      h('p', { class: 'np-muted np-small', text: t('El chat web de Asteroid: los visitantes escriben y contestáis desde Asteroid (Suport → Xat web) o desde Telegram. Copia el código de Suport → El meu xat web y pégalo aquí: basta con el código entero o solo la clave.') }),
+      h('label', { class: 'np-field' }, [h('span', { class: 'np-label', text: t('Código del chat') }), aKey]),
+      h('label', { class: 'np-check' }, [aEnabled, ' ' + t('Mostrar el chat en la web')]),
+      a.source === 'config' ? h('p', { class: 'np-muted np-small', text: t('Ahora sale de la configuración del servidor; si lo guardas aquí, manda lo de aquí.') }) : null,
+      h('p', { class: 'np-small' }, [h('a', { class: 'np-link', href: a.url, target: '_blank', rel: 'noopener', text: t('Abrir Asteroid ↗') })])
+    ]));
+    main.appendChild(both);
+
     function save() {
-      var v = token.value.trim();
-      if (v && !/^[0-9a-fA-F]{32}$/.test(v)) { alert(t('El código no es válido: copia el valor de data-kepler del panel de Kepler')); return; }
+      var kv = kToken.value.trim(), av = aKey.value.trim();
+      if (dirty.kepler && kv && !/^[0-9a-fA-F]{32}$/.test(kv)) { alert(t('El código no es válido: copia el valor de data-kepler del panel de Kepler')); return; }
+      if (dirty.asteroid && av && !/^[0-9a-fA-F]{24}$/.test(av)) { alert(t('El código no es válido: copia el código del xat web de Asteroid (lleva «k=»)')); return; }
       saveBtn.disabled = true; status.textContent = t('Guardando…');
-      post('api.php?a=kepler-save', { token: v, enabled: enabled.checked }).then(function (r) {
-        if (!r.ok) { saveBtn.disabled = false; status.textContent = t(r.error || 'No se ha podido guardar'); return; }
+      var jobs = [];
+      if (dirty.kepler) jobs.push(post('api.php?a=kepler-save', { token: kv, enabled: kEnabled.checked }).then(function (r) { if (r.ok) dirty.kepler = false; return r; }));
+      if (dirty.asteroid) jobs.push(post('api.php?a=asteroid-save', { key: av, enabled: aEnabled.checked }).then(function (r) { if (r.ok) dirty.asteroid = false; return r; }));
+      Promise.all(jobs).then(function (rs) {
+        var bad = rs.filter(function (r) { return !r.ok; })[0];
+        if (bad) { saveBtn.disabled = false; status.textContent = t(bad.error || 'No se ha podido guardar'); return; }
         state.dirty = false; status.textContent = t('Guardado');
       }).catch(function () { saveBtn.disabled = false; status.textContent = t('No se ha podido guardar'); });
     }

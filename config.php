@@ -109,6 +109,14 @@ function neutron_config_defaults(): array {
             'token' => '',
         ],
 
+        // Chat web de Asteroid (el gestor de incidencias de AFI) en todas las páginas (lib/asteroid.php): los visitantes
+        // escriben y el cliente contesta desde Asteroid o Telegram. La clave es la «k=» del código que da Asteroid
+        // (Suport → El meu xat web); también se puede poner desde el panel de la web (/admin/ → Chat), que manda sobre esta.
+        'asteroid' => [
+            'url' => 'https://sat.aficat.com',
+            'key' => '',
+        ],
+
         // Cabeceras de seguridad en todas las respuestas (lib/security.php): nosniff, X-Frame-Options,
         // Referrer-Policy, Permissions-Policy y HSTS (solo por HTTPS). Y /.well-known/security.txt.
         'security' => [

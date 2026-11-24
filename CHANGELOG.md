@@ -2,6 +2,16 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.32.0 — 2026-11-24
+
+- **Chat web de Asteroid**: además del de Kepler, la web puede llevar el chat web de Asteroid (el gestor de incidencias
+  de AFI: los visitantes escriben y el cliente contesta desde Asteroid o Telegram). Con la clave del código de
+  *Suport → El meu xat web*, el script se añade antes de `</body>` en todas las páginas (`lib/asteroid.php`), salvo en
+  la edición en la propia página. La clave se pone en el panel (**Chat**, que ahora tiene una tarjeta para cada chat; se
+  puede pegar el código entero), en `config.local.php` (`asteroid.key`) o desde Cosmo con la acción remota
+  `asteroid-set`. Se guarda en `data/asteroid.json`, fuera del núcleo. El `status` remoto lleva `asteroid.enabled` y
+  `asteroid.source`. Los dos chats pueden estar a la vez.
+
 ## 1.31.3 — 2026-11-19
 
 - **Vídeos y pases de fotos también desde el panel**: el texto con formato de las fichas (el cuerpo de una entrada) y

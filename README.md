@@ -726,6 +726,24 @@ edición en la propia página, ni si la plantilla ya lleva un `data-kepler`). El
 Ninguno de los dos es del núcleo, así que una actualización no lo borra. Al guardarlo se vacía la caché de páginas.
 El `status` remoto lleva `kepler.enabled` y `kepler.source` (`panel`, `config` o vacío).
 
+### Chat web de Asteroid
+
+El chat web de Asteroid (el gestor de incidencias de AFI) en todas las páginas: los visitantes escriben y el cliente
+contesta desde Asteroid (*Suport → Xat web*) o desde Telegram. `lib/asteroid.php` añade
+`<script src="https://sat.aficat.com/index.php?r=public&m=webchat_widget&a=loader&k=CLAVE" async></script>` antes de
+`</body>` (no en la edición en la propia página, ni si la plantilla ya lleva un `m=webchat_widget`). La clave (24
+hexadecimales) sale del código de *Suport → El meu xat web* de Asteroid; AFI tiene que haber activado antes el xat web en
+la ficha del cliente, y el dominio de la web tiene que estar en la lista de webs permitidas (o la lista, vacía). Se pone
+igual que la de Kepler:
+
+1. El panel de la web, sección **Chat** (se puede pegar el código entero) o Cosmo con la acción remota `asteroid-set`
+   (`key`, `enabled`): se guarda en `data/asteroid.json` y manda sobre lo demás.
+2. `config.local.php`: `'asteroid' => ['key' => '…', 'url' => 'https://sat.aficat.com']` (`url` solo si Asteroid está en
+   otra dirección).
+
+Es independiente de Kepler: pueden estar los dos (con el botón de Asteroid a la izquierda para que no se tapen; el
+panel lo recuerda). El `status` remoto lleva `asteroid.enabled` y `asteroid.source`.
+
 ## Log
 
 `data/logs/neutron-AAAA-MM-DD.log`, con el mismo formato que Quasar:
@@ -767,6 +785,7 @@ sesión ni envían cookies. Úsala solo por HTTPS.
 | `announcements-set` (`items` = JSON) | POST | Sustituye los avisos por la lista enviada (`[]` los quita); responde como `announcements` |
 | `guide-set` (`file` = PDF en multipart, `meta` = JSON de `generar.py`; o `delete=1`) | POST | Pone (o quita) la guía de edición del panel (`site/guia-edicio.pdf` y `.json`); responde `{"ok": true, "guide": {…} \| null}` |
 | `kepler-set` (`token`, `enabled` = 0/1) | POST | Pone o quita el chat de Kepler (`data/kepler.json`, como el panel); responde `{"ok": true, "kepler": {…}}` |
+| `asteroid-set` (`key`, `enabled` = 0/1) | POST | Pone o quita el chat web de Asteroid (`data/asteroid.json`, como el panel; `key` puede ser el código entero); responde `{"ok": true, "asteroid": {…}}` |
 
 ```bash
 curl -H "X-Quasar-Token: el-token" "https://cliente.example.com/index.php?r=remote&a=status"

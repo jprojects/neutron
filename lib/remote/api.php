@@ -39,6 +39,7 @@ const NEUTRON_REMOTE_ACTIONS = [
     'announcements' => ['GET', 'neutron_remote_announcements'],
     'announcements-set' => ['POST', 'neutron_remote_announcements_set'],
     'kepler-set' => ['POST', 'neutron_remote_kepler_set'],
+    'asteroid-set' => ['POST', 'neutron_remote_asteroid_set'],
     'guide-set' => ['POST', 'neutron_remote_guide_set'],
 ];
 
@@ -165,6 +166,12 @@ function neutron_remote_status(): void {
             require_once NEUTRON_ROOT . '/lib/kepler.php';
             $k = neutron_kepler_settings();
             return ['enabled' => $k['enabled'] && neutron_kepler_valid_token($k['token']), 'source' => $k['source']];
+        })(),
+        // Chat web de Asteroid (lib/asteroid.php): si está puesto y desde dónde (panel o config.local.php)
+        'asteroid' => (function () {
+            require_once NEUTRON_ROOT . '/lib/asteroid.php';
+            $a = neutron_asteroid_settings();
+            return ['enabled' => $a['enabled'] && neutron_asteroid_valid_key($a['key']), 'source' => $a['source']];
         })(),
         'recaptcha' => [
             'enabled' => neutron_recaptcha_enabled(),
@@ -343,6 +350,16 @@ function neutron_remote_kepler_set(): void {
         return;
     }
     neutron_json(['ok' => true, 'kepler' => neutron_kepler_settings()]);
+}
+
+// Chat web de Asteroid: key (la clave o el código entero; vacía = quitarlo) y enabled (0/1). Como el panel (lib/asteroid.php).
+function neutron_remote_asteroid_set(): void {
+    require_once NEUTRON_ROOT . '/lib/asteroid.php';
+    if (!neutron_asteroid_save((string)($_POST['key'] ?? ''), ($_POST['enabled'] ?? '1') !== '0')) {
+        neutron_remote_fail('clave no válida (24 caracteres hexadecimales)', 422);
+        return;
+    }
+    neutron_json(['ok' => true, 'asteroid' => neutron_asteroid_settings()]);
 }
 
 // Guía de edición (lib/guide.php): file = el PDF (multipart) y meta = JSON {nom, url, generated, fingerprint} de

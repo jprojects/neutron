@@ -365,5 +365,11 @@
     "Quitar pase": "Treu el passi",
     "¿Quitar este vídeo?": "Vols treure aquest vídeo?",
     "¿Quitar este pase de fotos?": "Vols treure aquest passi de fotos?",
-    "¿Quitar esta foto del pase?": "Vols treure aquesta foto del passi?"
+    "¿Quitar esta foto del pase?": "Vols treure aquesta foto del passi?",
+    "El código del xat web de Asteroid": "El codi del xat web d'Asteroid",
+    "Con los dos chats activos, pon el botón de Asteroid a la izquierda (Suport → El meu xat web → Posició) para que no se tapen.": "Amb els dos xats actius, posa el botó d'Asteroid a l'esquerra (Suport → El meu xat web → Posició) perquè no es tapin.",
+    "Un chat en todas las páginas de la web. Puede ser el asistente con IA de Kepler, el chat web de Asteroid (contestáis vosotros) o los dos.": "Un xat a totes les pàgines de la web. Pot ser l'assistent amb IA de Kepler, el xat web d'Asteroid (hi contesteu vosaltres) o tots dos.",
+    "El chat web de Asteroid: los visitantes escriben y contestáis desde Asteroid (Suport → Xat web) o desde Telegram. Copia el código de Suport → El meu xat web y pégalo aquí: basta con el código entero o solo la clave.": "El xat web d'Asteroid: els visitants escriuen i hi contesteu des d'Asteroid (Suport → Xat web) o des de Telegram. Copia el codi de Suport → El meu xat web i enganxa'l aquí: serveix el codi sencer o només la clau.",
+    "Abrir Asteroid ↗": "Obrir Asteroid ↗",
+    "El código no es válido: copia el código del xat web de Asteroid (lleva «k=»)": "El codi no és vàlid: copia el codi del xat web d'Asteroid (porta «k=»)"
 }

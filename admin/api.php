@@ -14,6 +14,7 @@
 //   GET admin/api.php?a=menu                el menú editable (lib/menu.php): enlaces y páginas a las que puede ir
 //   POST admin/api.php?a=menu-save          {"items": [{href, label: {idioma: texto}, button, hidden}]} · {"reset": true}
 //   GET admin/api.php?a=kepler              chat de Kepler (lib/kepler.php) · POST ?a=kepler-save {"token": "…", "enabled": true}
+//   GET admin/api.php?a=asteroid            chat web de Asteroid (lib/asteroid.php) · POST ?a=asteroid-save {"key": "…", "enabled": true}
 define('NEUTRON_APP', true);
 
 require_once __DIR__ . '/../lib/bootstrap.php';
@@ -29,6 +30,7 @@ require_once __DIR__ . '/../lib/stats.php';
 require_once __DIR__ . '/../lib/menu.php';
 require_once __DIR__ . '/../lib/meta.php';
 require_once __DIR__ . '/../lib/kepler.php';
+require_once __DIR__ . '/../lib/asteroid.php';
 require_once __DIR__ . '/../lib/guide.php';
 
 neutron_block_if_maintenance(true);
@@ -189,6 +191,20 @@ if ($action === 'kepler-save' && $post) {
     $ok = neutron_kepler_save((string)($in['token'] ?? ''), !empty($in['enabled']));
     if (!$ok) http_response_code(422);
     echo json_encode(['ok' => $ok, 'error' => $ok ? null : 'El código no es válido: copia el valor de data-kepler del panel de Kepler']);
+    exit;
+}
+if ($action === 'asteroid') {
+    $a = neutron_asteroid_settings();
+    echo json_encode(['ok' => true, 'key' => $a['key'], 'enabled' => $a['enabled'], 'url' => $a['url'], 'source' => $a['source']]);
+    exit;
+}
+
+if ($action === 'asteroid-save' && $post) {
+    neutron_require_csrf();
+    $in = json_decode((string)file_get_contents('php://input'), true) ?: [];
+    $ok = neutron_asteroid_save((string)($in['key'] ?? ''), !empty($in['enabled']));
+    if (!$ok) http_response_code(422);
+    echo json_encode(['ok' => $ok, 'error' => $ok ? null : 'El código no es válido: copia el código del xat web de Asteroid (lleva «k=»)']);
     exit;
 }
 

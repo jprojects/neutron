@@ -31,6 +31,7 @@ require_once __DIR__ . '/lib/posts.php';
 require_once __DIR__ . '/lib/feeds.php';
 require_once __DIR__ . '/lib/panel_lang.php';
 require_once __DIR__ . '/lib/kepler.php';
+require_once __DIR__ . '/lib/asteroid.php';
 
 // La sesión solo hace falta en el editor: así los visitantes no reciben la cookie de sesión
 if (isset($_GET['admin']) || isset($_COOKIE['neutron_admin_sid'])) {
@@ -277,8 +278,8 @@ if ($cookies !== null) {
 
 header('Content-Type: text/html; charset=utf-8');
 $html = neutron_render($template, $content, $options);
-// Chat de Kepler (lib/kepler.php): no en la edición en la propia página
-if (!$editing) $html = neutron_kepler_inject($html);
+// Chats de Kepler (lib/kepler.php) y de Asteroid (lib/asteroid.php): no en la edición en la propia página
+if (!$editing) $html = neutron_asteroid_inject(neutron_kepler_inject($html));
 // Vídeos y pases de fotos del texto con formato (lib/embeds.php); en el editor se ven como bloques (assets/editor.js)
 if (!$editing && str_contains($html, 'data-embed="')) {
     require_once __DIR__ . '/lib/embeds.php';
