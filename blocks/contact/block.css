@@ -14,4 +14,7 @@
 @media (max-width: 900px) { .b-contact__in { grid-template-columns: 1fr; gap: 36px; } .b-contact__map { aspect-ratio: 4 / 3; margin-top: 48px; } }
 
 /* Un dato vacío (sin horario, sin correo…) no sale, salvo en el editor (para poder rellenarlo) */
-body:not(.neutron-editing) .b-contact li:has(span[data-edit]:empty) { display: none; }
+body:not(.neutron-editing) .b-contact li:has(span[data-edit]:empty, a[data-edit]:empty) { display: none; }
+
+/* Con mapa, el mapa cierra la sección (sin el margen de abajo, que dejaba una franja vacía antes de la siguiente) */
+.b-contact:has(.b-contact__map) { padding-bottom: 0; }

@@ -105,3 +105,11 @@ llevan los botones principales.
 - `hero`, variante `wordmark`: el título es la marca, en grande, con el antetítulo encima (como en un logotipo), un trazo
   del color principal que se dibuja una vez al cargar (quieto con «reducir movimiento») y dos fotos superpuestas
   (`image` e `image2`).
+
+## Mejoras con Perruqueria Sanglas
+
+- `hero`, variante `wordmark`: `"stroke": "curl"` en la receta cambia el trazo por un rizo con bucles (peluquerías,
+  estética); sin él, la curva suave de siempre (`swoosh`). Los trazos están en `HERO_STROKES` de `tools/compose.py`.
+- `contact`: una fila sin dato (también el teléfono o el correo, que son enlaces) no sale fuera del editor; con mapa, la
+  sección acaba en el mapa, sin el margen de abajo.
+
