@@ -12,9 +12,11 @@ function neutron_render_dom(string $html, array $content, array $options = []): 
     $menu = neutron_menu_items();
     if ($menu !== null) neutron_dom_apply_menu($dom, $xpath, $menu);
 
-    // Listas de primer nivel (las que no están dentro de otra); las anidadas las rellena su elemento
-    foreach (iterator_to_array($xpath->query('//*[@data-edit-collection]')) as $container) {
-        if (neutron_dom_owner_item($container) !== null) continue;
+    // Listas de primer nivel (las que no están dentro de otra); las anidadas las rellena su elemento. Se eligen antes
+    // de rellenar ninguna: al rellenar se borra el molde, y en PHP 8.1 mirar los padres de una lista que estaba
+    // dentro de él da «Couldn't fetch DOMElement. Node no longer exists».
+    $top = array_filter(iterator_to_array($xpath->query('//*[@data-edit-collection]')), fn($c) => neutron_dom_owner_item($c) === null);
+    foreach ($top as $container) {
         $key = $container->getAttribute('data-edit-collection');
         if (isset($content[$key]) && is_array($content[$key])) {
             neutron_dom_fill_collection($container, $content[$key]);
@@ -150,8 +152,9 @@ function neutron_dom_fill_collection(DOMElement $container, array $items, int $d
 function neutron_dom_fill_item(DOMElement $itemNode, array $data, int $depth = 0): void {
     $xpath = new DOMXPath($itemNode->ownerDocument);
     if ($depth < NEUTRON_MAX_NESTING) {
-        foreach (iterator_to_array($xpath->query('.//*[@data-edit-collection]', $itemNode)) as $sub) {
-            if (neutron_dom_owner_item($sub) !== $itemNode) continue;
+        // Las sublistas propias se eligen antes de rellenar ninguna (ver neutron_render_dom)
+        $subs = array_filter(iterator_to_array($xpath->query('.//*[@data-edit-collection]', $itemNode)), fn($s) => neutron_dom_owner_item($s) === $itemNode);
+        foreach ($subs as $sub) {
             $key = $sub->getAttribute('data-edit-collection');
             if (isset($data[$key]) && is_array($data[$key])) {
                 neutron_dom_fill_collection($sub, $data[$key], $depth + 1);

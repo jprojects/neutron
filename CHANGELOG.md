@@ -2,6 +2,13 @@
 
 Formato: una sección por versión, la más reciente arriba. Cada versión se etiqueta en git como `vX.Y.Z`.
 
+## 1.33.1 — 2026-11-25
+
+- Corregido: en PHP 8.1, una página con listas dentro de listas (una carta con secciones y servicios) daba un error
+  500 («Couldn't fetch DOMElement. Node no longer exists»). Al rellenar una lista se borra su molde, y después se
+  miraban los padres de las sublistas que había dentro. Ahora se decide qué listas rellenar antes de tocar ninguna
+  (`lib/render_dom.php`); el HTML que sale es el mismo.
+
 ## 1.33.0 — 2026-11-24
 
 - **Visitas más completas**: además de vistas, visitantes y páginas, el inicio del panel enseña los **países**, los
