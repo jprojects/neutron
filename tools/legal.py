@@ -138,6 +138,10 @@ if not a.sin_asteroid and (fresh or any(not data.get(k) for k in ('name', 'nif',
         for k, v in ast.items():
             # al crear legal.json, los datos fiscales de Asteroid mandan sobre lo que sale de la web; después, solo lo vacío
             if v and (not data.get(k) or (fresh and k in ('name', 'nif', 'address', 'asteroid_client'))): data[k] = v
+# Un NIF que es un DNI o un NIE es de una persona física (autónomo): Pulsar pone «NIF» y no «CIF»
+if fresh and re.fullmatch(r'(\d{8}|[XYZ]\d{7})[A-Z]', re.sub(r'[\s.-]', '', data.get('nif', '')).upper()):
+    data['owner_type'] = 'autonomo'
+    print('El NIF es de una persona física: titular autónomo (revisa que el nombre sea el suyo, no el comercial).')
 lf.write_text(json.dumps(data, ensure_ascii=False, indent=4) + '\n')
 if fresh:
     print(f'Creado {lf.relative_to(web)}: revisa los datos del titular.')

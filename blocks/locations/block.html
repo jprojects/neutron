@@ -1,0 +1,24 @@
+<section class="section b-locations">
+  <div class="container">
+    <header class="section-head">
+      <span class="eyebrow" data-edit="{p}_eyebrow">{{eyebrow}}</span>
+      <h2 data-edit="{p}_title">{{title}}</h2>
+      <p data-edit="{p}_text">{{text}}</p>
+    </header>
+    <div class="b-locations__list" data-edit-collection="{p}_items" data-edit-add="+">
+      <article class="b-locations__item" data-edit-item>
+        <figure class="b-locations__photo"><img data-edit-field="image" src="{{items[0].image}}" alt="" loading="lazy"></figure>
+        <div class="b-locations__body">
+          <h3 data-edit-field="name">{{items[0].name}}</h3>
+          <p class="b-locations__address" data-edit-field="address">{{items[0].address}}</p>
+          <p class="b-locations__hours" data-edit-field="hours">{{items[0].hours}}</p>
+          <p class="b-locations__note" data-edit-field="note">{{items[0].note}}</p>
+          <div class="actions">
+            <a class="btn b-locations__call" href="tel:"><span data-edit-field="phone">{{items[0].phone}}</span></a>
+            <a class="btn btn--ghost b-locations__map" href="https://www.google.com/maps" target="_blank" rel="noopener"><span data-edit-field="directions">{{items[0].directions}}</span></a>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+</section>

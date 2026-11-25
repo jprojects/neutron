@@ -1,0 +1,25 @@
+{
+  "eyebrow": "Centres",
+  "title": "On som",
+  "text": "Vine al centre que et quedi més a prop.",
+  "items": [
+    {
+      "image": "site/assets/img/placeholder.svg",
+      "name": "Primer centre",
+      "address": "Carrer, número · Codi postal Població",
+      "hours": "De dilluns a divendres, de 9 a 19 h",
+      "note": "",
+      "phone": "000 000 000",
+      "directions": "Com arribar"
+    },
+    {
+      "image": "site/assets/img/placeholder.svg",
+      "name": "Segon centre",
+      "address": "Carrer, número · Codi postal Població",
+      "hours": "De dilluns a divendres, de 9 a 19 h",
+      "note": "",
+      "phone": "000 000 000",
+      "directions": "Com arribar"
+    }
+  ]
+}

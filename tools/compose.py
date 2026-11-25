@@ -243,7 +243,12 @@ def render_block(spec, page, n):
     h = h.replace('{variant}', variant).replace('{p}', prefix)
     # "id" en la receta: el ancla de la sección (para el menú: "./#qui-som")
     if spec.get('id') and re.fullmatch(r'[a-z][a-z0-9-]*', spec['id']):
-        h = re.sub(r'<(section|header|footer|div)\b(?![^>]*\bid=)', lambda m: f'<{m.group(1)} id="{spec["id"]}"', h, count=1)
+        # El primer elemento: si ya lleva un id (text-image: id="{p}"), se cambia; si no, se añade
+        first = re.search(r'<(section|header|footer|div)\b[^>]*>', h)
+        if first:
+            tag = first.group(0)
+            new_tag = re.sub(r'\bid="[^"]*"', f'id="{spec["id"]}"', tag) if re.search(r'\bid="', tag) else tag.replace(f'<{first.group(1)}', f'<{first.group(1)} id="{spec["id"]}"', 1)
+            h = h[:first.start()] + new_tag + h[first.end():]
     # Los iconos de un bloque de accesos (shortcuts): "icons": ["food", "bed", "bag"] en la receta
     for i, ic in enumerate(spec.get('icons', []), 1): h = h.replace(f'{{{{#icon{i}}}}}', ic)
     h = re.sub(r'\{\{#icon\d\}\}', 'pin', h)
@@ -485,8 +490,9 @@ def google_fonts(families):
             css.append(f"@font-face {{ font-family: '{fam}'; font-style: {st}; font-weight: {w}; font-display: swap; src: url({name}) format('woff2'); unicode-range: {rng}; }}")
     return css
 fams = []
-if theme.get('font_head'): fams.append((theme['font_head'], 'ital,wght@0,400;0,500;0,600;1,400'))
-if theme.get('font_body') and theme.get('font_body') != theme.get('font_head'): fams.append((theme['font_body'], 'wght@400;500;600'))
+# Ejes de Google Fonts: por defecto, los de siempre; "font_head_axes": "wght@300;600;800" para otros pesos o una sin cursiva
+if theme.get('font_head'): fams.append((theme['font_head'], theme.get('font_head_axes') or 'ital,wght@0,400;0,500;0,600;1,400'))
+if theme.get('font_body') and theme.get('font_body') != theme.get('font_head'): fams.append((theme['font_body'], theme.get('font_body_axes') or 'wght@400;500;600'))
 font_css = google_fonts(fams) if fams else []
 write('assets/fonts/fonts.css', '/* Tipografías alojadas en la web (Google Fonts, licencia OFL) */\n' + '\n'.join(font_css) + '\n')
 

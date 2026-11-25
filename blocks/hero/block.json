@@ -1,12 +1,14 @@
 {
   "name": "hero",
-  "description": "Portada: título grande, texto y botones sobre una foto (image), al lado de la foto (split) o sobre un fondo animado de partículas con los colores del tema (particles: sin foto, más bajo; quieto si el visitante pide menos movimiento)",
+  "description": "Portada: título grande, texto y botones sobre una foto (image), al lado de la foto (split) o sobre un fondo animado de partículas con los colores del tema (particles: sin foto, más bajo; quieto si el visitante pide menos movimiento); o con el nombre en grande como marca (wordmark: el título es la marca, el antetítulo lo que va encima, un trazo del color principal que se dibuja una vez al cargar y dos fotos, image e image2)",
   "variants": [
     "image",
     "split",
-    "particles"
+    "particles",
+    "wordmark"
   ],
   "images": [
-    "image"
+    "image",
+    "image2"
   ]
 }

@@ -1,0 +1,8 @@
+{
+  "name": "locations",
+  "description": "Varios locales o centros (lista editable): foto, nombre, dirección, horario, una nota, el teléfono (botón para llamar) y «Cómo llegar» (abre Google Maps con la dirección; sin mapa incrustado, así no pide cookies)",
+  "variants": [
+    "cards"
+  ],
+  "images": []
+}

@@ -1,0 +1,25 @@
+{
+  "eyebrow": "Centros",
+  "title": "Dónde estamos",
+  "text": "Ven al centro que te quede más cerca.",
+  "items": [
+    {
+      "image": "site/assets/img/placeholder.svg",
+      "name": "Primer centro",
+      "address": "Calle, número · Código postal Población",
+      "hours": "De lunes a viernes, de 9 a 19 h",
+      "note": "",
+      "phone": "000 000 000",
+      "directions": "Cómo llegar"
+    },
+    {
+      "image": "site/assets/img/placeholder.svg",
+      "name": "Segundo centro",
+      "address": "Calle, número · Código postal Población",
+      "hours": "De lunes a viernes, de 9 a 19 h",
+      "note": "",
+      "phone": "000 000 000",
+      "directions": "Cómo llegar"
+    }
+  ]
+}

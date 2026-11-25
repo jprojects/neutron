@@ -25,7 +25,8 @@ webs ya entregadas. El diseño propio de cada web va encima (tema + `site/assets
 - Cada bloque: un nombre o `{"block": …, "variant": …, "prefix": …}`. El prefijo (por defecto `<página>_<bloque>`) va
   delante de sus claves de contenido, así el mismo bloque puede salir varias veces.
 - `theme`: lo que cambia el aspecto (ver `_theme/theme.css`). Las tipografías se descargan de Google Fonts y se alojan
-  en la web.
+  en la web. Con `font_head_axes` / `font_body_axes` se piden otros ejes (`"wght@300;600;800"`, p. ej. para una
+  tipografía sin cursiva o con más pesos).
 - `legal`: aviso legal, privacidad y cookies (con Pulsar, ver `tools/legal.py`).
 
 `compose.py` escribe la plantilla, las páginas, los parciales, `assets/site.css` (tema + bloques), `assets/site.js` y los
@@ -95,3 +96,12 @@ estatutos…); `migrate.py` deja el cuerpo limpio de cada página en `_migracio/
 
 En la receta, un bloque puede llevar `"id"` (el ancla: `"./#qui-som"` en `nav_extra`), y `"cta_href"` cambia a dónde
 llevan los botones principales.
+
+## Bloques añadidos con louan.cat
+
+- `locations`: varios locales o centros (lista editable) con foto, nombre, dirección, horario, una nota, el botón de
+  llamar (sigue el teléfono de cada uno) y «Cómo llegar» (Google Maps con la dirección, en otra pestaña: sin mapa
+  incrustado, así que no pide consentimiento de cookies).
+- `hero`, variante `wordmark`: el título es la marca, en grande, con el antetítulo encima (como en un logotipo), un trazo
+  del color principal que se dibuja una vez al cargar (quieto con «reducir movimiento») y dos fotos superpuestas
+  (`image` e `image2`).

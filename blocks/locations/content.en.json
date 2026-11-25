@@ -1,0 +1,25 @@
+{
+  "eyebrow": "Locations",
+  "title": "Where to find us",
+  "text": "Visit whichever location is closest to you.",
+  "items": [
+    {
+      "image": "site/assets/img/placeholder.svg",
+      "name": "First location",
+      "address": "Street, number · Postcode Town",
+      "hours": "Monday to Friday, 9 am to 7 pm",
+      "note": "",
+      "phone": "000 000 000",
+      "directions": "Get directions"
+    },
+    {
+      "image": "site/assets/img/placeholder.svg",
+      "name": "Second location",
+      "address": "Street, number · Postcode Town",
+      "hours": "Monday to Friday, 9 am to 7 pm",
+      "note": "",
+      "phone": "000 000 000",
+      "directions": "Get directions"
+    }
+  ]
+}

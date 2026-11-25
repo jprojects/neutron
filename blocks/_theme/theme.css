@@ -51,6 +51,9 @@ strong { font-weight: 600; color: var(--c-head); }
 .btn--outline-light { background: transparent; border-color: rgba(255,255,255,.7); color: #fff; }
 .btn--outline-light:hover { background: #fff; color: var(--c-head); filter: none; }
 .actions { display: flex; flex-wrap: wrap; gap: 12px; }
+/* Un botón o enlace de teléfono o correo sin texto no sale (el cliente lo quita vaciándolo); en el editor sí, para rellenarlo */
+.btn:empty, .js-phone:empty, .js-email:empty { display: none; }
+.is-admin .btn:empty, .is-admin .js-phone:empty, .is-admin .js-email:empty { display: inline-flex; min-width: 90px; min-height: 1.4em; outline: 1px dashed currentColor; }
 /* Modo edición: la barra del editor ocupa 48 px */
 .is-admin .site-header { top: 48px; }
 @media (max-width: 640px) {

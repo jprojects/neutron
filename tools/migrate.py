@@ -213,6 +213,18 @@ while queue and len(pages) < a.max:
     if len(pages) % 10 == 0: log(f'  {len(pages)} páginas…')
 log(f'{len(pages)} páginas descargadas.')
 
+# Páginas de adjunto de WordPress (una por imagen o PDF subido, body.attachment): no son contenido. Ni páginas ni
+# colecciones ni formularios; sus URLs van a la portada en las redirecciones
+attachments = []
+home_page = pages.get(start) or next(iter(pages.values()), None)
+for u in list(pages):
+    body = next(iter(pages[u]['tree'].find_all('body')), None)
+    if home_page is not None and pages[u] is not home_page and body is not None and re.search(r'\battachmentid-\d+', body.get('class')):
+        p_ = pages.pop(u)
+        home_page.setdefault('alias', []).extend([u] + p_.get('alias', []))
+        attachments.append(u)
+if attachments: log(f'  {len(attachments)} páginas de adjunto de WordPress: solo redirecciones a la portada.')
+
 # Webs que montan el contenido con JavaScript: poco texto en el HTML
 def visible_len(tree):
     body = next(iter(tree.find_all('body')), tree)
@@ -420,7 +432,10 @@ fav_img = None
 for size, url in sorted(icons, key=lambda x: -x[0]):
     if re.search(r'cdn-website\.com/runtime|wixstatic.*favicon|squarespace.*favicon', url):
         fav_note = f'El favicon de la web antigua es el genérico del constructor ({url}): se ha hecho desde el logo.'; continue
-    _, st, _, data = fetch(url, binary=True)
+    final_fav, st, _, data = fetch(url, binary=True)
+    # WordPress sin icono propio sirve /favicon.ico con su logo (wp-includes/images/w-logo-…)
+    if re.search(r'wp-includes/images/w-logo', final_fav or ''):
+        fav_note = 'El favicon de la web antigua es el genérico de WordPress: se ha hecho desde el logo.'; continue
     if st == 200 and data:
         try:
             im = Image.open(io.BytesIO(data)); im.load(); fav_img = im.convert('RGBA'); fav_src = url; break
@@ -447,6 +462,16 @@ text_all = '\n'.join(re.sub(r'<[^>]+>', ' ', html.unescape(p['html'])) for p in 
 emails = collections.Counter(e.lower() for e in re.findall(r'(?<![\w@])[\w.+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}(?![\w.-]*\w)',
                                                            ' '.join(html.unescape(p['html']) for p in pages.values()))
                              if not re.search(r'\.(png|jpe?g|webp|gif|svg|css|js)$|example|sentry|wixpress|domain\.|serviciodecorreo|@2x|wght@', e, re.I))
+# Un mailto: que no es el correo que se ve (<a href="mailto:x@…">y@…</a>): manda el que ve el visitante
+mail_mismatch = {}
+for p in pages.values():
+    for n in p['tree'].find_all('a'):
+        m = re.match(r'mailto:([^?]+)', html.unescape(n.get('href')).strip(), re.I)
+        shown = clean_text(n.text_content()).strip().lower()
+        if m and re.fullmatch(r'[\w.+-]+@[\w-]+(\.[\w-]+)+', shown) and m.group(1).strip().lower() != shown:
+            mail_mismatch[m.group(1).strip().lower()] = shown
+for bad, good in mail_mismatch.items():
+    emails.pop(bad, None); emails[good] += 1
 for e in list(emails):                                   # «info@web.c» cortado al final de una línea
     if any(o != e and o.startswith(e) for o in emails): del emails[e]
 # Teléfonos: los enlaces tel: y, en el texto, números españoles escritos con separadores (938 890 233, 93.889.02.33)
@@ -586,6 +611,8 @@ for p in pages.values():
             label = menu_label.get(p['url']) or next((menu_label[x] for x in p.get('alias', []) if x in menu_label), '')
             name = slugify(label) if label else (slugify(re.sub(r'\s*[|·–-].*$', '', p['title'])) if p['title'] else name)
         pre = (p['lang'] + '/') if multi else ''
+        if old in attachments:                                     # adjunto de WordPress: a la portada
+            redir[r] = pre or './'; continue
         if p in posts:
             col = {'ca': 'noticies', 'es': 'noticias', 'fr': 'actualites'}.get(p['lang'] or main_lang, 'news')   # como migrate_collections.NAMES
             dest = f'{pre}{col}/{re.sub(r"^\\d+-", "", name)}'
@@ -678,6 +705,7 @@ L = []
 w = L.append
 w(f'# Migración de {a.url}\n')
 w(f"Fecha: {time.strftime('%Y-%m-%d %H:%M')} · CMS: **{cms}**{' (' + gen + ')' if gen else ''} · {len(pages)} páginas · {len(images)} imágenes\n")
+if attachments: w(f"{len(attachments)} páginas de adjunto de WordPress (una por imagen o PDF subido) no se migran: redirigidas a la portada.\n")
 if excluded:
     w('URLs no rastreadas: ' + ', '.join(f'{n} por `{pat}`' for pat, n in excluded.most_common()) + ' (`--excluir`).\n')
 if js_pages:
@@ -694,6 +722,7 @@ w('\n## Menú de la portada\n')
 for t, h in menu[:30]: w(f'- {t} → `{h}`')
 w('\n## Contacto\n')
 w('- Correos: ' + (', '.join(e for e, _ in emails.most_common(5)) or '—'))
+for bad, good in mail_mismatch.items(): w(f'- Ojo: el enlace de `{good}` escribía a `{bad}` (descartado)')
 w('- Teléfonos: ' + (', '.join(t for t, _ in phones.most_common(5)) or '—'))
 w('- Códigos postales y población: ' + (', '.join(c for c, _ in cps.most_common(5)) or '—'))
 w('\n## Redes sociales (→ `data-edit-href="social_<red>"`)\n')
